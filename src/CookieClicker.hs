@@ -49,8 +49,8 @@ data GameState = GameState
   { _buildingMults   :: !(Map Building Double)
   , _buildingBases   :: !(Map Building Double)
   , _buildingBonuses :: !(Map Building Double)
-  , _multiplier  :: !Double
-  , _mouseBonus  :: !Double
+  , _multiplier      :: !Double
+  , _mouseBonus      :: !Double
   }
   deriving (Read, Show)
 
@@ -129,19 +129,25 @@ computeGameState input
 computeMilk :: GameInput -> Double
 computeMilk = views achievementsEarned $ \x -> fromIntegral x * 0.04
 
+type Effect = GameInput -> GameState -> GameState
+
+mouseAdd :: Effect
 mouseAdd = \_ -> mouseBonus +~ 0.01
 
+kittenBonus :: Double -> Effect
 kittenBonus pct = \inp -> multiplier *~ (1 + computeMilk inp * pct/100)
 
+cookieBonus :: Double -> Effect
 cookieBonus pct = \_ -> multiplier *~ (1+pct/100)
 
+cursorAdd :: Double -> Effect
 cursorAdd bonus = \inp ->
   let count = sum (Map.delete Cursor (view buildingsOwned inp))
   in buildingBonus Cursor +~ bonus * fromIntegral count
 
-grandmaType building count = \inp -> 
-    let bonus = fromIntegral (view (buildingOwned Grandma) inp)
-              / fromIntegral count :: Double
+grandmaType :: Building -> Double -> Effect
+grandmaType building count = \inp ->
+    let bonus = views (buildingOwned Grandma) fromIntegral inp / count
     in (buildingMult building *~ (1 + 0.01 * bonus))
      . (buildingMult Grandma  *~ 2)
 
@@ -151,6 +157,7 @@ buildingOwned k = buildingsOwned . at k . non 0
 doubler :: Building -> GameInput -> GameState -> GameState
 doubler k _ = buildingMult k *~ 2
 
+computeBuildingCps :: GameState -> Map Building Double
 computeBuildingCps st
   = Map.unionWith (+) multiplied (view buildingBonuses st)
   where
@@ -166,6 +173,7 @@ computeBuildingCps st
             | otherwise  = error "stray multiplier"
 
 
+buildingCosts :: GameInput -> Map Building Double
 buildingCosts inp =
   Map.mergeWithKey
     (\_ cnt base -> Just (base * 1.15 ^ cnt))
@@ -186,13 +194,20 @@ payoff inp =
      [ [ StringV act
        , NumberV (toRational pay)
        , StringV (prettyTime (truncate (cost / cps)))
-       , StringV (prettyNumber (cost + frenzyReserve))
+       , StringV (prettyNumber ShortSuffix (cost + frenzyReserve))
        ]
-     | (act, (pay, cost)) <- buyBuilding ++ buyUpgrades
+     | (act, (pay, cost)) <- buyBuilding ++ buyUpgrades ++ custom
      ]
 
   where
   frenzyReserve = 7 * 6000 * cps
+
+  fingersNeeded = 240 - view (buildingOwned Cursor) inp
+  fingersCost   = sum $ take (fromIntegral fingersNeeded) $ iterate (*1.15) $ costs ^?! ix Cursor
+  custom = [("FINGERS",
+                effect (100e12 + fingersCost)
+                       ( (buildingOwned Cursor +~ fingersNeeded)
+                       . (upgradesBought <>~ [fromJust (Map.lookup "Sextillion fingers" upgradeMap)])))]
 
   buyBuilding =
     [( "+1 " ++ show x
@@ -226,24 +241,21 @@ payoff inp =
   cps = computeCps inp st
   st = computeGameState inp
 
-  effect cost f = (cost / (computeCps inp (computeGameState (f inp)) - cps), cost)
+  effect cost f = (cost / (computeCps (f inp) (computeGameState (f inp)) - cps), cost)
 
-prettyMap :: (Show k) => Map k Double -> String
-prettyMap m = unlines [show k ++ ":\t" ++ showEFloat (Just 3) v "" | (k,v) <- sortBy (comparing snd) (Map.toList m)]
-
+computeCps :: GameInput -> GameState -> Double
 computeCps inp st =
   view multiplier st *
   sum (Map.intersectionWith (\count cps -> fromIntegral count * cps)
          (view buildingsOwned inp)
          (computeBuildingCps st))
 
-computeClickCookies :: GameInput -> Double
-computeClickCookies inp =
+computeClickCookies :: GameInput -> GameState -> Double
+computeClickCookies inp st =
     computeCps inp st * view mouseBonus st
   + view multiplier st * (view (buildingMult Cursor) st + view (buildingBonus Cursor) st)
-  where
-  st = computeGameState inp
 
+loadMyInput :: IO GameInput
 loadMyInput =
   do txt <- Text.readFile "input.yaml"
      either fail return (parseConfig =<< Config.parse txt)
@@ -253,32 +265,32 @@ main =
   do input <- loadMyInput
      putStrLn (payoff input)
      let st = computeGameState input
-     let cps = computeCps input st
-     putStrLn ("Buildings:\t" ++ show (sum (view buildingsOwned input)))
-     putStrLn ("Upgrades:\t" ++ show (length (view upgradesBought input)))
-     putStrLn ("Cookie/s:\t" ++ prettyNumber cps)
-     putStrLn ("Cookie/c:\t" ++ prettyNumber (computeClickCookies input))
-     putStrLn ("Reserve:\t" ++  prettyNumber (7*6000*cps))
-     putStrLn ("Cookie/s x7:\t" ++ prettyNumber (7*cps))
-     putStrLn ("Lucky x7:\t" ++  prettyNumber (7*900*cps))
+         cps = computeCps input st
+     putStrLn $ "Buildings:\t"   ++ show (sum (view buildingsOwned input))
+     putStrLn $ "Upgrades:\t"    ++ show (length (view upgradesBought input))
+     putStrLn $ "Cookie/s:\t"    ++ prettyNumber LongSuffix cps
+     putStrLn $ "Cookie/c:\t"    ++ prettyNumber LongSuffix (computeClickCookies input st)
+     putStrLn $ "Reserve:\t"     ++ prettyNumber LongSuffix (7*6000*cps)
+     putStrLn $ "Cookie/s x7:\t" ++ prettyNumber LongSuffix (7*cps)
+     putStrLn $ "Lucky x7:\t"    ++ prettyNumber LongSuffix (7*900*cps)
 
 
 parseConfig :: Config.Value -> Either String GameInput
 parseConfig input =
-  do achieve <- section "achievements" input Config.number
-     buildSect <- section "buildings" input Config.sections
-     upgradeSect <- section "upgrades" input Config.list
-     shopSect <- section "shop" input Config.list
+  do achieve     <- section "achievements" input Config.number
+     buildSect   <- section "buildings"    input Config.sections
+     upgradeSect <- section "upgrades"     input Config.list
+     shopSect    <- section "shop"         input Config.list
 
-     buildings <- traverse parseBuilding buildSect
-     upgrades  <- traverse parseUpgrade upgradeSect
-     shop      <- traverse parseUpgrade shopSect
+     buildings   <- traverse parseBuilding buildSect
+     upgrades    <- traverse parseUpgrade  upgradeSect
+     shop        <- traverse parseUpgrade  shopSect
 
      return GameInput
        { _achievementsEarned = achieve
-       , _buildingsOwned = Map.fromList buildings
-       , _upgradesBought = upgrades
-       , _upgradesAvailable = shop
+       , _buildingsOwned     = Map.fromList buildings
+       , _upgradesBought     = upgrades
+       , _upgradesAvailable  = shop
        }
 
 parseBuilding :: Config.Section -> Either String (Building, Integer)
@@ -296,25 +308,39 @@ parseUpgrade v =
         Nothing -> Left (Text.unpack txt)
     Nothing -> Left "bad upgrade"
 
+section :: String -> Config.Value -> Traversal' Config.Value a -> Either String a
 section k x l = maybe (Left k) Right (preview (Config.key (Text.pack k) . l) x)
+{-# INLINE section #-}
 
-prettyNumber :: Double -> String
-prettyNumber n
+data SuffixLength = LongSuffix | ShortSuffix
+
+prettyNumber :: SuffixLength -> Double -> String
+prettyNumber s n
   | n < 1e3 = showFFloat (Just 1) n ""
   | n < 1e6 = let (w,p) = properFraction n
               in numberWithSeparators w ++ drop 1 (showFFloat (Just 1) p "")
-  | n < 1e9 = showFFloat  (Just 3) (n / 1e6 ) " million"
-  | n < 1e12 = showFFloat (Just 3) (n / 1e9 ) " billion"
-  | n < 1e15 = showFFloat (Just 3) (n / 1e12) " trillion"
-  | n < 1e18 = showFFloat (Just 3) (n / 1e15) " quadrillion"
-  | n < 1e21 = showFFloat (Just 3) (n / 1e18) " quintillion"
-  | n < 1e24 = showFFloat (Just 3) (n / 1e21) " sextillion"
-  | n < 1e27 = showFFloat (Just 3) (n / 1e24) " septillion"
-  | n < 1e30 = showFFloat (Just 3) (n / 1e27) " octillion"
-  | n < 1e33 = showFFloat (Just 3) (n / 1e30) " nonillion"
-  | n < 1e36 = showFFloat (Just 3) (n / 1e33) " decillion"
-  | n < 1e39 = showFFloat (Just 3) (n / 1e36) " undecillion"
-  | otherwise = showFFloat (Just 3) (n / 1e39) " duodecillion"
+  | n < 1e9   = showFFloat (Just 3) (n / 1e6 ) (suffix " M" " million")
+  | n < 1e12  = showFFloat (Just 3) (n / 1e9 ) (suffix " B" " billion")
+  | n < 1e15  = showFFloat (Just 3) (n / 1e12) (suffix " T" " trillion")
+  | n < 1e18  = showFFloat (Just 3) (n / 1e15) (suffix " Qa" " quadrillion")
+  | n < 1e21  = showFFloat (Just 3) (n / 1e18) (suffix " Qi" " quintillion")
+  | n < 1e24  = showFFloat (Just 3) (n / 1e21) (suffix " Sx" " sextillion")
+  | n < 1e27  = showFFloat (Just 3) (n / 1e24) (suffix " Sp" " septillion")
+  | n < 1e30  = showFFloat (Just 3) (n / 1e27) (suffix " Oc" " octillion")
+  | n < 1e33  = showFFloat (Just 3) (n / 1e30) (suffix " No" " nonillion")
+  | n < 1e36  = showFFloat (Just 3) (n / 1e33) (suffix " Dc" " decillion")
+  | n < 1e39  = showFFloat (Just 3) (n / 1e36) (suffix " UnD" " undecillion")
+  | n < 1e42  = showFFloat (Just 3) (n / 1e39) (suffix " DoD" " duodecillion")
+  | n < 1e45  = showFFloat (Just 3) (n / 1e42) (suffix " TrD" " tredecillion")
+  | n < 1e48  = showFFloat (Just 3) (n / 1e45) (suffix " QaD" " quattuordecillion")
+  | otherwise = let (w,p) = properFraction (n / 1e48)
+                in numberWithSeparators w
+                ++ drop 1 (showFFloat (Just 3) p (suffix " QiD" " quindecillion"))
+  where
+  suffix short long =
+    case s of
+      ShortSuffix -> short
+      LongSuffix  -> long
 
 numberWithSeparators :: Integer -> String
 numberWithSeparators
@@ -346,84 +372,87 @@ upgradeMap = Map.fromList [ (view upgradeName u, u) | u <- allUpgrades ]
 
 gpoc :: Building -> Double -> GameInput -> GameState -> GameState
 gpoc b bonus = \inp ->
-  let gmas = view (buildingsOwned . at b . non 0) inp
-  in buildingBase Grandma +~ bonus * fromIntegral gmas
+  let gmas = views (buildingOwned b) fromIntegral inp
+  in buildingBase Grandma +~ bonus * gmas
 
 allUpgrades :: [Upgrade]
 allUpgrades =
-   [ Upgrade   0 "Reinforced Index Finger" 100 $ doubler Cursor
-   , Upgrade   1 "Carpal tunnel prevention cream" 500 $ doubler Cursor
-   , Upgrade   2 "Ambidextrous" 10e3 $ doubler Cursor
-   , Upgrade   3 "Thousand fingers" 100e3 $ cursorAdd 0.1
-   , Upgrade   4 "Million fingers"  10e6 $ cursorAdd 0.5
-   , Upgrade   5 "Billion fingers"  100e6 $ cursorAdd 5
-   , Upgrade   6 "Trillion fingers" 1e9 $ cursorAdd 50
-   , Upgrade  43 "Quadrillion fingers" 10e9 $ cursorAdd 500
-   , Upgrade  82 "Quintillion fingers" 10e12 $ cursorAdd 5000
+   [ Upgrade   0 "Reinforced Index Finger"        100.0e0  $ doubler Cursor
+   , Upgrade   1 "Carpal tunnel prevention cream" 500.0e0  $ doubler Cursor
+   , Upgrade   2 "Ambidextrous"                    10.0e3  $ doubler Cursor
+   , Upgrade   3 "Thousand fingers"               100.0e3  $ cursorAdd 0.1
+   , Upgrade   4 "Million fingers"                 10.0e6  $ cursorAdd 0.5
+   , Upgrade   5 "Billion fingers"                100.0e6  $ cursorAdd 5
+   , Upgrade   6 "Trillion fingers"                 1.0e9  $ cursorAdd 50
+   , Upgrade  43 "Quadrillion fingers"             10.0e9  $ cursorAdd 500
+   , Upgrade  82 "Quintillion fingers"             10.0e12 $ cursorAdd 5000
+   , Upgrade 109 "Sextillion fingers"             100.0e12 $ cursorAdd 50000
+   , Upgrade 188 "Septillion fingers"               1.0e15 $ cursorAdd 500000
+   , Upgrade 189 "Octillion fingers"               10.0e15 $ cursorAdd 5000000
 
        ---- MICE
-   , Upgrade  75 "Plastic mouse"     50e3  mouseAdd
-   , Upgrade  76 "Iron mouse"         5e6  mouseAdd
-   , Upgrade  77 "Titanium mouse"   500e6  mouseAdd
-   , Upgrade  78 "Adamantium mouse"  50e9  mouseAdd
-   , Upgrade 119 "Unobtainium mouse"  5e12 mouseAdd
-   , Upgrade 190 "Eludium mouse"    500e12 mouseAdd
-   , Upgrade 191 "Wishalloy mouse"   50e15 mouseAdd
-   , Upgrade   0 "Fantasteel mouse"   5e18 mouseAdd
-   , Upgrade   0 "Nevercrack mouse"  50e15 mouseAdd
+   , Upgrade  75 "Plastic mouse"     50.0e3  mouseAdd
+   , Upgrade  76 "Iron mouse"         5.0e6  mouseAdd
+   , Upgrade  77 "Titanium mouse"   500.0e6  mouseAdd
+   , Upgrade  78 "Adamantium mouse"  50.0e9  mouseAdd
+   , Upgrade 119 "Unobtainium mouse"  5.0e12 mouseAdd
+   , Upgrade 190 "Eludium mouse"    500.0e12 mouseAdd
+   , Upgrade 191 "Wishalloy mouse"   50.0e15 mouseAdd
+   , Upgrade   0 "Fantasteel mouse"   5.0e18 mouseAdd
+   , Upgrade   0 "Nevercrack mouse"  50.0e15 mouseAdd
 
    --    -- GRANDMAS
-   , Upgrade   7 "Forwards from grandma"       1e3  $ doubler Grandma
-   , Upgrade   8 "Steel-plated rolling pins"   5e3  $ doubler Grandma
-   , Upgrade   9 "Lubricated dentures"        50e3  $ doubler Grandma
-   , Upgrade  44 "Prune juice"                 5e6  $ doubler Grandma
-   , Upgrade 110 "Double-thick glasses"      500e6  $ doubler Grandma
-   , Upgrade 192 "Aging agents"               50e9  $ doubler Grandma
-   , Upgrade 294 "Xtreme walkers"             50e12 $ doubler Grandma
-   , Upgrade 307 "The Unbridling"             50e15 $ doubler Grandma
+   , Upgrade   7 "Forwards from grandma"       1.0e3  $ doubler Grandma
+   , Upgrade   8 "Steel-plated rolling pins"   5.0e3  $ doubler Grandma
+   , Upgrade   9 "Lubricated dentures"        50.0e3  $ doubler Grandma
+   , Upgrade  44 "Prune juice"                 5.0e6  $ doubler Grandma
+   , Upgrade 110 "Double-thick glasses"      500.0e6  $ doubler Grandma
+   , Upgrade 192 "Aging agents"               50.0e9  $ doubler Grandma
+   , Upgrade 294 "Xtreme walkers"             50.0e12 $ doubler Grandma
+   , Upgrade 307 "The Unbridling"             50.0e15 $ doubler Grandma
 
-   , Upgrade  57 "Farmer grandmas"       55e3  $ grandmaType Farm         1
-   , Upgrade  58 "Miner grandmas"       600e3  $ grandmaType Mine         2
+   , Upgrade  57 "Farmer grandmas"     55.0e3  $ grandmaType Farm         1
+   , Upgrade  58 "Miner grandmas"     600.0e3  $ grandmaType Mine         2
    , Upgrade  59 "Worker grandmas"      6.5e6  $ grandmaType Factory      3
-   , Upgrade 250 "Banker grandmas"       70e6  $ grandmaType Bank         4
-   , Upgrade 251 "Priestess grandmas"     1e9  $ grandmaType Temple       5
+   , Upgrade 250 "Banker grandmas"     70.0e6  $ grandmaType Bank         4
+   , Upgrade 251 "Priestess grandmas"   1.0e9  $ grandmaType Temple       5
    , Upgrade 252 "Witch grandmas"      16.5e9  $ grandmaType WizardTower  6
-   , Upgrade  60 "Cosmic grandmas"      255e9  $ grandmaType Shipment     7
+   , Upgrade  60 "Cosmic grandmas"    255.0e9  $ grandmaType Shipment     7
    , Upgrade  61 "Transmuted grandmas" 3.75e12 $ grandmaType AlchemyLab   8
-   , Upgrade  62 "Altered grandmas"      50e12 $ grandmaType Portal       9
-   , Upgrade  63 "Grandmas' grandmas"   700e12 $ grandmaType TimeMachine 10
+   , Upgrade  62 "Altered grandmas"    50.0e12 $ grandmaType Portal       9
+   , Upgrade  63 "Grandmas' grandmas" 700.0e12 $ grandmaType TimeMachine 10
    , Upgrade 103 "Antigrandmas"         8.5e15 $ grandmaType Antimatter  11
-   , Upgrade 180 "Rainbow grandmas"     105e15 $ grandmaType Prism       12
+   , Upgrade 180 "Rainbow grandmas"   105.0e15 $ grandmaType Prism       12
 
    --    -- FARMS
-   , Upgrade  10 "Cheap hoes" 11e3 $ doubler Farm
-   , Upgrade  11 "Fertilizer" 55e3 $ doubler Farm
-   , Upgrade  12 "Cookie trees" 550e3 $ doubler Farm
-   , Upgrade  45 "Genetically-modified cookies" 55e6 $ doubler Farm
-   , Upgrade 111 "Gingerbread scarecrows" 5.5e9 $ doubler Farm
-   , Upgrade 193 "Pulsar sprinklers" 550e9 $ doubler Farm
-   , Upgrade 295 "Fudge fungus" 550e12 $ doubler Farm
-   , Upgrade 308 "Wheat triffids" 550e15 $ doubler Farm
+   , Upgrade  10 "Cheap hoes"                    11.0e3  $ doubler Farm
+   , Upgrade  11 "Fertilizer"                    55.0e3  $ doubler Farm
+   , Upgrade  12 "Cookie trees"                 550.0e3  $ doubler Farm
+   , Upgrade  45 "Genetically-modified cookies"  55.0e6  $ doubler Farm
+   , Upgrade 111 "Gingerbread scarecrows"         5.5e9  $ doubler Farm
+   , Upgrade 193 "Pulsar sprinklers"            550.0e9  $ doubler Farm
+   , Upgrade 295 "Fudge fungus"                 550.0e12 $ doubler Farm
+   , Upgrade 308 "Wheat triffids"               550.0e15 $ doubler Farm
 
    --    -- MINES
-   , Upgrade  16 "Sugar gas" 120e3 $ doubler Mine
-   , Upgrade  17 "Megadrill" 600e3 $ doubler Mine
-   , Upgrade  18 "Ultradrill" 6e6 $ doubler Mine
-   , Upgrade  47 "Ultimadrill" 600e6 $ doubler Mine
-   , Upgrade 113 "H-bomb mining" 60e9 $ doubler Mine
-   , Upgrade 195 "Coreforge" 6e12 $ doubler Mine
-   , Upgrade 296 "Planetsplitters" 6e15 $ doubler Mine
-   , Upgrade 309 "Canola oil wells" 6e18 $ doubler Mine
+   , Upgrade  16 "Sugar gas"      120.0e3  $ doubler Mine
+   , Upgrade  17 "Megadrill"      600.0e3  $ doubler Mine
+   , Upgrade  18 "Ultradrill"       6.0e6  $ doubler Mine
+   , Upgrade  47 "Ultimadrill"    600.0e6  $ doubler Mine
+   , Upgrade 113 "H-bomb mining"   60.0e9  $ doubler Mine
+   , Upgrade 195 "Coreforge"        6.0e12 $ doubler Mine
+   , Upgrade 296 "Planetsplitters"  6.0e15 $ doubler Mine
+   , Upgrade 309 "Canola oil wells" 6.0e18 $ doubler Mine
 
    --    -- FACTORIES
-   , Upgrade  13 "Sturdier conveyor belts" 1.3e6 $ doubler Factory
-   , Upgrade  14 "Child labor" 6.5e6 $ doubler Factory
-   , Upgrade  15 "Sweatshop" 65e6 $ doubler Factory
-   , Upgrade  46 "Radium reactors" 6.5e9 $ doubler Factory
-   , Upgrade 112 "Recombobulators" 650e9 $ doubler Factory
-   , Upgrade 194 "Deep-bake process" 65e12 $ doubler Factory
-   , Upgrade 297 "Cyborg workforce" 65e15 $ doubler Factory
-   , Upgrade 310 "78-hour days" 65e18 $ doubler Factory
+   , Upgrade  13 "Sturdier conveyor belts" 1.3e6  $ doubler Factory
+   , Upgrade  14 "Child labor"             6.5e6  $ doubler Factory
+   , Upgrade  15 "Sweatshop"              65.0e6  $ doubler Factory
+   , Upgrade  46 "Radium reactors"         6.5e9  $ doubler Factory
+   , Upgrade 112 "Recombobulators"       650.0e9  $ doubler Factory
+   , Upgrade 194 "Deep-bake process"      65.0e12 $ doubler Factory
+   , Upgrade 297 "Cyborg workforce"       65.0e15 $ doubler Factory
+   , Upgrade 310 "78-hour days"           65.0e18 $ doubler Factory
 
    --    -- BANKS
    , Upgrade 232 "Taller tellers" 14e6 $ doubler Bank
@@ -516,14 +545,14 @@ allUpgrades =
    , Upgrade 319 "Reverse shadows"   1.05e30 $ doubler Prism
 
    --    -- KITTENS
-   , Upgrade 31  "Kitten helpers"       9e6  $ kittenBonus 10
-   , Upgrade 32  "Kitten workers"       9e9  $ kittenBonus 12.5
-   , Upgrade 54  "Kitten engineers"    90e12 $ kittenBonus 15
-   , Upgrade 108 "Kitten overseers"    90e15 $ kittenBonus 17.5
-   , Upgrade 187 "Kitten managers"    900e18 $ kittenBonus 20
-   , Upgrade 320 "Kitten accountants" 900e21 $ kittenBonus 20
-   , Upgrade 321 "Kitten specialists" 900e24 $ kittenBonus 20
-   , Upgrade 322 "Kitten experts"     900e27 $ kittenBonus 20
+   , Upgrade 31  "Kitten helpers"       9.0e6  $ kittenBonus 10
+   , Upgrade 32  "Kitten workers"       9.0e9  $ kittenBonus 12.5
+   , Upgrade 54  "Kitten engineers"    90.0e12 $ kittenBonus 15
+   , Upgrade 108 "Kitten overseers"    90.0e15 $ kittenBonus 17.5
+   , Upgrade 187 "Kitten managers"    900.0e18 $ kittenBonus 20
+   , Upgrade 320 "Kitten accountants" 900.0e21 $ kittenBonus 20
+   , Upgrade 321 "Kitten specialists" 900.0e24 $ kittenBonus 20
+   , Upgrade 322 "Kitten experts"     900.0e27 $ kittenBonus 20
    -- , Upgrade 291 "Kitten angels" 9000HC
 
    --    -- COOKIES
