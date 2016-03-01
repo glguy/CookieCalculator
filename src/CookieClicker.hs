@@ -204,10 +204,19 @@ payoff inp =
 
   fingersNeeded = 240 - view (buildingOwned Cursor) inp
   fingersCost   = sum $ take (fromIntegral fingersNeeded) $ iterate (*1.15) $ costs ^?! ix Cursor
-  custom = [("FINGERS",
-                effect (100e12 + fingersCost)
-                       ( (buildingOwned Cursor +~ fingersNeeded)
-                       . (upgradesBought <>~ [fromJust (Map.lookup "Sextillion fingers" upgradeMap)])))]
+  custom =
+    [ finish 280 Cursor "Septillion fingers"
+    , finish 250 Grandma "The Unbridling"
+    , finish 200 Mine "Planetsplitters"
+    , finish 200 Factory "Cyborg workforce"
+    , finish 200 Bank "Way of the wallet"
+    , finish 150 WizardTower "Dark formulas"
+    , finish 100 Shipment "Chocolate monoliths"
+    , finish 100 AlchemyLab "Aqua crustuale"
+    , finish 100 Portal "Sanity dance"
+    , finish 50 Antimatter "Big bang bake"
+    , finish 50 Prism "Grainbow"
+    ]
 
   buyBuilding =
     [( "+1 " ++ show x
@@ -242,6 +251,15 @@ payoff inp =
   st = computeGameState inp
 
   effect cost f = (cost / (computeCps (f inp) (computeGameState (f inp)) - cps), cost)
+
+  finish n b up = ("+" ++ show n' ++ " " ++ show b, effect cost f)
+    where
+    Just u = Map.lookup up upgradeMap
+    n' = n - view (buildingOwned b) inp
+    cost = view upgradeCost u + sum (take (fromIntegral n') (iterate (*1.15) (costs ^?! ix b)))
+    f = (upgradesBought <>~ [u])
+      . (achievementsEarned +~ 1)
+      . (buildingOwned b .~ n)
 
 computeCps :: GameInput -> GameState -> Double
 computeCps inp st =
@@ -589,7 +607,7 @@ allUpgrades =
    , Upgrade 258 "Ladyfingers"                           100e15 $ cookieBonus 3
    , Upgrade 259 "Tuiles"                                500e15 $ cookieBonus 3
    , Upgrade 260 "Chocolate-stuffed biscuits"              1e18 $ cookieBonus 3
-   , Upgrade 261 "Cheker cookies"                          5e18 $ cookieBonus 3
+   , Upgrade 261 "Checker cookies"                          5e18 $ cookieBonus 3
    , Upgrade 262 "Butter cookies"                         10e18 $ cookieBonus 3
    , Upgrade 263 "Cream cookies"                          50e18 $ cookieBonus 3
 
