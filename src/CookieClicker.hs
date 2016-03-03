@@ -56,9 +56,11 @@ data GameState = GameState
 
 data GameInput = GameInput
   { _buildingsOwned     :: Map Building Integer
+  , _buildingsFree      :: Map Building Integer
   , _achievementsEarned :: Integer
   , _upgradesBought     :: [Upgrade]
   , _upgradesAvailable  :: [Upgrade]
+  , _prestigeLevel      :: Integer
   }
 
 makeLenses ''GameInput
@@ -70,7 +72,7 @@ initialGameState input = GameState
   { _buildingBases = baseCps
   , _buildingMults = Map.empty
   , _buildingBonuses = Map.empty
-  , _multiplier  = 1
+  , _multiplier  = 1 + 0.01 * views prestigeLevel fromIntegral input
   , _mouseBonus  = 0
   }
 
@@ -179,8 +181,12 @@ buildingCosts inp =
     (\_ cnt base -> Just (base * 1.15 ^ cnt))
     (\_          -> Map.empty)
     id
-    (view buildingsOwned inp)
+    owned'
     initialCosts
+  where
+  owned' = Map.unionWith (-)
+             (view buildingsOwned inp)
+             (view buildingsFree inp)
 
 payoff :: GameInput -> String
 payoff inp =
@@ -188,12 +194,12 @@ payoff inp =
   $ sortSpreadsheet
   $ Spreadsheet [ Column "Action" StringT Nothing
                 , Column "Metric" (NumberT (Just 0)) (Just Ascending)
-                , Column "Saveup" StringT Nothing
+                , Column "Saveup" (NumberT (Just 1)) Nothing
                 , Column "Buy at" StringT Nothing
                 ]
      [ [ StringV act
        , NumberV (toRational pay)
-       , StringV (prettyTime (truncate (cost / cps)))
+       , NumberV (toRational (cost / (7*900*cps)))
        , StringV (prettyNumber ShortSuffix (cost + frenzyReserve))
        ]
      | (act, (pay, cost)) <- buyBuilding ++ buyUpgrades ++ custom
@@ -205,17 +211,19 @@ payoff inp =
   fingersNeeded = 240 - view (buildingOwned Cursor) inp
   fingersCost   = sum $ take (fromIntegral fingersNeeded) $ iterate (*1.15) $ costs ^?! ix Cursor
   custom =
-    [ finish 280 Cursor "Septillion fingers"
-    , finish 250 Grandma "The Unbridling"
-    , finish 200 Mine "Planetsplitters"
-    , finish 200 Factory "Cyborg workforce"
+    [ finish 320 Cursor "Octillion fingers"
+    , finish 250 Farm "Wheat triffids"
+    , finish 250 Mine "Canola oil wells"
+    , finish 250 Factory "78-hour days"
     , finish 200 Bank "Way of the wallet"
-    , finish 150 WizardTower "Dark formulas"
-    , finish 100 Shipment "Chocolate monoliths"
-    , finish 100 AlchemyLab "Aqua crustuale"
-    , finish 100 Portal "Sanity dance"
-    , finish 50 Antimatter "Big bang bake"
-    , finish 50 Prism "Grainbow"
+    , finish 200 Temple "Creation myth"
+    , finish 200 WizardTower "Cookiemancy"
+    , finish 150 Shipment "Generation Ship"
+    , finish 150 AlchemyLab "Origin crucible"
+    , finish 150 Portal "Deity-sized portals"
+    , finish 100 TimeMachine "Deity-sized portals"
+    , finish 100 Antimatter "Reverse cyclotrons"
+    , finish 100 Prism "Pure cosmic light"
     ]
 
   buyBuilding =
@@ -227,23 +235,6 @@ payoff inp =
   buyUpgrades =
      [ (view upgradeName u, effect (view upgradeCost u) (upgradesBought <>~ [u]))
      | u <- view upgradesAvailable inp
-     ]
-
-  upgrades =
-     [ "Sugar bosons"
-     , "Grandmas' grandmas"
-
-     , "Madeleines"
-     , "Palmiers"
-     , "Palets"
-     , "Sablés"
-     , "Gingerbread men"
-     , "Gingerbread trees"
-     , "Pure white chocolate cookies"
-     , "Pure black chocolate cookies"
-     , "Ladyfingers"
-
-     , "Kitten overseers"
      ]
 
   costs = buildingCosts inp
@@ -258,7 +249,7 @@ payoff inp =
     n' = n - view (buildingOwned b) inp
     cost = view upgradeCost u + sum (take (fromIntegral n') (iterate (*1.15) (costs ^?! ix b)))
     f = (upgradesBought <>~ [u])
-      . (achievementsEarned +~ 1)
+        -- . (achievementsEarned +~ 1)
       . (buildingOwned b .~ n)
 
 computeCps :: GameInput -> GameState -> Double
@@ -296,19 +287,24 @@ main =
 parseConfig :: Config.Value -> Either String GameInput
 parseConfig input =
   do achieve     <- section "achievements" input Config.number
+     prestige    <- section "prestige"     input Config.number
      buildSect   <- section "buildings"    input Config.sections
+     freeSect    <- section "free"         input Config.sections
      upgradeSect <- section "upgrades"     input Config.list
      shopSect    <- section "shop"         input Config.list
 
      buildings   <- traverse parseBuilding buildSect
+     free        <- traverse parseBuilding freeSect
      upgrades    <- traverse parseUpgrade  upgradeSect
      shop        <- traverse parseUpgrade  shopSect
 
      return GameInput
        { _achievementsEarned = achieve
        , _buildingsOwned     = Map.fromList buildings
+       , _buildingsFree      = Map.fromList free
        , _upgradesBought     = upgrades
        , _upgradesAvailable  = shop
+       , _prestigeLevel      = prestige
        }
 
 parseBuilding :: Config.Section -> Either String (Building, Integer)
@@ -517,7 +513,7 @@ allUpgrades =
    , Upgrade  23 "Essence of dough" 3.75e12 $ doubler AlchemyLab
    , Upgrade  24 "True chocolate" 37.5e12 $ doubler AlchemyLab
    , Upgrade  49 "Ambrosia" 3.75e15 $ doubler AlchemyLab
-   , Upgrade 115 "Aqua crustuale" 375e15 $ doubler AlchemyLab
+   , Upgrade 115 "Aqua crustulae" 375e15 $ doubler AlchemyLab
    , Upgrade 197 "Origin crucible" 3.75e18 $ doubler AlchemyLab
    , Upgrade 302 "Theory of atomic fluidity" 37.5e21 $ doubler AlchemyLab
    , Upgrade 315 "Beige goo" 37.5e24 $ doubler AlchemyLab
@@ -610,6 +606,30 @@ allUpgrades =
    , Upgrade 261 "Checker cookies"                          5e18 $ cookieBonus 3
    , Upgrade 262 "Butter cookies"                         10e18 $ cookieBonus 3
    , Upgrade 263 "Cream cookies"                          50e18 $ cookieBonus 3
+   , Upgrade 0   "Gingersnaps"                           100e18 $ cookieBonus 4
+   , Upgrade 0   "Cinnamon cookies"                      500e18 $ cookieBonus 4
+   , Upgrade 0   "Vanity cookies"                          1e21 $ cookieBonus 4
+
+   , Upgrade 0   "Digits"                                 5e15 $ cookieBonus 2
+   , Upgrade 0   "Jaffa cakes"                            5e15 $ cookieBonus 2
+   , Upgrade 0   "Loreols"                                5e15 $ cookieBonus 2
+   , Upgrade 0   "Fig gluttons"                           5e15 $ cookieBonus 2
+   , Upgrade 0   "Grease's cups"                          5e15 $ cookieBonus 2
+   , Upgrade 0   "Shortfolios"                           10e15 $ cookieBonus 3
+
+   , Upgrade 0 "British tea biscuits" 0 $ cookieBonus 2
+   , Upgrade 0 "Chocolate british tea biscuits" 0 $ cookieBonus 2
+   , Upgrade 0 "Round british tea biscuits" 0 $ cookieBonus 2
+   , Upgrade 0 "Round chocolate british tea biscuits" 0 $ cookieBonus 2
+   , Upgrade 0 "Round british tea biscuits with heart motif" 0 $ cookieBonus 2
+   , Upgrade 0 "Round chocolate british tea biscuits with heart motif" 0 $ cookieBonus 2
+
+   , Upgrade 0 "Rose macarons" 0 $ cookieBonus 3
+   , Upgrade 0 "Lemon macarons" 0 $ cookieBonus 3
+   , Upgrade 0 "Chocolate macarons" 0 $ cookieBonus 3
+   , Upgrade 0 "Pistachio macarons" 0 $ cookieBonus 3
+   , Upgrade 0 "Hazelnut macarons" 0 $ cookieBonus 3
+   , Upgrade 0 "Violet macarons" 10.0e18 $ cookieBonus 3
 
    , Upgrade 52 "Lucky day"        777777777 $ const id
    , Upgrade 53 "Serendipity"    77777777777 $ const id
