@@ -1,4 +1,5 @@
 {-# Language TemplateHaskell #-}
+{-# Language ForeignFunctionInterface #-}
 {-# Language RankNTypes #-}
 
 module Main (main) where
@@ -11,6 +12,8 @@ import Data.Fixed
 import Data.Ord
 import Data.Maybe
 import Data.Foldable
+import Data.Time
+import Foreign.C.Types (CDouble(..))
 import Numeric
 import Text.Read
 import Spreadsheet
@@ -50,15 +53,25 @@ data GameState = GameState
   , _buildingBases   :: !(Map Building Double)
   , _buildingBonuses :: !(Map Building Double)
   , _multiplier      :: !Double
+  , _eggMultipliers  :: !Double
+  , _prestigeMultiplier :: !Int
   , _mouseBonus      :: !Double
+  , _bonusCps        :: !Double
+  , _buildingCostMultiplier  :: !Double
+  , _upgradeCostMultiplier  :: !Double
+  , _milkMultiplier         :: !Double
+  , _milkFactors            :: ![Double]
   }
   deriving (Read, Show)
 
 data GameInput = GameInput
-  { _buildingsOwned     :: Map Building Integer
-  , _achievementsEarned :: Integer
-  , _upgradesBought     :: [Upgrade]
-  , _upgradesAvailable  :: [Upgrade]
+  { _buildingsOwned     :: !(Map Building Int)
+  , _buildingsFree      :: !(Map Building Int)
+  , _achievementsEarned :: !Int
+  , _upgradesBought     :: ![Upgrade]
+  , _upgradesAvailable  :: ![Upgrade]
+  , _prestigeLevel      :: !Int
+  , _sessionLength      :: !Double
   }
 
 makeLenses ''GameInput
@@ -71,7 +84,14 @@ initialGameState input = GameState
   , _buildingMults = Map.empty
   , _buildingBonuses = Map.empty
   , _multiplier  = 1
+  , _eggMultipliers = 0
   , _mouseBonus  = 0
+  , _prestigeMultiplier  = 0
+  , _bonusCps  = 0
+  , _buildingCostMultiplier  = 1
+  , _upgradeCostMultiplier  = 1
+  , _milkMultiplier         = 1
+  , _milkFactors         = []
   }
 
 buildingMult :: Building -> Lens' GameState Double
@@ -120,11 +140,11 @@ initialCosts = Map.fromList
   ]
 
 computeGameState :: GameInput -> GameState
-computeGameState input
-  = foldl'
-      (\acc a -> view upgradeEffect a input acc)
-      (initialGameState input)
-      (view upgradesBought input)
+computeGameState input =
+  foldl'
+    (\acc a -> view upgradeEffect a input acc)
+    (initialGameState input)
+    (view upgradesBought input)
 
 computeMilk :: GameInput -> Double
 computeMilk = views achievementsEarned $ \x -> fromIntegral x * 0.04
@@ -135,7 +155,7 @@ mouseAdd :: Effect
 mouseAdd = \_ -> mouseBonus +~ 0.01
 
 kittenBonus :: Double -> Effect
-kittenBonus pct = \inp -> multiplier *~ (1 + computeMilk inp * pct/100)
+kittenBonus pct = \inp -> milkFactors %~ (pct/100:)
 
 cookieBonus :: Double -> Effect
 cookieBonus pct = \_ -> multiplier *~ (1+pct/100)
@@ -151,7 +171,7 @@ grandmaType building count = \inp ->
     in (buildingMult building *~ (1 + 0.01 * bonus))
      . (buildingMult Grandma  *~ 2)
 
-buildingOwned :: Building -> Lens' GameInput Integer
+buildingOwned :: Building -> Lens' GameInput Int
 buildingOwned k = buildingsOwned . at k . non 0
 
 doubler :: Building -> GameInput -> GameState -> GameState
@@ -179,24 +199,31 @@ buildingCosts inp =
     (\_ cnt base -> Just (base * 1.15 ^ cnt))
     (\_          -> Map.empty)
     id
-    (view buildingsOwned inp)
+    owned'
     initialCosts
+  where
+  owned' = Map.unionWith (-)
+             (view buildingsOwned inp)
+             (view buildingsFree inp)
 
-payoff :: GameInput -> String
-payoff inp =
+payoff :: GameInput -> GameState -> String
+payoff inp st =
   renderSpreadsheet
   $ sortSpreadsheet
   $ Spreadsheet [ Column "Action" StringT Nothing
                 , Column "Metric" (NumberT (Just 0)) (Just Ascending)
-                , Column "Saveup" StringT Nothing
+                , Column "Saveup" (NumberT (Just 1)) Nothing
                 , Column "Buy at" StringT Nothing
+                , Column "∆C/s" StringT Nothing
                 ]
      [ [ StringV act
-       , NumberV (toRational pay)
-       , StringV (prettyTime (truncate (cost / cps)))
+       , NumberV (toRational (cost / delta))
+       , NumberV (toRational (cost / (7*900*cps)))
        , StringV (prettyNumber ShortSuffix (cost + frenzyReserve))
+       , StringV (prettyNumber ShortSuffix delta)
        ]
-     | (act, (pay, cost)) <- buyBuilding ++ buyUpgrades ++ custom
+     | (act, cost, f) <- buyBuilding ++ buyUpgrades ++ custom
+     , let delta = effect f
      ]
 
   where
@@ -205,85 +232,90 @@ payoff inp =
   fingersNeeded = 240 - view (buildingOwned Cursor) inp
   fingersCost   = sum $ take (fromIntegral fingersNeeded) $ iterate (*1.15) $ costs ^?! ix Cursor
   custom =
-    [ finish 280 Cursor "Septillion fingers"
-    , finish 250 Grandma "The Unbridling"
-    , finish 200 Mine "Planetsplitters"
-    , finish 200 Factory "Cyborg workforce"
-    , finish 200 Bank "Way of the wallet"
-    , finish 150 WizardTower "Dark formulas"
-    , finish 100 Shipment "Chocolate monoliths"
-    , finish 100 AlchemyLab "Aqua crustuale"
-    , finish 100 Portal "Sanity dance"
-    , finish 50 Antimatter "Big bang bake"
-    , finish 50 Prism "Grainbow"
+    [ finish 1 250 Temple "Theocracy"
+    , finish 1 250 WizardTower "Rabbit trick"
+    , finish 1 250 Shipment "The final frontier"
+    , finish 1 200 AlchemyLab "Theory of atomic fluidity"
+    , finish 1 200 Portal "End of back-up plan"
+    , finish 1 150 TimeMachine "Far future enactment"
+    , finish 1 150 Antimatter "Nanocosmics"
+    , finish 1 150 Prism "Glow-in-the-dark"
+
+    , finishA 300 Mine
+    , finishA 300 Bank
+    , finishA 300 Factory
     ]
 
   buyBuilding =
     [( "+1 " ++ show x
-     , effect (costs ^?! ix x) (buildingOwned x +~ 1)
+     , costs ^?! ix x
+     , buildingOwned x +~ 1
      )
     | x <- [Cursor ..] ]
 
   buyUpgrades =
-     [ (view upgradeName u, effect (view upgradeCost u) (upgradesBought <>~ [u]))
+     [ (view upgradeName u, view upgradeCost u, upgradesBought <>~ [u])
      | u <- view upgradesAvailable inp
      ]
 
-  upgrades =
-     [ "Sugar bosons"
-     , "Grandmas' grandmas"
-
-     , "Madeleines"
-     , "Palmiers"
-     , "Palets"
-     , "Sablés"
-     , "Gingerbread men"
-     , "Gingerbread trees"
-     , "Pure white chocolate cookies"
-     , "Pure black chocolate cookies"
-     , "Ladyfingers"
-
-     , "Kitten overseers"
-     ]
-
-  costs = buildingCosts inp
+  costs = fmap (* view buildingCostMultiplier st) (buildingCosts inp)
   cps = computeCps inp st
-  st = computeGameState inp
 
-  effect cost f = (cost / (computeCps (f inp) (computeGameState (f inp)) - cps), cost)
+  effect f = computeCps (f inp) (computeGameState (f inp)) - cps
 
-  finish n b up = ("+" ++ show n' ++ " " ++ show b, effect cost f)
+  finish a n b up = ("+" ++ show n' ++ " " ++ show b, cost, f)
     where
     Just u = Map.lookup up upgradeMap
     n' = n - view (buildingOwned b) inp
     cost = view upgradeCost u + sum (take (fromIntegral n') (iterate (*1.15) (costs ^?! ix b)))
     f = (upgradesBought <>~ [u])
-      . (achievementsEarned +~ 1)
+      . (achievementsEarned +~ a)
       . (buildingOwned b .~ n)
+
+  finishA n b = ("+" ++ show n' ++ " " ++ show b, cost, f)
+    where
+    n' = n - view (buildingOwned b) inp
+    cost = sum (take (fromIntegral n') (iterate (*1.15) (costs ^?! ix b)))
+    f = (achievementsEarned +~ 1)
+      . (buildingOwned b .~ n)
+
+computeMultiplier :: GameInput -> GameState -> Double
+computeMultiplier inp st =
+  view multiplier st *
+  milkFactor *
+  (view eggMultipliers     st / 100 + 1) *
+  (views prestigeMultiplier fromIntegral st / 100 *
+   views prestigeLevel      fromIntegral inp / 100 + 1)
+  where
+  milkFactor = product [ 1 + milk * x * view milkMultiplier st | x <- view milkFactors st ]
+  milk = 0.04 * views achievementsEarned fromIntegral inp
 
 computeCps :: GameInput -> GameState -> Double
 computeCps inp st =
-  view multiplier st *
+  computeMultiplier inp st *
+  (view bonusCps st +
   sum (Map.intersectionWith (\count cps -> fromIntegral count * cps)
          (view buildingsOwned inp)
          (computeBuildingCps st))
+  )
 
 computeClickCookies :: GameInput -> GameState -> Double
 computeClickCookies inp st =
     computeCps inp st * view mouseBonus st
-  + view multiplier st * (view (buildingMult Cursor) st + view (buildingBonus Cursor) st)
+  + computeMultiplier inp st * (view (buildingMult Cursor) st + view (buildingBonus Cursor) st)
 
 loadMyInput :: IO GameInput
 loadMyInput =
-  do txt <- Text.readFile "input.yaml"
-     either fail return (parseConfig =<< Config.parse txt)
+  do now <- getCurrentTime
+     txt <- Text.readFile "input.yaml"
+     either fail return (parseConfig now =<< Config.parse txt)
 
 main :: IO ()
 main =
   do input <- loadMyInput
-     putStrLn (payoff input)
      let st = computeGameState input
-         cps = computeCps input st
+     putStrLn (payoff input st)
+     let cps = computeCps input st
      putStrLn $ "Buildings:\t"   ++ show (sum (view buildingsOwned input))
      putStrLn $ "Upgrades:\t"    ++ show (length (view upgradesBought input))
      putStrLn $ "Cookie/s:\t"    ++ prettyNumber LongSuffix cps
@@ -292,29 +324,39 @@ main =
      putStrLn $ "Cookie/s x7:\t" ++ prettyNumber LongSuffix (7*cps)
      putStrLn $ "Lucky x7:\t"    ++ prettyNumber LongSuffix (7*900*cps)
 
+timeParser :: String -> Either String UTCTime
+timeParser = parseTimeM True defaultTimeLocale "%F %T%Q %Z"
 
-parseConfig :: Config.Value -> Either String GameInput
-parseConfig input =
+parseConfig :: UTCTime -> Config.Value -> Either String GameInput
+parseConfig now input =
   do achieve     <- section "achievements" input Config.number
+     prestige    <- section "prestige"     input Config.number
      buildSect   <- section "buildings"    input Config.sections
+     freeSect    <- section "free"         input Config.sections
      upgradeSect <- section "upgrades"     input Config.list
      shopSect    <- section "shop"         input Config.list
+     startStr    <- section "start"        input Config.text
+     start       <- timeParser (Text.unpack startStr)
 
      buildings   <- traverse parseBuilding buildSect
+     free        <- traverse parseBuilding freeSect
      upgrades    <- traverse parseUpgrade  upgradeSect
      shop        <- traverse parseUpgrade  shopSect
 
      return GameInput
-       { _achievementsEarned = achieve
+       { _achievementsEarned = fromInteger achieve
        , _buildingsOwned     = Map.fromList buildings
+       , _buildingsFree      = Map.fromList free
        , _upgradesBought     = upgrades
        , _upgradesAvailable  = shop
+       , _prestigeLevel      = fromInteger prestige
+       , _sessionLength      = realToFrac (diffUTCTime now start)
        }
 
-parseBuilding :: Config.Section -> Either String (Building, Integer)
+parseBuilding :: Config.Section -> Either String (Building, Int)
 parseBuilding (Config.Section b v) =
   case preview Config.number v of
-    Just n | Just bld <- readMaybe (Text.unpack b) -> Right (bld, n)
+    Just n | Just bld <- readMaybe (Text.unpack b) -> Right (bld, fromInteger n)
     Nothing -> Left (Text.unpack b)
 
 parseUpgrade :: Config.Value -> Either String Upgrade
@@ -508,7 +550,7 @@ allUpgrades =
    , Upgrade  21 "Frequent flier" 2.55e12 $ doubler Shipment
    , Upgrade  48 "Warp drive" 255e12 $ doubler Shipment
    , Upgrade 114 "Chocolate monoliths" 25.5e15 $ doubler Shipment
-   , Upgrade 196 "Generation Ship" 2.55e18 $ doubler Shipment
+   , Upgrade 196 "Generation ship" 2.55e18 $ doubler Shipment
    , Upgrade 301 "Dyson sphere" 2.55e21 $ doubler Shipment
    , Upgrade 314 "The final frontier" 2.55e24 $ doubler Shipment
 
@@ -517,7 +559,7 @@ allUpgrades =
    , Upgrade  23 "Essence of dough" 3.75e12 $ doubler AlchemyLab
    , Upgrade  24 "True chocolate" 37.5e12 $ doubler AlchemyLab
    , Upgrade  49 "Ambrosia" 3.75e15 $ doubler AlchemyLab
-   , Upgrade 115 "Aqua crustuale" 375e15 $ doubler AlchemyLab
+   , Upgrade 115 "Aqua crustulae" 375e15 $ doubler AlchemyLab
    , Upgrade 197 "Origin crucible" 3.75e18 $ doubler AlchemyLab
    , Upgrade 302 "Theory of atomic fluidity" 37.5e21 $ doubler AlchemyLab
    , Upgrade 315 "Beige goo" 37.5e24 $ doubler AlchemyLab
@@ -610,6 +652,37 @@ allUpgrades =
    , Upgrade 261 "Checker cookies"                          5e18 $ cookieBonus 3
    , Upgrade 262 "Butter cookies"                         10e18 $ cookieBonus 3
    , Upgrade 263 "Cream cookies"                          50e18 $ cookieBonus 3
+   , Upgrade 0   "Gingersnaps"                           100e18 $ cookieBonus 4
+   , Upgrade 0   "Cinnamon cookies"                      500e18 $ cookieBonus 4
+   , Upgrade 0   "Vanity cookies"                          1e21 $ cookieBonus 4
+   , Upgrade 0   "Cigars"                                  5e21 $ cookieBonus 4
+   , Upgrade 0   "Pinwheel cookies"                       10e21 $ cookieBonus 4
+   , Upgrade 0   "Fudge squares"                          50e21 $ cookieBonus 4
+   , Upgrade 0   "Butter horseshoes"                     100e21 $ cookieBonus 4
+
+   , Upgrade 0 "Milk chocolate butter biscuit" 1.0e21 $ cookieBonus 10
+
+   , Upgrade 0   "Digits"                                 5e15 $ cookieBonus 2
+   , Upgrade 0   "Jaffa cakes"                            5e15 $ cookieBonus 2
+   , Upgrade 0   "Loreols"                                5e15 $ cookieBonus 2
+   , Upgrade 0   "Fig gluttons"                           5e15 $ cookieBonus 2
+   , Upgrade 0   "Grease's cups"                          5e15 $ cookieBonus 2
+   , Upgrade 0   "Shortfolios"                           10e15 $ cookieBonus 3
+
+   , Upgrade 0 "British tea biscuits" 0 $ cookieBonus 2
+   , Upgrade 0 "Chocolate british tea biscuits" 0 $ cookieBonus 2
+   , Upgrade 0 "Round british tea biscuits" 0 $ cookieBonus 2
+   , Upgrade 0 "Round chocolate british tea biscuits" 0 $ cookieBonus 2
+   , Upgrade 0 "Round british tea biscuits with heart motif" 0 $ cookieBonus 2
+   , Upgrade 0 "Round chocolate british tea biscuits with heart motif" 0 $ cookieBonus 2
+
+   , Upgrade 0 "Rose macarons" 10.0e3 $ cookieBonus 3
+   , Upgrade 0 "Lemon macarons" 10.0e6 $ cookieBonus 3
+   , Upgrade 0 "Chocolate macarons" 10.0e9 $ cookieBonus 3
+   , Upgrade 0 "Pistachio macarons" 10.0e12 $ cookieBonus 3
+   , Upgrade 0 "Hazelnut macarons" 10.0e15 $ cookieBonus 3
+   , Upgrade 0 "Violet macarons" 10.0e18 $ cookieBonus 3
+   , Upgrade 0 "Caramel macarons" 10.0e21 $ cookieBonus 3
 
    , Upgrade 52 "Lucky day"        777777777 $ const id
    , Upgrade 53 "Serendipity"    77777777777 $ const id
@@ -625,4 +698,80 @@ allUpgrades =
    , Upgrade 71 "Communal brainsweep"            6.4e9  $ gpoc Grandma 0.02
    , Upgrade 72 "Arcane sugar"                   12.8e9 $ cookieBonus 5
    , Upgrade 72 "Elder pact"                     25.6e9 $ gpoc Portal 0.05
+   , Upgrade 72 "Sacrificial rolling pins"       0      $ \_ -> id
+
+   , Upgrade 0 "Salmon roe" 0    eggBonus
+   , Upgrade 0 "Ant larva" 0     eggBonus
+   , Upgrade 0 "Cassowary egg" 0 eggBonus
+   , Upgrade 0 "Duck egg" 0      eggBonus
+   , Upgrade 0 "Turkey egg" 0    eggBonus
+   , Upgrade 0 "Turtle egg" 0    eggBonus
+   , Upgrade 0 "Chicken egg" 0    eggBonus
+   , Upgrade 0 "Frogspawn" 0    eggBonus
+   , Upgrade 0 "Century egg" 0 addEggTimeBonus
+   , Upgrade 0 "Cookie egg" 0 $ \_ x -> x
+
+   , Upgrade 0 "Faberge egg" 0 $ \_ -> buildingCostMultiplier *~ 0.99
+   , Upgrade 0 "\"egg\"" 0 $ \_ -> bonusCps +~ 9
+
+   , Upgrade 0 "A crumbly egg" 0 $ const id
+
+   , Upgrade 0 "Pure heart biscuits" 1e6 $ cookieBonus 2
+   , Upgrade 0 "Ardent heart biscuits" 1e9 $ cookieBonus 2
+   , Upgrade 0 "Sour heart biscuits" 1e12 $ cookieBonus 2
+   , Upgrade 0 "Weeping heart biscuits" 1e15 $ cookieBonus 2
+   , Upgrade 0 "Golden heart biscuits" 1e18 $ cookieBonus 2
+   , Upgrade 0 "Eternal heart biscuits" 1e21 $ cookieBonus 2
+
+   , Upgrade 0 "Christmas tree biscuits" 252.525e9 $ cookieBonus 2
+   , Upgrade 0 "Snowflake biscuits" 252.525e9 $ cookieBonus 2
+   , Upgrade 0 "Snowman biscuits" 252.525e9 $ cookieBonus 2
+   , Upgrade 0 "Holly biscuits" 252.525e9 $ cookieBonus 2
+   , Upgrade 0 "Candy cane biscuits" 252.525e9 $ cookieBonus 2
+   , Upgrade 0 "Bell biscuits" 252.525e9 $ cookieBonus 2
+   , Upgrade 0 "Present biscuits" 252.525e9 $ cookieBonus 2
+
+   , Upgrade 0 "Heavenly chip secret" 11 $ prestigeBonus 5
+   , Upgrade 0 "Heavenly cookie stand" 1111 $ prestigeBonus 20
+   , Upgrade 0 "Heavenly bakery" 111111 $ prestigeBonus 25
+   , Upgrade 0 "Heavenly confectionary" 1111111 $ prestigeBonus 25
+   , Upgrade 0 "Heavenly key" 1 $ prestigeBonus 25
+
+   , Upgrade 0 "A festive hat"              0 $ \_ -> id
+   , Upgrade 0 "Increased merriness"        0 $ cookieBonus 15
+   , Upgrade 0 "Improved jolliness"         0 $ cookieBonus 15
+   , Upgrade 0 "A lump of coal"             0 $ cookieBonus 1
+   , Upgrade 0 "An itchy sweater"           0 $ cookieBonus 1
+   , Upgrade 0 "Reindeer baking grounds"    0 $ \_ -> id 
+   , Upgrade 0 "Weighted sleds"             0 $ \_ -> id 
+   , Upgrade 0 "Ho ho ho-flavored frosting" 0 $ \_ -> id
+   , Upgrade 0 "Season savings"             0 $ \_ -> buildingCostMultiplier *~ 0.99
+   , Upgrade 0 "Toy workshop"               0 $ \_ -> upgradeCostMultiplier *~ 0.95
+   , Upgrade 0 "Naughty list"               0 $ doubler Grandma
+   , Upgrade 0 "Santa's bottomless bag"     0 $ \_ -> id-- drops
+   , Upgrade 0 "Santa's helpers"            0 $ \_ -> id-- clicking +10
+   , Upgrade 0 "Santa's legacy"             0 $ cookieBonus (15*3)
+   , Upgrade 0 "Santa's milk and cookies"   0 $ \_ -> milkMultiplier *~ 1.05
+   , Upgrade 0 "Santa's dominion"           0 $ cookieBonus 20
+                                                -- buildings 1
+                                                -- upgrades 2
    ]
+
+eggBonus _ = eggMultipliers +~ 1
+
+prestigeBonus n _ = prestigeMultiplier +~ n
+
+addEggTimeBonus inp = eggMultipliers +~ views sessionLength eggTimeBonus inp
+
+eggTimeBonus :: Double -> Double
+eggTimeBonus s = (1 - (1 - day/100)**3) * 10
+  where
+  floor' = fromInteger . floor
+  day = min 100
+      $ floor' (s / 10) * 10 / (60 * 60 * 24)
+
+floor' :: Double -> Double
+floor' = realToFrac . c_floor . realToFrac
+
+foreign import ccall "math.h floor" c_floor :: CDouble -> CDouble
+

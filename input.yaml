@@ -1,0 +1,343 @@
+achievements: 167 -- +4 shadow achievements
+
+start: "2016-03-04 20:50:38.955 PST"
+
+prestige: 2392
+
+free:
+  Cursor: 10
+
+buildings:
+  Cursor:            341
+  Grandma:           316
+  Farm:              300
+  Mine:              268
+  Factory:           252
+  Bank:              250
+  Temple:            215
+  WizardTower:       200
+  Shipment:          200
+  AlchemyLab:        158
+  Portal:            150
+  TimeMachine:       125
+  Antimatter:        118
+  Prism:             114
+
+shop:
+  * "Kitten accountants"
+
+upgrades:
+
+  * "Reinforced Index Finger"
+  * "Carpal tunnel prevention cream"
+  * "Ambidextrous"
+
+  * "Thousand fingers"
+  * "Million fingers"
+  * "Billion fingers"
+  * "Trillion fingers"
+  * "Quadrillion fingers"
+  * "Quintillion fingers"
+  * "Sextillion fingers"
+  * "Septillion fingers"
+  * "Octillion fingers"
+
+  -- MICE
+  * "Plastic mouse"
+  * "Iron mouse"
+  * "Titanium mouse"
+  * "Adamantium mouse"
+  * "Unobtainium mouse"
+  * "Eludium mouse"
+  * "Wishalloy mouse"
+  * "Fantasteel mouse"
+  * "Nevercrack mouse"
+
+  -- GRANDMAS
+  * "Forwards from grandma"
+  * "Steel-plated rolling pins"
+  * "Lubricated dentures"
+  * "Prune juice"
+  * "Double-thick glasses"
+  * "Aging agents"
+  * "Xtreme walkers"
+  * "The Unbridling"
+
+  * "Farmer grandmas"
+  * "Miner grandmas"
+  * "Worker grandmas"
+  * "Banker grandmas"
+  * "Priestess grandmas"
+  * "Witch grandmas"
+  * "Cosmic grandmas"
+  * "Transmuted grandmas"
+  * "Altered grandmas"
+  * "Grandmas' grandmas"
+  * "Antigrandmas"
+  * "Rainbow grandmas"
+
+  -- FARMS
+  * "Cheap hoes"
+  * "Fertilizer"
+  * "Cookie trees"
+  * "Genetically-modified cookies"
+  * "Gingerbread scarecrows"
+  * "Pulsar sprinklers"
+  * "Fudge fungus"
+  * "Wheat triffids"
+
+  -- MINES
+  * "Sugar gas"
+  * "Megadrill"
+  * "Ultradrill"
+  * "Ultimadrill"
+  * "H-bomb mining"
+  * "Coreforge"
+  * "Planetsplitters"
+  * "Canola oil wells"
+
+  -- FACTORIES
+  * "Sturdier conveyor belts"
+  * "Child labor"
+  * "Sweatshop"
+  * "Radium reactors"
+  * "Recombobulators"
+  * "Deep-bake process"
+  * "Cyborg workforce"
+  * "78-hour days"
+
+  -- BANKS
+  * "Taller tellers"
+  * "Scissor-resistant credit cards"
+  * "Acid-proof vaults"
+  * "Chocolate coins"
+  * "Exponential interest rates"
+  * "Financial zen"
+  * "Way of the wallet"
+  * "The stuff rationale"
+
+  -- TEMPLES
+  * "Golden idols"
+  * "Sacrifices"
+  * "Delicious blessing"
+  * "Sun festival"
+  * "Enlarged pantheon"
+  * "Great Baker in the sky"
+  * "Creation myth"
+
+  -- WIZARDS
+  * "Pointier hats"
+  * "Beardlier beards"
+  * "Ancient grimoires"
+  * "Kitchen curses"
+  * "School of sorcery"
+  * "Dark formulas"
+  * "Cookiemancy"
+
+  -- SHIPMENTS
+  * "Vanilla nebulae"
+  * "Wormholes"
+  * "Frequent flier"
+  * "Warp drive"
+  * "Chocolate monoliths"
+  * "Generation ship"
+  * "Dyson sphere"
+
+  -- ALCHEMY
+  * "Antimony"
+  * "Essence of dough"
+  * "True chocolate"
+  * "Ambrosia"
+  * "Aqua crustulae"
+  * "Origin crucible"
+
+  -- PORTAL
+  * "Ancient tablet"
+  * "Insane oatling workers"
+  * "Soul bond"
+  * "Sanity dance"
+  * "Brane transplant"
+  * "Deity-sized portals"
+
+  -- TIME MACHINE
+  * "Flux capacitors"
+  * "Time paradox resolver"
+  * "Quantum conundrum"
+  * "Causality enforcer"
+  * "Yestermorrow comparators"
+
+  -- ANTIMATTER
+  * "Sugar bosons"
+  * "String theory"
+  * "Large macaron collider"
+  * "Big bang bake"
+  * "Reverse cyclotrons"
+
+  -- PRISM
+  * "Gem polish"
+  * "9th color"
+  * "Chocolate light"
+  * "Grainbow"
+  * "Pure cosmic light"
+
+  -- LUCKY
+  * "Lucky day"
+  * "Serendipity"
+  * "Get lucky"
+
+  -- GRANDMAPOCOLYPSE
+  * "Bingo center/Research facility"
+  * "Specialized chocolate chips"
+  * "Designer cocoa beans"
+  * "Ritual rolling pins"
+  * "Underworld ovens"
+  * "One mind"
+  * "Exotic nuts"
+  * "Communal brainsweep"
+  * "Arcane sugar"
+  * "Elder pact"
+  * "Sacrificial rolling pins"
+
+  -- KITTENS
+  * "Kitten helpers"
+  * "Kitten workers"
+  * "Kitten engineers"
+  * "Kitten overseers"
+  * "Kitten managers"
+
+  -- EASTER
+  * "Salmon roe"
+  * "Ant larva"
+  * "Cassowary egg"
+  * "Duck egg"
+  * "Turkey egg"
+  * "Chicken egg"
+  * "Frogspawn"
+  * "Turtle egg"
+  * "Century egg"
+  * "Faberge egg"
+  * "\"egg\""
+  * "Cookie egg"
+
+  -- CHRISTMAS
+  * "A festive hat"
+  * "Increased merriness"
+  * "Improved jolliness"
+  * "A lump of coal"
+  * "An itchy sweater"
+  * "Reindeer baking grounds"
+  * "Weighted sleds"
+  * "Ho ho ho-flavored frosting"
+  * "Season savings"
+  * "Toy workshop"
+  * "Naughty list"
+  * "Santa's bottomless bag"
+  * "Santa's helpers"
+  * "Santa's legacy"
+  * "Santa's milk and cookies"
+  * "Santa's dominion"
+
+  -- HEAVENLY
+  * "A crumbly egg"
+
+  * "Heavenly chip secret"
+  * "Heavenly cookie stand"
+  * "Heavenly bakery"
+  * "Heavenly confectionary"
+  * "Heavenly key"
+
+  -- COOKIES
+  * "Plain cookies"
+  * "Sugar cookies"
+  * "Oatmeal raisin cookies"
+  * "Peanut butter cookies"
+  * "Coconut cookies"
+  * "White chocolate cookies"
+  * "Macadamia nut cookies"
+  * "Double-chip cookies"
+  * "While chocolate macadamia nut cookies"
+  * "All-chocolate cookies"
+  * "Dark chocolate-coated cookies"
+  * "White chocolate-coated cookies"
+  * "Eclipse cookies"
+  * "Zebra cookies"
+  * "Snickerdoodles"
+  * "Stroopwafels"
+  * "Macaroons"
+  * "Madeleines"
+  * "Palmiers"
+  * "Palets"
+  * "Sablés"
+
+  -- BOX OF BRAND COOKIES
+  * "Caramoas"
+  * "Sagalongs"
+  * "Shortfolios"
+  * "Win mints"
+
+  * "Gingerbread men"
+  * "Gingerbread trees"
+  * "Pure black chocolate cookies"
+  * "Pure white chocolate cookies"
+  * "Ladyfingers"
+  * "Tuiles"
+  * "Chocolate-stuffed biscuits"
+  * "Checker cookies"
+  * "Butter cookies"
+  * "Cream cookies"
+  * "Gingersnaps"
+  * "Cinnamon cookies"
+  * "Vanity cookies"
+  * "Cigars"
+  * "Pinwheel cookies"
+  * "Fudge squares"
+
+  -- BOX OF EMPIRE
+  * "Empire biscuits"
+  * "British tea biscuits"
+  * "Chocolate british tea biscuits"
+  * "Round british tea biscuits"
+  * "Round chocolate british tea biscuits"
+  * "Round british tea biscuits with heart motif"
+  * "Round chocolate british tea biscuits with heart motif"
+
+  -- BOX OF BRAND COOKIES
+  * "Fig gluttons"
+  * "Loreols"
+  * "Jaffa cakes"
+  * "Grease's cups"
+  * "Digits"
+
+  * "Butter horseshoes"
+
+  -- BOX OF MACARONS
+  * "Rose macarons"
+  * "Lemon macarons"
+  * "Chocolate macarons"
+  * "Pistachio macarons"
+  * "Hazelnut macarons"
+  * "Violet macarons"
+  * "Caramel macarons"
+
+  -- CHRISTMAS COOKIES
+  * "Christmas tree biscuits"
+  * "Snowflake biscuits"
+  * "Snowman biscuits"
+  * "Holly biscuits"
+  * "Candy cane biscuits"
+  * "Bell biscuits"
+  * "Present biscuits"
+
+  -- VALENTINES DAY
+  * "Pure heart biscuits"
+  * "Ardent heart biscuits"
+  * "Sour heart biscuits"
+  * "Weeping heart biscuits"
+  * "Golden heart biscuits"
+  * "Eternal heart biscuits"
+
+  * "Milk chocolate butter biscuit"
+
+
+
+
