@@ -1,30 +1,32 @@
-achievements: 167 -- +4 shadow achievements
+achievements: 185 -- +4 shadow achievements
 
-start: "2016-03-04 20:50:38.955 PST"
+start: "2016-03-06 21:26:44.885 UTC"
 
-prestige: 2392
+prestige: 10588
 
 free:
   Cursor: 10
+  Grandma: 5
 
 buildings:
-  Cursor:            341
-  Grandma:           316
-  Farm:              300
-  Mine:              268
-  Factory:           252
+  Cursor:            357
+  Grandma:           339
+  Farm:              302
+  Mine:              300
+  Factory:           267
   Bank:              250
-  Temple:            215
-  WizardTower:       200
-  Shipment:          200
-  AlchemyLab:        158
-  Portal:            150
-  TimeMachine:       125
-  Antimatter:        118
-  Prism:             114
+  Temple:            250
+  WizardTower:       211
+  Shipment:          201
+  AlchemyLab:        172
+  Portal:            157
+  TimeMachine:       150
+  Antimatter:        150
+  Prism:             126
 
 shop:
-  * "Kitten accountants"
+  * "Kitten specialists"
+  * "Butter pucks"
 
 upgrades:
 
@@ -124,6 +126,7 @@ upgrades:
   * "Enlarged pantheon"
   * "Great Baker in the sky"
   * "Creation myth"
+  * "Theocracy"
 
   -- WIZARDS
   * "Pointier hats"
@@ -165,6 +168,7 @@ upgrades:
   * "Quantum conundrum"
   * "Causality enforcer"
   * "Yestermorrow comparators"
+  * "Far future enactment"
 
   -- ANTIMATTER
   * "Sugar bosons"
@@ -172,6 +176,7 @@ upgrades:
   * "Large macaron collider"
   * "Big bang bake"
   * "Reverse cyclotrons"
+  * "Nanocosmics"
 
   -- PRISM
   * "Gem polish"
@@ -196,7 +201,7 @@ upgrades:
   * "Communal brainsweep"
   * "Arcane sugar"
   * "Elder pact"
-  * "Sacrificial rolling pins"
+  -- * "Sacrificial rolling pins"
 
   -- KITTENS
   * "Kitten helpers"
@@ -204,20 +209,25 @@ upgrades:
   * "Kitten engineers"
   * "Kitten overseers"
   * "Kitten managers"
+  * "Kitten accountants"
 
   -- EASTER
-  * "Salmon roe"
-  * "Ant larva"
-  * "Cassowary egg"
+  * "Chicken egg"
   * "Duck egg"
   * "Turkey egg"
-  * "Chicken egg"
+  * "Quail egg"
+  * "Robin egg"
+  * "Ostrich egg"
+  * "Cassowary egg"
+  * "Salmon roe"
   * "Frogspawn"
+  * "Shark egg"
   * "Turtle egg"
-  * "Century egg"
+  * "Ant larva"
   * "Faberge egg"
+  -- * "Cookie egg"
+  * "Century egg"
   * "\"egg\""
-  * "Cookie egg"
 
   -- CHRISTMAS
   * "A festive hat"
@@ -291,6 +301,7 @@ upgrades:
   * "Cigars"
   * "Pinwheel cookies"
   * "Fudge squares"
+  * "Shortbread biscuits"
 
   -- BOX OF EMPIRE
   * "Empire biscuits"
@@ -336,8 +347,14 @@ upgrades:
   * "Golden heart biscuits"
   * "Eternal heart biscuits"
 
+  * "Dragon cookie"
+
   * "Milk chocolate butter biscuit"
 
-
-
-
+  * "Skull cookies"
+  * "Spider cookies"
+  * "Ghost cookies"
+  * "Bat cookies"
+  * "Slime cookies"
+  * "Pumpkin cookies"
+  * "Eyeball cookies"

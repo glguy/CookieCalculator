@@ -56,6 +56,7 @@ data GameState = GameState
   , _eggMultipliers  :: !Double
   , _prestigeMultiplier :: !Int
   , _mouseBonus      :: !Double
+  , _mouseMultiplier :: !Double
   , _bonusCps        :: !Double
   , _buildingCostMultiplier  :: !Double
   , _upgradeCostMultiplier  :: !Double
@@ -80,18 +81,19 @@ makeLenses ''Upgrade
 
 initialGameState :: GameInput -> GameState
 initialGameState input = GameState
-  { _buildingBases = baseCps
-  , _buildingMults = Map.empty
-  , _buildingBonuses = Map.empty
-  , _multiplier  = 1
-  , _eggMultipliers = 0
-  , _mouseBonus  = 0
-  , _prestigeMultiplier  = 0
-  , _bonusCps  = 0
+  { _buildingBases           = baseCps
+  , _buildingMults           = Map.empty
+  , _buildingBonuses         = Map.empty
+  , _multiplier              = 1
+  , _eggMultipliers          = 0
+  , _mouseBonus              = 0
+  , _mouseMultiplier         = 1
+  , _prestigeMultiplier      = 0
+  , _bonusCps                = 0
   , _buildingCostMultiplier  = 1
-  , _upgradeCostMultiplier  = 1
-  , _milkMultiplier         = 1
-  , _milkFactors         = []
+  , _upgradeCostMultiplier   = 1
+  , _milkMultiplier          = 1
+  , _milkFactors             = []
   }
 
 buildingMult :: Building -> Lens' GameState Double
@@ -232,18 +234,16 @@ payoff inp st =
   fingersNeeded = 240 - view (buildingOwned Cursor) inp
   fingersCost   = sum $ take (fromIntegral fingersNeeded) $ iterate (*1.15) $ costs ^?! ix Cursor
   custom =
-    [ finish 1 250 Temple "Theocracy"
+    [ finishA 300 Temple
+    , finishA 300 Factory
+    , finishA 400 Cursor
     , finish 1 250 WizardTower "Rabbit trick"
     , finish 1 250 Shipment "The final frontier"
     , finish 1 200 AlchemyLab "Theory of atomic fluidity"
     , finish 1 200 Portal "End of back-up plan"
-    , finish 1 150 TimeMachine "Far future enactment"
-    , finish 1 150 Antimatter "Nanocosmics"
+    , finish 1 200 TimeMachine "Great loop hypothesis"
+    , finish 1 200 Antimatter "The Pulse"
     , finish 1 150 Prism "Glow-in-the-dark"
-
-    , finishA 300 Mine
-    , finishA 300 Bank
-    , finishA 300 Factory
     ]
 
   buyBuilding =
@@ -301,8 +301,10 @@ computeCps inp st =
 
 computeClickCookies :: GameInput -> GameState -> Double
 computeClickCookies inp st =
+  view mouseMultiplier st *
+  (
     computeCps inp st * view mouseBonus st
-  + computeMultiplier inp st * (view (buildingMult Cursor) st + view (buildingBonus Cursor) st)
+  + computeMultiplier inp st * (view (buildingMult Cursor) st + view (buildingBonus Cursor) st))
 
 loadMyInput :: IO GameInput
 loadMyInput =
@@ -659,8 +661,12 @@ allUpgrades =
    , Upgrade 0   "Pinwheel cookies"                       10e21 $ cookieBonus 4
    , Upgrade 0   "Fudge squares"                          50e21 $ cookieBonus 4
    , Upgrade 0   "Butter horseshoes"                     100e21 $ cookieBonus 4
+   , Upgrade 0   "Shortbread biscuits"                   100e21 $ cookieBonus 4
+   , Upgrade 0   "Butter pucks"                          500e21 $ cookieBonus 4
 
    , Upgrade 0 "Milk chocolate butter biscuit" 1.0e21 $ cookieBonus 10
+
+   , Upgrade 0 "Dragon cookie" 0 $ cookieBonus 5
 
    , Upgrade 0   "Digits"                                 5e15 $ cookieBonus 2
    , Upgrade 0   "Jaffa cakes"                            5e15 $ cookieBonus 2
@@ -683,6 +689,7 @@ allUpgrades =
    , Upgrade 0 "Hazelnut macarons" 10.0e15 $ cookieBonus 3
    , Upgrade 0 "Violet macarons" 10.0e18 $ cookieBonus 3
    , Upgrade 0 "Caramel macarons" 10.0e21 $ cookieBonus 3
+   , Upgrade 0 "Licorice macarons" 10.0e24 $ cookieBonus 3
 
    , Upgrade 52 "Lucky day"        777777777 $ const id
    , Upgrade 53 "Serendipity"    77777777777 $ const id
@@ -706,10 +713,14 @@ allUpgrades =
    , Upgrade 0 "Duck egg" 0      eggBonus
    , Upgrade 0 "Turkey egg" 0    eggBonus
    , Upgrade 0 "Turtle egg" 0    eggBonus
+   , Upgrade 0 "Quail egg" 0    eggBonus
+   , Upgrade 0 "Robin egg" 0    eggBonus
+   , Upgrade 0 "Ostrich egg" 0    eggBonus
+   , Upgrade 0 "Shark egg" 0    eggBonus
    , Upgrade 0 "Chicken egg" 0    eggBonus
    , Upgrade 0 "Frogspawn" 0    eggBonus
    , Upgrade 0 "Century egg" 0 addEggTimeBonus
-   , Upgrade 0 "Cookie egg" 0 $ \_ x -> x
+   , Upgrade 0 "Cookie egg" 0 $ \_ -> mouseMultiplier *~ 1.1
 
    , Upgrade 0 "Faberge egg" 0 $ \_ -> buildingCostMultiplier *~ 0.99
    , Upgrade 0 "\"egg\"" 0 $ \_ -> bonusCps +~ 9
@@ -749,12 +760,20 @@ allUpgrades =
    , Upgrade 0 "Toy workshop"               0 $ \_ -> upgradeCostMultiplier *~ 0.95
    , Upgrade 0 "Naughty list"               0 $ doubler Grandma
    , Upgrade 0 "Santa's bottomless bag"     0 $ \_ -> id-- drops
-   , Upgrade 0 "Santa's helpers"            0 $ \_ -> id-- clicking +10
+   , Upgrade 0 "Santa's helpers"            0 $ \_ -> mouseMultiplier *~ 1.1
    , Upgrade 0 "Santa's legacy"             0 $ cookieBonus (15*3)
    , Upgrade 0 "Santa's milk and cookies"   0 $ \_ -> milkMultiplier *~ 1.05
    , Upgrade 0 "Santa's dominion"           0 $ cookieBonus 20
                                                 -- buildings 1
                                                 -- upgrades 2
+
+   , Upgrade 0 "Skull cookies" 0 $ cookieBonus 2
+   , Upgrade 0 "Ghost cookies" 0 $ cookieBonus 2
+   , Upgrade 0 "Bat cookies" 0 $ cookieBonus 2
+   , Upgrade 0 "Slime cookies" 0 $ cookieBonus 2
+   , Upgrade 0 "Pumpkin cookies" 0 $ cookieBonus 2
+   , Upgrade 0 "Eyeball cookies" 0 $ cookieBonus 2
+   , Upgrade 0 "Spider cookies" 0 $ cookieBonus 2
    ]
 
 eggBonus _ = eggMultipliers +~ 1
@@ -774,4 +793,3 @@ floor' :: Double -> Double
 floor' = realToFrac . c_floor . realToFrac
 
 foreign import ccall "math.h floor" c_floor :: CDouble -> CDouble
-
