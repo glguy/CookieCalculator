@@ -239,7 +239,7 @@ payoff inp st =
     , finishA 400 Cursor
     , finish 1 250 WizardTower "Rabbit trick"
     , finish 1 250 Shipment "The final frontier"
-    , finish 1 200 AlchemyLab "Theory of atomic fluidity"
+    , finish 1 250 AlchemyLab "Beige goo"
     , finish 1 200 Portal "End of back-up plan"
     , finish 1 200 TimeMachine "Great loop hypothesis"
     , finish 1 200 Antimatter "The Pulse"
@@ -663,6 +663,8 @@ allUpgrades =
    , Upgrade 0   "Butter horseshoes"                     100e21 $ cookieBonus 4
    , Upgrade 0   "Shortbread biscuits"                   100e21 $ cookieBonus 4
    , Upgrade 0   "Butter pucks"                          500e21 $ cookieBonus 4
+   , Upgrade 0   "Butter knots"                            1e24 $ cookieBonus 4
+   , Upgrade 0   "Millionaire's shortbreads"             500e21 $ cookieBonus 4
 
    , Upgrade 0 "Milk chocolate butter biscuit" 1.0e21 $ cookieBonus 10
 
@@ -774,6 +776,25 @@ allUpgrades =
    , Upgrade 0 "Pumpkin cookies" 0 $ cookieBonus 2
    , Upgrade 0 "Eyeball cookies" 0 $ cookieBonus 2
    , Upgrade 0 "Spider cookies" 0 $ cookieBonus 2
+
+   , Upgrade 0 "Future almanacs" 0 $ synergy Farm TimeMachine
+   , Upgrade 0 "Rain prayer" 0 $ synergy Temple Farm
+   , Upgrade 0 "Seismic magic" 0 $ synergy WizardTower Mine
+   , Upgrade 0 "Asteroid mining" 0 $ synergy Mine Shipment
+   , Upgrade 0 "Quantum electronics" 0 $ synergy Factory Antimatter
+   , Upgrade 0 "Temporal overclocking" 0 $ synergy Factory TimeMachine
+   , Upgrade 0 "Contracts from beyond" 0 $ synergy Bank Portal
+   , Upgrade 0 "Printing press" 0 $ synergy Bank Factory
+   , Upgrade 0 "Paganism" 0 $ synergy Portal Temple
+   , Upgrade 0 "God particle" 0 $ synergy Antimatter Temple
+   , Upgrade 0 "Arcane knowledge" 0 $ synergy WizardTower AlchemyLab
+   , Upgrade 0 "Magical botany" 0 $ synergy Farm WizardTower
+   , Upgrade 0 "Fossil fuels" 0 $ synergy Shipment Mine
+   , Upgrade 0 "Shipyards" 0 $ synergy Factory Shipment
+   , Upgrade 0 "Primordial ores" 0 $ synergy Mine AlchemyLab
+   , Upgrade 0 "Gold fund" 0 $ synergy Bank AlchemyLab
+   , Upgrade 0 "Infernal crops" 0 $ synergy Farm Portal
+   , Upgrade 0 "Abysmal glimmer" 0 $ synergy Portal Prism
    ]
 
 eggBonus _ = eggMultipliers +~ 1
@@ -793,3 +814,10 @@ floor' :: Double -> Double
 floor' = realToFrac . c_floor . realToFrac
 
 foreign import ccall "math.h floor" c_floor :: CDouble -> CDouble
+
+synergy major minor inp
+  = (buildingMult major *~ (1 + 0.05 * fromIntegral minorCount))
+  . (buildingMult minor *~ (1 + 0.001 * fromIntegral majorCount))
+  where
+  majorCount = view (buildingOwned major) inp
+  minorCount = view (buildingOwned minor) inp

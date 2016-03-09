@@ -1,4 +1,4 @@
-achievements: 185 -- +4 shadow achievements
+achievements: 191 -- +4 shadow achievements
 
 start: "2016-03-06 21:26:44.885 UTC"
 
@@ -9,8 +9,8 @@ free:
   Grandma: 5
 
 buildings:
-  Cursor:            357
-  Grandma:           339
+  Cursor:            360
+  Grandma:           350
   Farm:              302
   Mine:              300
   Factory:           267
@@ -18,15 +18,15 @@ buildings:
   Temple:            250
   WizardTower:       211
   Shipment:          201
-  AlchemyLab:        172
+  AlchemyLab:        200
   Portal:            157
   TimeMachine:       150
   Antimatter:        150
-  Prism:             126
+  Prism:             130
 
 shop:
   * "Kitten specialists"
-  * "Butter pucks"
+  * "Butter knots"
 
 upgrades:
 
@@ -153,6 +153,7 @@ upgrades:
   * "Ambrosia"
   * "Aqua crustulae"
   * "Origin crucible"
+  * "Theory of atomic fluidity"
 
   -- PORTAL
   * "Ancient tablet"
@@ -302,6 +303,8 @@ upgrades:
   * "Pinwheel cookies"
   * "Fudge squares"
   * "Shortbread biscuits"
+  * "Butter pucks"
+  * "Millionaire's shortbreads"
 
   -- BOX OF EMPIRE
   * "Empire biscuits"
@@ -358,3 +361,21 @@ upgrades:
   * "Slime cookies"
   * "Pumpkin cookies"
   * "Eyeball cookies"
+
+  -- * "Future almanacs" 
+  -- * "Rain prayer" 
+  -- * "Seismic magic" 
+  -- * "Asteroid mining" 
+  -- * "Quantum electronics" 
+  -- * "Temporal overclocking" 
+  -- * "Contracts from beyond" 
+  -- * "Printing press" 
+  -- * "Paganism" 
+  -- * "God particle" 
+  -- * "Arcane knowledge" 
+  -- * "Magical botany" 
+  -- * "Fossil fuels" 
+  -- * "Shipyards" 
+  -- * "Primordial ores" 
+  -- * "Gold fund" 
+  -- * "Infernal crops" 
