@@ -89,10 +89,17 @@ initialCosts = Map.fromList
   , (Prism,              2.1e15)
   ]
 
+upgradeEffect :: Upgrade -> Effect
+upgradeEffect u =
+  Map.findWithDefault
+    (error ("Unknown effect: " ++ views upgradeName Text.unpack u))
+    (view upgradeName u)
+    upgradeEffects
+
 computeGameState :: GameInput -> GameState
 computeGameState input =
   foldl'
-    (\acc a -> view upgradeEffect a input acc)
+    (\acc u -> upgradeEffect u input acc)
     (initialGameState input)
     (view upgradesBought input)
 
@@ -179,7 +186,7 @@ payoff inp st =
     , finish 1 250 WizardTower "Rabbit trick"
     , finish 1 250 Shipment "The final frontier"
     , finish 1 250 AlchemyLab "Beige goo"
-    , finish 1 200 Portal "End of back-up plan"
+    , finish 1 200 Portal "End of times back-up plan"
     , finish 1 200 TimeMachine "Great loop hypothesis"
     , finish 1 200 Antimatter "The Pulse"
     , finish 1 150 Prism "Glow-in-the-dark"
@@ -207,7 +214,9 @@ payoff inp st =
 
   finish a n b up = ("+" ++ show n' ++ " " ++ show b, cost, f)
     where
-    Just u = Map.lookup up upgradeMap
+    u = Map.findWithDefault (error ("Unknown upgrade: " ++ Text.unpack up))
+               up
+               upgradeByName
     n' = n - view (buildingOwned b) inp
     cost = view upgradeCost u + sum (take (fromIntegral n') (iterate (*1.15) (costs ^?! ix b)))
     f = (upgradesBought <>~ [u])
@@ -318,423 +327,420 @@ prettyTime t = part y 'y' (y  > 0)
   part _ _ False = id
   part n c True  = shows n . showChar c
 
-upgradeMap :: Map Text Upgrade
-upgradeMap = Map.fromList [ (view upgradeName u, u) | u <- allUpgrades ]
-
 gpoc :: Building -> Double -> Effect
 gpoc b bonus = \inp ->
   let gmas = views (buildingOwned b) fromIntegral inp
   in buildingBase Grandma +~ bonus * gmas
 
-allUpgrades :: [Upgrade]
-allUpgrades =
-   [ Upgrade "Reinforced index finger"        100.0e0  $ doubler Cursor
-   , Upgrade "Carpal tunnel prevention cream" 500.0e0  $ doubler Cursor
-   , Upgrade "Ambidextrous"                    10.0e3  $ doubler Cursor
-   , Upgrade "Thousand fingers"               100.0e3  $ cursorAdd 0.1
-   , Upgrade "Million fingers"                 10.0e6  $ cursorAdd 0.5
-   , Upgrade "Billion fingers"                100.0e6  $ cursorAdd 5
-   , Upgrade "Trillion fingers"                 1.0e9  $ cursorAdd 50
-   , Upgrade "Quadrillion fingers"             10.0e9  $ cursorAdd 500
-   , Upgrade "Quintillion fingers"             10.0e12 $ cursorAdd 5000
-   , Upgrade "Sextillion fingers"             100.0e12 $ cursorAdd 50000
-   , Upgrade "Septillion fingers"               1.0e15 $ cursorAdd 500000
-   , Upgrade "Octillion fingers"               10.0e15 $ cursorAdd 5000000
+upgradeEffects :: Map Text Effect
+upgradeEffects = Map.fromList
+   [ ("Reinforced index finger"        , doubler Cursor)
+   , ("Carpal tunnel prevention cream" , doubler Cursor)
+   , ("Ambidextrous"                   , doubler Cursor)
+   , ("Thousand fingers"               , cursorAdd 0.1)
+   , ("Million fingers"                , cursorAdd 0.5)
+   , ("Billion fingers"                , cursorAdd 5)
+   , ("Trillion fingers"               , cursorAdd 50)
+   , ("Quadrillion fingers"            , cursorAdd 500)
+   , ("Quintillion fingers"            , cursorAdd 5000)
+   , ("Sextillion fingers"             , cursorAdd 50000)
+   , ("Septillion fingers"             , cursorAdd 500000)
+   , ("Octillion fingers"              , cursorAdd 5000000)
 
        ---- MICE
-   , Upgrade "Plastic mouse"     50.0e3  mouseAdd
-   , Upgrade "Iron mouse"         5.0e6  mouseAdd
-   , Upgrade "Titanium mouse"   500.0e6  mouseAdd
-   , Upgrade "Adamantium mouse"  50.0e9  mouseAdd
-   , Upgrade "Unobtainium mouse"  5.0e12 mouseAdd
-   , Upgrade "Eludium mouse"    500.0e12 mouseAdd
-   , Upgrade "Wishalloy mouse"   50.0e15 mouseAdd
-   , Upgrade "Fantasteel mouse"   5.0e18 mouseAdd
-   , Upgrade "Nevercrack mouse"  50.0e15 mouseAdd
+   , ("Plastic mouse"    , mouseAdd)
+   , ("Iron mouse"       , mouseAdd)
+   , ("Titanium mouse"   , mouseAdd)
+   , ("Adamantium mouse" , mouseAdd)
+   , ("Unobtainium mouse", mouseAdd)
+   , ("Eludium mouse"    , mouseAdd)
+   , ("Wishalloy mouse"  , mouseAdd)
+   , ("Fantasteel mouse" , mouseAdd)
+   , ("Nevercrack mouse" , mouseAdd)
 
    --    -- GRANDMAS
-   , Upgrade "Forwards from grandma"       1.0e3  $ doubler Grandma
-   , Upgrade "Steel-plated rolling pins"   5.0e3  $ doubler Grandma
-   , Upgrade "Lubricated dentures"        50.0e3  $ doubler Grandma
-   , Upgrade "Prune juice"                 5.0e6  $ doubler Grandma
-   , Upgrade "Double-thick glasses"      500.0e6  $ doubler Grandma
-   , Upgrade "Aging agents"               50.0e9  $ doubler Grandma
-   , Upgrade "Xtreme walkers"             50.0e12 $ doubler Grandma
-   , Upgrade "The Unbridling"             50.0e15 $ doubler Grandma
+   , ("Forwards from grandma"    , doubler Grandma)
+   , ("Steel-plated rolling pins", doubler Grandma)
+   , ("Lubricated dentures"      , doubler Grandma)
+   , ("Prune juice"              , doubler Grandma)
+   , ("Double-thick glasses"     , doubler Grandma)
+   , ("Aging agents"             , doubler Grandma)
+   , ("Xtreme walkers"           , doubler Grandma)
+   , ("The Unbridling"           , doubler Grandma)
 
-   , Upgrade "Farmer grandmas"     55.0e3  $ grandmaType Farm         1
-   , Upgrade "Miner grandmas"     600.0e3  $ grandmaType Mine         2
-   , Upgrade "Worker grandmas"      6.5e6  $ grandmaType Factory      3
-   , Upgrade "Banker grandmas"     70.0e6  $ grandmaType Bank         4
-   , Upgrade "Priestess grandmas"   1.0e9  $ grandmaType Temple       5
-   , Upgrade "Witch grandmas"      16.5e9  $ grandmaType WizardTower  6
-   , Upgrade "Cosmic grandmas"    255.0e9  $ grandmaType Shipment     7
-   , Upgrade "Transmuted grandmas" 3.75e12 $ grandmaType AlchemyLab   8
-   , Upgrade "Altered grandmas"    50.0e12 $ grandmaType Portal       9
-   , Upgrade "Grandmas' grandmas" 700.0e12 $ grandmaType TimeMachine 10
-   , Upgrade "Antigrandmas"         8.5e15 $ grandmaType Antimatter  11
-   , Upgrade "Rainbow grandmas"   105.0e15 $ grandmaType Prism       12
+   , ("Farmer grandmas"    , grandmaType Farm         1)
+   , ("Miner grandmas"     , grandmaType Mine         2)
+   , ("Worker grandmas"    , grandmaType Factory      3)
+   , ("Banker grandmas"    , grandmaType Bank         4)
+   , ("Priestess grandmas" , grandmaType Temple       5)
+   , ("Witch grandmas"     , grandmaType WizardTower  6)
+   , ("Cosmic grandmas"    , grandmaType Shipment     7)
+   , ("Transmuted grandmas", grandmaType AlchemyLab   8)
+   , ("Altered grandmas"   , grandmaType Portal       9)
+   , ("Grandmas' grandmas" , grandmaType TimeMachine 10)
+   , ("Antigrandmas"       , grandmaType Antimatter  11)
+   , ("Rainbow grandmas"   , grandmaType Prism       12)
 
    --    -- FARMS
-   , Upgrade "Cheap hoes"                    11.0e3  $ doubler Farm
-   , Upgrade "Fertilizer"                    55.0e3  $ doubler Farm
-   , Upgrade "Cookie trees"                 550.0e3  $ doubler Farm
-   , Upgrade "Genetically-modified cookies"  55.0e6  $ doubler Farm
-   , Upgrade "Gingerbread scarecrows"         5.5e9  $ doubler Farm
-   , Upgrade "Pulsar sprinklers"            550.0e9  $ doubler Farm
-   , Upgrade "Fudge fungus"                 550.0e12 $ doubler Farm
-   , Upgrade "Wheat triffids"               550.0e15 $ doubler Farm
+   , ("Cheap hoes"                  , doubler Farm)
+   , ("Fertilizer"                  , doubler Farm)
+   , ("Cookie trees"                , doubler Farm)
+   , ("Genetically-modified cookies", doubler Farm)
+   , ("Gingerbread scarecrows"      , doubler Farm)
+   , ("Pulsar sprinklers"           , doubler Farm)
+   , ("Fudge fungus"                , doubler Farm)
+   , ("Wheat triffids"              , doubler Farm)
 
    --    -- MINES
-   , Upgrade "Sugar gas"      120.0e3  $ doubler Mine
-   , Upgrade "Megadrill"      600.0e3  $ doubler Mine
-   , Upgrade "Ultradrill"       6.0e6  $ doubler Mine
-   , Upgrade "Ultimadrill"    600.0e6  $ doubler Mine
-   , Upgrade "H-bomb mining"   60.0e9  $ doubler Mine
-   , Upgrade "Coreforge"        6.0e12 $ doubler Mine
-   , Upgrade "Planetsplitters"  6.0e15 $ doubler Mine
-   , Upgrade "Canola oil wells" 6.0e18 $ doubler Mine
+   , ("Sugar gas"       , doubler Mine)
+   , ("Megadrill"       , doubler Mine)
+   , ("Ultradrill"      , doubler Mine)
+   , ("Ultimadrill"     , doubler Mine)
+   , ("H-bomb mining"   , doubler Mine)
+   , ("Coreforge"       , doubler Mine)
+   , ("Planetsplitters" , doubler Mine)
+   , ("Canola oil wells", doubler Mine)
 
    --    -- FACTORIES
-   , Upgrade "Sturdier conveyor belts" 1.3e6  $ doubler Factory
-   , Upgrade "Child labor"             6.5e6  $ doubler Factory
-   , Upgrade "Sweatshop"              65.0e6  $ doubler Factory
-   , Upgrade "Radium reactors"         6.5e9  $ doubler Factory
-   , Upgrade "Recombobulators"       650.0e9  $ doubler Factory
-   , Upgrade "Deep-bake process"      65.0e12 $ doubler Factory
-   , Upgrade "Cyborg workforce"       65.0e15 $ doubler Factory
-   , Upgrade "78-hour days"           65.0e18 $ doubler Factory
+   , ("Sturdier conveyor belts", doubler Factory)
+   , ("Child labor"            , doubler Factory)
+   , ("Sweatshop"              , doubler Factory)
+   , ("Radium reactors"        , doubler Factory)
+   , ("Recombobulators"        , doubler Factory)
+   , ("Deep-bake process"      , doubler Factory)
+   , ("Cyborg workforce"       , doubler Factory)
+   , ("78-hour days"           , doubler Factory)
 
    --    -- BANKS
-   , Upgrade "Taller tellers" 14e6 $ doubler Bank
-   , Upgrade "Scissor-resistant credit cards" 70e6 $ doubler Bank
-   , Upgrade "Acid-proof vaults" 700e6 $ doubler Bank
-   , Upgrade "Chocolate coins" 70e9 $ doubler Bank
-   , Upgrade "Exponential interest rates" 7e12 $ doubler Bank
-   , Upgrade "Financial zen" 700e12 $ doubler Bank
-   , Upgrade "Way of the wallet" 700e15 $ doubler Bank
-   , Upgrade "The stuff rationale" 700e18 $ doubler Bank
+   , ("Taller tellers"                , doubler Bank)
+   , ("Scissor-resistant credit cards", doubler Bank)
+   , ("Acid-proof vaults"             , doubler Bank)
+   , ("Chocolate coins"               , doubler Bank)
+   , ("Exponential interest rates"    , doubler Bank)
+   , ("Financial zen"                 , doubler Bank)
+   , ("Way of the wallet"             , doubler Bank)
+   , ("The stuff rationale"           , doubler Bank)
 
    --    -- TEMPLES
-   , Upgrade "Golden idols" 200e6 $ doubler Temple
-   , Upgrade "Sacrifices" 1e9 $ doubler Temple
-   , Upgrade "Delicious blessing" 10e9 $ doubler Temple
-   , Upgrade "Sun festival" 1e12 $ doubler Temple
-   , Upgrade "Enlarged pantheon" 100e12 $ doubler Temple
-   , Upgrade "Great Baker in the sky" 10e15 $ doubler Temple
-   , Upgrade "Creation myth" 10e18 $ doubler Temple
-   , Upgrade "Theocracy" 10e21 $ doubler Temple
+   , ("Golden idols"          , doubler Temple)
+   , ("Sacrifices"            , doubler Temple)
+   , ("Delicious blessing"    , doubler Temple)
+   , ("Sun festival"          , doubler Temple)
+   , ("Enlarged pantheon"     , doubler Temple)
+   , ("Great Baker in the sky", doubler Temple)
+   , ("Creation myth"         , doubler Temple)
+   , ("Theocracy"             , doubler Temple)
 
    --    -- WIZARDS
-   , Upgrade "Pointier hats" 3.3e9 $ doubler WizardTower
-   , Upgrade "Beardlier beards" 16.5e9 $ doubler WizardTower
-   , Upgrade "Ancient grimoires" 165e9 $ doubler WizardTower
-   , Upgrade "Kitchen curses" 16.5e12 $ doubler WizardTower
-   , Upgrade "School of sorcery" 1.65e15 $ doubler WizardTower
-   , Upgrade "Dark formulas" 165e15 $ doubler WizardTower
-   , Upgrade "Cookiemancy" 165e18 $ doubler WizardTower
-   , Upgrade "Rabbit trick" 165e21 $ doubler WizardTower
+   , ("Pointier hats"    , doubler WizardTower)
+   , ("Beardlier beards" , doubler WizardTower)
+   , ("Ancient grimoires", doubler WizardTower)
+   , ("Kitchen curses"   , doubler WizardTower)
+   , ("School of sorcery", doubler WizardTower)
+   , ("Dark formulas"    , doubler WizardTower)
+   , ("Cookiemancy"      , doubler WizardTower)
+   , ("Rabbit trick"     , doubler WizardTower)
 
    --    -- SHIPMENTS
-   , Upgrade  "Vanilla nebulae" 51e9 $ doubler Shipment
-   , Upgrade "Wormholes" 255e9 $ doubler Shipment
-   , Upgrade "Frequent flyer" 2.55e12 $ doubler Shipment
-   , Upgrade "Warp drive" 255e12 $ doubler Shipment
-   , Upgrade "Chocolate monoliths" 25.5e15 $ doubler Shipment
-   , Upgrade "Generation ship" 2.55e18 $ doubler Shipment
-   , Upgrade "Dyson sphere" 2.55e21 $ doubler Shipment
-   , Upgrade "The final frontier" 2.55e24 $ doubler Shipment
+   , ("Vanilla nebulae"     , doubler Shipment)
+   , ("Wormholes"          , doubler Shipment)
+   , ("Frequent flyer"     , doubler Shipment)
+   , ("Warp drive"         , doubler Shipment)
+   , ("Chocolate monoliths", doubler Shipment)
+   , ("Generation ship"    , doubler Shipment)
+   , ("Dyson sphere"       , doubler Shipment)
+   , ("The final frontier" , doubler Shipment)
 
    --    -- ALCHEMY
-   , Upgrade "Antimony" 750e9 $ doubler AlchemyLab
-   , Upgrade "Essence of dough" 3.75e12 $ doubler AlchemyLab
-   , Upgrade "True chocolate" 37.5e12 $ doubler AlchemyLab
-   , Upgrade "Ambrosia" 3.75e15 $ doubler AlchemyLab
-   , Upgrade "Aqua crustulae" 375e15 $ doubler AlchemyLab
-   , Upgrade "Origin crucible" 3.75e18 $ doubler AlchemyLab
-   , Upgrade "Theory of atomic fluidity" 37.5e21 $ doubler AlchemyLab
-   , Upgrade "Beige goo" 37.5e24 $ doubler AlchemyLab
+   , ("Antimony"                 , doubler AlchemyLab)
+   , ("Essence of dough"         , doubler AlchemyLab)
+   , ("True chocolate"           , doubler AlchemyLab)
+   , ("Ambrosia"                 , doubler AlchemyLab)
+   , ("Aqua crustulae"           , doubler AlchemyLab)
+   , ("Origin crucible"          , doubler AlchemyLab)
+   , ("Theory of atomic fluidity", doubler AlchemyLab)
+   , ("Beige goo"                , doubler AlchemyLab)
 
    --    -- PORTAL
-   , Upgrade "Ancient tablet" 10e12 $ doubler Portal
-   , Upgrade "Insane oatling workers" 50e12 $ doubler Portal
-   , Upgrade "Soul bond" 500e12 $ doubler Portal
-   , Upgrade "Sanity dance" 50e15 $ doubler Portal
-   , Upgrade "Brane transplant" 5e18 $ doubler Portal
-   , Upgrade "Deity-sized portals" 500e18 $ doubler Portal
-   , Upgrade "End of back-up plan" 500e21 $ doubler Portal
-   , Upgrade "Maddening chants" 500e24 $ doubler Portal
+   , ("Ancient tablet"        , doubler Portal)
+   , ("Insane oatling workers", doubler Portal)
+   , ("Soul bond"             , doubler Portal)
+   , ("Sanity dance"          , doubler Portal)
+   , ("Brane transplant"      , doubler Portal)
+   , ("Deity-sized portals"   , doubler Portal)
+   , ("End of times back-up plan", doubler Portal)
+   , ("Maddening chants"      , doubler Portal)
 
    -- TIME MACHINE
-   , Upgrade "Flux capacitors" 140e12 $ doubler TimeMachine
-   , Upgrade "Time paradox resolver" 700e12 $ doubler TimeMachine
-   , Upgrade "Quantum conundrum" 7e15 $ doubler TimeMachine
-   , Upgrade "Causality enforcer" 700e15 $ doubler TimeMachine
-   , Upgrade "Yestermorrow comparators" 70e18 $ doubler TimeMachine
-   , Upgrade "Far future enactment" 7e21 $ doubler TimeMachine
-   , Upgrade "Great loop hypothesis" 7e24 $ doubler TimeMachine
-   , Upgrade "Cookietopian moments of maybe" 7e27 $ doubler TimeMachine
+   , ("Flux capacitors"              , doubler TimeMachine)
+   , ("Time paradox resolver"        , doubler TimeMachine)
+   , ("Quantum conundrum"            , doubler TimeMachine)
+   , ("Causality enforcer"           , doubler TimeMachine)
+   , ("Yestermorrow comparators"     , doubler TimeMachine)
+   , ("Far future enactment"         , doubler TimeMachine)
+   , ("Great loop hypothesis"        , doubler TimeMachine)
+   , ("Cookietopian moments of maybe", doubler TimeMachine)
 
    -- ANTIMATTER CONDENSER
-   , Upgrade "Sugar bosons" 1.7e15 $ doubler Antimatter
-   , Upgrade "String theory" 8.5e15 $ doubler Antimatter
-   , Upgrade "Large macaron collider" 85e15 $ doubler Antimatter
-   , Upgrade "Big bang bake" 8.5e18 $ doubler Antimatter
-   , Upgrade "Reverse cyclotrons" 850e18 $ doubler Antimatter
-   , Upgrade "Nanocosmics" 85e21 $ doubler Antimatter
-   , Upgrade "The Pulse" 85e24 $ doubler Antimatter
-   , Upgrade "Some other super-tiny fundamental particle? Probably?" 85e27 $ doubler Antimatter
+   , ("Sugar bosons"                                         , doubler Antimatter)
+   , ("String theory"                                        , doubler Antimatter)
+   , ("Large macaron collider"                               , doubler Antimatter)
+   , ("Big bang bake"                                        , doubler Antimatter)
+   , ("Reverse cyclotrons"                                   , doubler Antimatter)
+   , ("Nanocosmics"                                          , doubler Antimatter)
+   , ("The Pulse"                                            , doubler Antimatter)
+   , ("Some other super-tiny fundamental particle? Probably?", doubler Antimatter)
 
    -- PRISM
-   , Upgrade "Gem polish"          21e15 $ doubler Prism
-   , Upgrade "9th color"          105e15 $ doubler Prism
-   , Upgrade "Chocolate light"   1.05e18 $ doubler Prism
-   , Upgrade "Grainbow"           105e18 $ doubler Prism
-   , Upgrade "Pure cosmic light" 10.5e21 $ doubler Prism
-   , Upgrade "Glow-in-the-dark"  1.05e24 $ doubler Prism
-   , Upgrade "Lux sanctorum"     1.05e27 $ doubler Prism
-   , Upgrade "Reverse shadows"   1.05e30 $ doubler Prism
+   , ("Gem polish"       , doubler Prism)
+   , ("9th color"        , doubler Prism)
+   , ("Chocolate light"  , doubler Prism)
+   , ("Grainbow"         , doubler Prism)
+   , ("Pure cosmic light", doubler Prism)
+   , ("Glow-in-the-dark" , doubler Prism)
+   , ("Lux sanctorum"    , doubler Prism)
+   , ("Reverse shadows"  , doubler Prism)
 
    --    -- KITTENS
-   , Upgrade  "Kitten helpers"       9.0e6  $ kittenBonus 10
-   , Upgrade  "Kitten workers"       9.0e9  $ kittenBonus 12.5
-   , Upgrade  "Kitten engineers"    90.0e12 $ kittenBonus 15
-   , Upgrade "Kitten overseers"    90.0e15 $ kittenBonus 17.5
-   , Upgrade "Kitten managers"    900.0e18 $ kittenBonus 20
-   , Upgrade "Kitten accountants" 900.0e21 $ kittenBonus 20
-   , Upgrade "Kitten specialists" 900.0e24 $ kittenBonus 20
-   , Upgrade "Kitten experts"     900.0e27 $ kittenBonus 20
-   -- , Upgrade "Kitten angels" 9000HC
+   , ("Kitten helpers"    , kittenBonus 10)
+   , ("Kitten workers"    , kittenBonus 12.5)
+   , ("Kitten engineers"  , kittenBonus 15)
+   , ("Kitten overseers"  , kittenBonus 17.5)
+   , ("Kitten managers"   , kittenBonus 20)
+   , ("Kitten accountants", kittenBonus 20)
+   , ("Kitten specialists", kittenBonus 20)
+   , ("Kitten experts"    , kittenBonus 20)
+   , ("Kitten angels"     , kittenBonus 10)
 
    --    -- COOKIES
-   , Upgrade "Plain cookies"                      999999    $ cookieBonus 1
-   , Upgrade "Sugar cookies"                           5e6  $ cookieBonus 1
-   , Upgrade "Oatmeal raisin cookies"                 10e6  $ cookieBonus 1
-   , Upgrade "Peanut butter cookies"                  50e6  $ cookieBonus 1
-   , Upgrade "Coconut cookies"                       100e6  $ cookieBonus 1
-   , Upgrade "White chocolate cookies"               500e6  $ cookieBonus 2
-   , Upgrade "Macadamia nut cookies"                   1e9  $ cookieBonus 2
-   , Upgrade "Double-chip cookies"                     5e9  $ cookieBonus 2
-   , Upgrade "White chocolate macadamia nut cookies"  10e9  $ cookieBonus 2
-   , Upgrade "All-chocolate cookies"                  50e9  $ cookieBonus 2
-   , Upgrade "Dark chocolate-coated cookies"         100e9  $ cookieBonus 4
-   , Upgrade "White chocolate-coated cookies"        100e9  $ cookieBonus 4
-   , Upgrade "Eclipse cookies"                       500e9  $ cookieBonus 2
-   , Upgrade "Zebra cookies"                           1e12 $ cookieBonus 2
-   , Upgrade "Snickerdoodles"                          5e12 $ cookieBonus 2
-   , Upgrade "Stroopwafels"                           10e12 $ cookieBonus 2
-   , Upgrade "Macaroons"                              50e12 $ cookieBonus 2
-   , Upgrade "Empire biscuits"                       100e12 $ cookieBonus 2
-   , Upgrade "Madeleines"                            500e12 $ cookieBonus 2
-   , Upgrade "Palmiers"                              500e12 $ cookieBonus 2
-   , Upgrade "Palets"                                  1e15 $ cookieBonus 2
-   , Upgrade "Sablés"                                  1e15 $ cookieBonus 2
-   , Upgrade "Caramoas"                               10e15 $ cookieBonus 3
-   , Upgrade "Sagalongs"                              10e15 $ cookieBonus 3
-   , Upgrade "Shortfoils"                             10e15 $ cookieBonus 3
-   , Upgrade "Win mints"                              10e15 $ cookieBonus 3
-   , Upgrade "Gingerbread men"                        10e15 $ cookieBonus 2
-   , Upgrade "Gingerbread trees"                      10e15 $ cookieBonus 2
-   , Upgrade "Pure black chocolate cookies"           50e15 $ cookieBonus 4
-   , Upgrade "Pure white chocolate cookies"           50e15 $ cookieBonus 4
-   , Upgrade "Ladyfingers"                           100e15 $ cookieBonus 3
-   , Upgrade "Tuiles"                                500e15 $ cookieBonus 3
-   , Upgrade "Chocolate-stuffed biscuits"              1e18 $ cookieBonus 3
-   , Upgrade "Checker cookies"                         5e18 $ cookieBonus 3
-   , Upgrade "Butter cookies"                         10e18 $ cookieBonus 3
-   , Upgrade "Cream cookies"                          50e18 $ cookieBonus 3
-   , Upgrade "Gingersnaps"                           100e18 $ cookieBonus 4
-   , Upgrade "Cinnamon cookies"                      500e18 $ cookieBonus 4
-   , Upgrade "Vanity cookies"                          1e21 $ cookieBonus 4
-   , Upgrade "Cigars"                                  5e21 $ cookieBonus 4
-   , Upgrade "Pinwheel cookies"                       10e21 $ cookieBonus 4
-   , Upgrade "Fudge squares"                          50e21 $ cookieBonus 4
-   , Upgrade "Butter horseshoes"                     100e21 $ cookieBonus 4
-   , Upgrade "Shortbread biscuits"                   100e21 $ cookieBonus 4
-   , Upgrade "Butter pucks"                          500e21 $ cookieBonus 4
-   , Upgrade "Butter knots"                            1e24 $ cookieBonus 4
-   , Upgrade "Caramel cookies"                         1e24 $ cookieBonus 4
-   , Upgrade "Millionaires' shortbreads"             500e21 $ cookieBonus 4
-   , Upgrade "Butter slabs"                            5e24 $ cookieBonus 4
-   , Upgrade "Butter swirls"                          10e24 $ cookieBonus 4
+   , ("Plain cookies"                        , cookieBonus 1)
+   , ("Sugar cookies"                        , cookieBonus 1)
+   , ("Oatmeal raisin cookies"               , cookieBonus 1)
+   , ("Peanut butter cookies"                , cookieBonus 1)
+   , ("Coconut cookies"                      , cookieBonus 1)
+   , ("White chocolate cookies"              , cookieBonus 2)
+   , ("Macadamia nut cookies"                , cookieBonus 2)
+   , ("Double-chip cookies"                  , cookieBonus 2)
+   , ("White chocolate macadamia nut cookies", cookieBonus 2)
+   , ("All-chocolate cookies"                , cookieBonus 2)
+   , ("Dark chocolate-coated cookies"        , cookieBonus 4)
+   , ("White chocolate-coated cookies"       , cookieBonus 4)
+   , ("Eclipse cookies"                      , cookieBonus 2)
+   , ("Zebra cookies"                        , cookieBonus 2)
+   , ("Snickerdoodles"                       , cookieBonus 2)
+   , ("Stroopwafels"                         , cookieBonus 2)
+   , ("Macaroons"                            , cookieBonus 2)
+   , ("Empire biscuits"                      , cookieBonus 2)
+   , ("Madeleines"                           , cookieBonus 2)
+   , ("Palmiers"                             , cookieBonus 2)
+   , ("Palets"                               , cookieBonus 2)
+   , ("Sablés"                               , cookieBonus 2)
+   , ("Caramoas"                             , cookieBonus 3)
+   , ("Sagalongs"                            , cookieBonus 3)
+   , ("Shortfoils"                           , cookieBonus 3)
+   , ("Win mints"                            , cookieBonus 3)
+   , ("Gingerbread men"                      , cookieBonus 2)
+   , ("Gingerbread trees"                    , cookieBonus 2)
+   , ("Pure black chocolate cookies"         , cookieBonus 4)
+   , ("Pure white chocolate cookies"         , cookieBonus 4)
+   , ("Ladyfingers"                          , cookieBonus 3)
+   , ("Tuiles"                               , cookieBonus 3)
+   , ("Chocolate-stuffed biscuits"           , cookieBonus 3)
+   , ("Checker cookies"                      , cookieBonus 3)
+   , ("Butter cookies"                       , cookieBonus 3)
+   , ("Cream cookies"                        , cookieBonus 3)
+   , ("Gingersnaps"                          , cookieBonus 4)
+   , ("Cinnamon cookies"                     , cookieBonus 4)
+   , ("Vanity cookies"                       , cookieBonus 4)
+   , ("Cigars"                               , cookieBonus 4)
+   , ("Pinwheel cookies"                     , cookieBonus 4)
+   , ("Fudge squares"                        , cookieBonus 4)
+   , ("Butter horseshoes"                    , cookieBonus 4)
+   , ("Shortbread biscuits"                  , cookieBonus 4)
+   , ("Butter pucks"                         , cookieBonus 4)
+   , ("Butter knots"                         , cookieBonus 4)
+   , ("Caramel cookies"                      , cookieBonus 4)
+   , ("Millionaires' shortbreads"            , cookieBonus 4)
+   , ("Butter slabs"                         , cookieBonus 4)
+   , ("Butter swirls"                        , cookieBonus 4)
 
-   , Upgrade "Milk chocolate butter biscuit" 1.0e21 $ cookieBonus 10
+   , ("Milk chocolate butter biscuit"        , cookieBonus 10)
 
-   , Upgrade "Dragon cookie" 0 $ cookieBonus 5
+   , ("Dragon cookie", cookieBonus 5)
 
-   , Upgrade   "Digits"                                 5e15 $ cookieBonus 2
-   , Upgrade   "Jaffa cakes"                            5e15 $ cookieBonus 2
-   , Upgrade   "Loreols"                                5e15 $ cookieBonus 2
-   , Upgrade   "Fig gluttons"                           5e15 $ cookieBonus 2
-   , Upgrade   "Grease's cups"                          5e15 $ cookieBonus 2
-   , Upgrade   "Shortfolios"                           10e15 $ cookieBonus 3
+   , (  "Digits"       , cookieBonus 2)
+   , (  "Jaffa cakes"  , cookieBonus 2)
+   , (  "Loreols"      , cookieBonus 2)
+   , (  "Fig gluttons" , cookieBonus 2)
+   , (  "Grease's cups", cookieBonus 2)
+   , (  "Shortfolios"  , cookieBonus 3)
 
-   , Upgrade "British tea biscuits" 0 $ cookieBonus 2
-   , Upgrade "Chocolate british tea biscuits" 0 $ cookieBonus 2
-   , Upgrade "Round british tea biscuits" 0 $ cookieBonus 2
-   , Upgrade "Round chocolate british tea biscuits" 0 $ cookieBonus 2
-   , Upgrade "Round british tea biscuits with heart motif" 0 $ cookieBonus 2
-   , Upgrade "Round chocolate british tea biscuits with heart motif" 0 $ cookieBonus 2
+   , ("British tea biscuits"                                 , cookieBonus 2)
+   , ("Chocolate british tea biscuits"                       , cookieBonus 2)
+   , ("Round british tea biscuits"                           , cookieBonus 2)
+   , ("Round chocolate british tea biscuits"                 , cookieBonus 2)
+   , ("Round british tea biscuits with heart motif"          , cookieBonus 2)
+   , ("Round chocolate british tea biscuits with heart motif", cookieBonus 2)
 
-   , Upgrade "Rose macarons" 10.0e3 $ cookieBonus 3
-   , Upgrade "Lemon macarons" 10.0e6 $ cookieBonus 3
-   , Upgrade "Chocolate macarons" 10.0e9 $ cookieBonus 3
-   , Upgrade "Pistachio macarons" 10.0e12 $ cookieBonus 3
-   , Upgrade "Hazelnut macarons" 10.0e15 $ cookieBonus 3
-   , Upgrade "Violet macarons" 10.0e18 $ cookieBonus 3
-   , Upgrade "Caramel macarons" 10.0e21 $ cookieBonus 3
-   , Upgrade "Licorice macarons" 10.0e24 $ cookieBonus 3
+   , ("Rose macarons"     , cookieBonus 3)
+   , ("Lemon macarons"    , cookieBonus 3)
+   , ("Chocolate macarons", cookieBonus 3)
+   , ("Pistachio macarons", cookieBonus 3)
+   , ("Hazelnut macarons" , cookieBonus 3)
+   , ("Violet macarons"   , cookieBonus 3)
+   , ("Caramel macarons"  , cookieBonus 3)
+   , ("Licorice macarons" , cookieBonus 3)
 
-   , Upgrade "Lucky day"        777777777 $ const id
-   , Upgrade "Serendipity"    77777777777 $ const id
-   , Upgrade "Get lucky"   77777777777777 $ const id
+   , ("Lucky day"  , noEffect)
+   , ("Serendipity", noEffect)
+   , ("Get lucky"  , noEffect)
 
-   , Upgrade "Bingo center/Research facility" 1e15   $ \_ -> buildingMult Grandma *~ 4
-   , Upgrade "Specialized chocolate chips"    100e9  $ cookieBonus 1
-   , Upgrade "Designer cocoa beans"           200e9  $ cookieBonus 2
-   , Upgrade "Ritual rolling pins"            400e9  $ doubler Grandma
-   , Upgrade "Underworld ovens"               800e9  $ cookieBonus 3
-   , Upgrade "One mind"                       1.6e9  $ gpoc Grandma 0.02
-   , Upgrade "Exotic nuts"                    3.2e9  $ cookieBonus 4
-   , Upgrade "Communal brainsweep"            6.4e9  $ gpoc Grandma 0.02
-   , Upgrade "Arcane sugar"                   12.8e9 $ cookieBonus 5
-   , Upgrade "Elder Pact"                     25.6e9 $ gpoc Portal 0.05
-   , Upgrade "Sacrificial rolling pins"       0      noEffect
+   , ("Bingo center/Research facility", \_ -> buildingMult Grandma *~ 4)
+   , ("Specialized chocolate chips"   , cookieBonus 1)
+   , ("Designer cocoa beans"          , cookieBonus 2)
+   , ("Ritual rolling pins"           , doubler Grandma)
+   , ("Underworld ovens"              , cookieBonus 3)
+   , ("One mind"                      , gpoc Grandma 0.02)
+   , ("Exotic nuts"                   , cookieBonus 4)
+   , ("Communal brainsweep"           , gpoc Grandma 0.02)
+   , ("Arcane sugar"                  , cookieBonus 5)
+   , ("Elder Pact"                    , gpoc Portal 0.05)
+   , ("Sacrificial rolling pins"      , noEffect)
 
-   , Upgrade "Salmon roe"    0 eggBonus
-   , Upgrade "Ant larva"     0 eggBonus
-   , Upgrade "Cassowary egg" 0 eggBonus
-   , Upgrade "Duck egg"      0 eggBonus
-   , Upgrade "Turkey egg"    0 eggBonus
-   , Upgrade "Turtle egg"    0 eggBonus
-   , Upgrade "Quail egg"     0 eggBonus
-   , Upgrade "Robin egg"     0 eggBonus
-   , Upgrade "Ostrich egg"   0 eggBonus
-   , Upgrade "Shark egg"     0 eggBonus
-   , Upgrade "Chicken egg"   0 eggBonus
-   , Upgrade "Frogspawn"     0 eggBonus
-   , Upgrade "Century egg"   0 addEggTimeBonus
-   , Upgrade "Cookie egg"    0 $ \_ -> mouseMultiplier *~ 1.1
+   , ("Salmon roe"   , eggBonus)
+   , ("Ant larva"    , eggBonus)
+   , ("Cassowary egg", eggBonus)
+   , ("Duck egg"     , eggBonus)
+   , ("Turkey egg"   , eggBonus)
+   , ("Turtle egg"   , eggBonus)
+   , ("Quail egg"    , eggBonus)
+   , ("Robin egg"    , eggBonus)
+   , ("Ostrich egg"  , eggBonus)
+   , ("Shark egg"    , eggBonus)
+   , ("Chicken egg"  , eggBonus)
+   , ("Frogspawn"    , eggBonus)
+   , ("Century egg"  , addEggTimeBonus)
+   , ("Cookie egg"   , \_ -> mouseMultiplier *~ 1.1)
 
-   , Upgrade "Faberge egg" 0 $ \_ -> buildingCostMultiplier *~ 0.99
-   , Upgrade "\"egg\"" 0 $ \_ -> bonusCps +~ 9
+   , ("Faberge egg", \_ -> buildingCostMultiplier *~ 0.99)
+   , ("\"egg\"", \_ -> bonusCps +~ 9)
 
-   , Upgrade "A crumbly egg" 0 $ const id
+   , ("A crumbly egg", noEffect)
 
-   , Upgrade "Pure heart biscuits" 1e6 $ cookieBonus 2
-   , Upgrade "Ardent heart biscuits" 1e9 $ cookieBonus 2
-   , Upgrade "Sour heart biscuits" 1e12 $ cookieBonus 2
-   , Upgrade "Weeping heart biscuits" 1e15 $ cookieBonus 2
-   , Upgrade "Golden heart biscuits" 1e18 $ cookieBonus 2
-   , Upgrade "Eternal heart biscuits" 1e21 $ cookieBonus 2
+   , ("Pure heart biscuits"   , cookieBonus 2)
+   , ("Ardent heart biscuits" , cookieBonus 2)
+   , ("Sour heart biscuits"   , cookieBonus 2)
+   , ("Weeping heart biscuits", cookieBonus 2)
+   , ("Golden heart biscuits" , cookieBonus 2)
+   , ("Eternal heart biscuits", cookieBonus 2)
 
-   , Upgrade "Christmas tree biscuits" 252.525e9 $ cookieBonus 2
-   , Upgrade "Snowflake biscuits" 252.525e9 $ cookieBonus 2
-   , Upgrade "Snowman biscuits" 252.525e9 $ cookieBonus 2
-   , Upgrade "Holly biscuits" 252.525e9 $ cookieBonus 2
-   , Upgrade "Candy cane biscuits" 252.525e9 $ cookieBonus 2
-   , Upgrade "Bell biscuits" 252.525e9 $ cookieBonus 2
-   , Upgrade "Present biscuits" 252.525e9 $ cookieBonus 2
+   , ("Christmas tree biscuits", cookieBonus 2)
+   , ("Snowflake biscuits"     , cookieBonus 2)
+   , ("Snowman biscuits"       , cookieBonus 2)
+   , ("Holly biscuits"         , cookieBonus 2)
+   , ("Candy cane biscuits"    , cookieBonus 2)
+   , ("Bell biscuits"          , cookieBonus 2)
+   , ("Present biscuits"       , cookieBonus 2)
 
-   , Upgrade "Heavenly chip secret" 11 $ prestigeBonus 5
-   , Upgrade "Heavenly cookie stand" 1111 $ prestigeBonus 20
-   , Upgrade "Heavenly bakery" 111111 $ prestigeBonus 25
-   , Upgrade "Heavenly confectionery" 1111111 $ prestigeBonus 25
-   , Upgrade "Heavenly key" 1 $ prestigeBonus 25
+   , ("Heavenly chip secret"  , prestigeBonus 5)
+   , ("Heavenly cookie stand" , prestigeBonus 20)
+   , ("Heavenly bakery"       , prestigeBonus 25)
+   , ("Heavenly confectionery", prestigeBonus 25)
+   , ("Heavenly key"          , prestigeBonus 25)
 
-   , Upgrade "A festive hat"              0 noEffect
-   , Upgrade "Increased merriness"        0 $ cookieBonus 15
-   , Upgrade "Improved jolliness"         0 $ cookieBonus 15
-   , Upgrade "A lump of coal"             0 $ cookieBonus 1
-   , Upgrade "An itchy sweater"           0 $ cookieBonus 1
-   , Upgrade "Reindeer baking grounds"    0 noEffect
-   , Upgrade "Weighted sleds"             0 noEffect
-   , Upgrade "Ho ho ho-flavored frosting" 0 noEffect
-   , Upgrade "Season savings"             0 $ \_ -> buildingCostMultiplier *~ 0.99
-   , Upgrade "Toy workshop"               0 $ \_ -> upgradeCostMultiplier *~ 0.95
-   , Upgrade "Naughty list"               0 $ doubler Grandma
-   , Upgrade "Santa's bottomless bag"     0 noEffect-- drops
-   , Upgrade "Santa's helpers"            0 $ \_ -> mouseMultiplier *~ 1.1
-   , Upgrade "Santa's legacy"             0 $ cookieBonus (15*3)
-   , Upgrade "Santa's milk and cookies"   0 $ \_ -> milkMultiplier *~ 1.05
-   , Upgrade "Santa's dominion"           0 $ cookieBonus 20
+   , ("A festive hat"             , noEffect)
+   , ("Increased merriness"       , cookieBonus 15)
+   , ("Improved jolliness"        , cookieBonus 15)
+   , ("A lump of coal"            , cookieBonus 1)
+   , ("An itchy sweater"          , cookieBonus 1)
+   , ("Reindeer baking grounds"   , noEffect)
+   , ("Weighted sleds"            , noEffect)
+   , ("Ho ho ho-flavored frosting", noEffect)
+   , ("Season savings"            , \_ -> buildingCostMultiplier *~ 0.99)
+   , ("Toy workshop"              , \_ -> upgradeCostMultiplier *~ 0.95)
+   , ("Naughty list"              , doubler Grandma)
+   , ("Santa's bottomless bag"    , noEffect) -- drops
+   , ("Santa's helpers"           , \_ -> mouseMultiplier *~ 1.1)
+   , ("Santa's legacy"            , cookieBonus (15*3))
+   , ("Santa's milk and cookies"  , \_ -> milkMultiplier *~ 1.05)
+   , ("Santa's dominion"          , cookieBonus 20)
                                                 -- buildings 1
                                                 -- upgrades 2
 
-   , Upgrade "Skull cookies"   0 $ cookieBonus 2
-   , Upgrade "Ghost cookies"   0 $ cookieBonus 2
-   , Upgrade "Bat cookies"     0 $ cookieBonus 2
-   , Upgrade "Slime cookies"   0 $ cookieBonus 2
-   , Upgrade "Pumpkin cookies" 0 $ cookieBonus 2
-   , Upgrade "Eyeball cookies" 0 $ cookieBonus 2
-   , Upgrade "Spider cookies"  0 $ cookieBonus 2
+   , ("Skull cookies"  , cookieBonus 2)
+   , ("Ghost cookies"  , cookieBonus 2)
+   , ("Bat cookies"    , cookieBonus 2)
+   , ("Slime cookies"  , cookieBonus 2)
+   , ("Pumpkin cookies", cookieBonus 2)
+   , ("Eyeball cookies", cookieBonus 2)
+   , ("Spider cookies" , cookieBonus 2)
 
-   , Upgrade "Future almanacs"              0 $ synergy Farm TimeMachine
-   , Upgrade "Seismic magic"                0 $ synergy Mine WizardTower
-   , Upgrade "Quantum electronics"          0 $ synergy Factory Antimatter
-   , Upgrade "Contracts from beyond"        0 $ synergy Bank Portal
-   , Upgrade "Paganism"                     0 $ synergy Temple Portal
-   , Upgrade "Arcane knowledge"             0 $ synergy WizardTower AlchemyLab
-   , Upgrade "Fossil fuels"                 0 $ synergy Mine Shipment
-   , Upgrade "Primordial ores"              0 $ synergy Mine AlchemyLab
-   , Upgrade "Infernal crops"               0 $ synergy Farm Portal
-   , Upgrade "Relativistic parsec-skipping" 0 $ synergy Shipment TimeMachine
-   , Upgrade "Extra physics funding"        0 $ synergy Bank Antimatter
-   , Upgrade "Light magic"                  0 $ synergy WizardTower Prism
+   , ("Future almanacs"             , synergy Farm TimeMachine)
+   , ("Seismic magic"               , synergy Mine WizardTower)
+   , ("Quantum electronics"         , synergy Factory Antimatter)
+   , ("Contracts from beyond"       , synergy Bank Portal)
+   , ("Paganism"                    , synergy Temple Portal)
+   , ("Arcane knowledge"            , synergy WizardTower AlchemyLab)
+   , ("Fossil fuels"                , synergy Mine Shipment)
+   , ("Primordial ores"             , synergy Mine AlchemyLab)
+   , ("Infernal crops"              , synergy Farm Portal)
+   , ("Relativistic parsec-skipping", synergy Shipment TimeMachine)
+   , ("Extra physics funding"       , synergy Bank Antimatter)
+   , ("Light magic"                 , synergy WizardTower Prism)
 
-   -- , Upgrade "Rain prayer" 0 $ synergy Temple Farm
-   -- , Upgrade "Asteroid mining" 0 $ synergy Mine Shipment
-   -- , Upgrade "Temporal overclocking" 0 $ synergy Factory TimeMachine
-   -- , Upgrade "Printing press" 0 $ synergy Bank Factory
-   -- , Upgrade "God particle" 0 $ synergy Antimatter Temple
-   -- , Upgrade "Magical botany" 0 $ synergy Farm WizardTower
-   -- , Upgrade "Shipyards" 0 $ synergy Factory Shipment
-   -- , Upgrade "Gold fund" 0 $ synergy Bank AlchemyLab
-   -- , Upgrade "Abysmal glimmer" 0 $ synergy Portal Prism
+   -- , ("Rain prayer" 0 $ synergy Temple Farm
+   -- , ("Asteroid mining" 0 $ synergy Mine Shipment
+   -- , ("Temporal overclocking" 0 $ synergy Factory TimeMachine
+   -- , ("Printing press" 0 $ synergy Bank Factory
+   -- , ("God particle" 0 $ synergy Antimatter Temple
+   -- , ("Magical botany" 0 $ synergy Farm WizardTower
+   -- , ("Shipyards" 0 $ synergy Factory Shipment
+   -- , ("Gold fund" 0 $ synergy Bank AlchemyLab
+   -- , ("Abysmal glimmer" 0 $ synergy Portal Prism
 
-   , Upgrade "Revoke Elder Covenant"       0 noEffect
-   , Upgrade "Persistent memory"           0 noEffect
-   , Upgrade "Weighted sleighs"            0 noEffect
-   , Upgrade "Season switcher"             0 noEffect
-   , Upgrade "Bunny biscuit"               0 noEffect
-   , Upgrade "Tin of british tea biscuits" 0 noEffect
-   , Upgrade "Box of macarons"             0 noEffect
-   , Upgrade "Box of brand biscuits"       0 noEffect
-   , Upgrade "Permanent upgrade slot I"    0 noEffect
-   , Upgrade "Permanent upgrade slot II"   0 noEffect
-   , Upgrade "Angels"                      0 noEffect
-   , Upgrade "Archangels"                  0 noEffect
-   , Upgrade "Virtues"                     0 noEffect
-   , Upgrade "Dominions"                   0 noEffect
-   , Upgrade "Twin Gates of Transcendence" 0 noEffect
-   , Upgrade "Heavenly luck"               0 noEffect
-   , Upgrade "Lasting fortune"             0 noEffect
+   , ("Revoke Elder Covenant"      , noEffect)
+   , ("Persistent memory"          , noEffect)
+   , ("Weighted sleighs"           , noEffect)
+   , ("Season switcher"            , noEffect)
+   , ("Bunny biscuit"              , noEffect)
+   , ("Tin of british tea biscuits", noEffect)
+   , ("Box of macarons"            , noEffect)
+   , ("Box of brand biscuits"      , noEffect)
+   , ("Permanent upgrade slot I"   , noEffect)
+   , ("Permanent upgrade slot II"  , noEffect)
+   , ("Angels"                     , noEffect)
+   , ("Archangels"                 , noEffect)
+   , ("Virtues"                    , noEffect)
+   , ("Dominions"                  , noEffect)
+   , ("Twin Gates of Transcendence", noEffect)
+   , ("Heavenly luck"              , noEffect)
+   , ("Lasting fortune"            , noEffect)
 
-   , Upgrade "Starter kit"     0 $ \_ -> buildingFree Cursor  +~ 10
-   , Upgrade "Starter kitchen" 0 $ \_ -> buildingFree Grandma +~  5
+   , ("Starter kit"    , \_ -> buildingFree Cursor  +~ 10)
+   , ("Starter kitchen", \_ -> buildingFree Grandma +~  5)
 
-   , Upgrade "How to bake your dragon" 0 noEffect
-   , Upgrade "Tin of butter cookies" 0 noEffect
-   , Upgrade "Golden switch" 0 $ cookieBonus 50
-   , Upgrade "Classic dairy selection" 0 noEffect
-   , Upgrade "Belphegor" 0 noEffect
-   , Upgrade "Mammon" 0 noEffect
-   , Upgrade "Abaddon" 0 noEffect
-   , Upgrade "Satan" 0 noEffect
-   , Upgrade "Legacy" 0 noEffect
-   , Upgrade "Synergies Vol. I" 0 noEffect
-   , Upgrade "Synergies Vol. II" 0 noEffect
-   , Upgrade "Elder Pledge" 0 noEffect
-   , Upgrade "Elder Covenant" 0 noEffect
-   , Upgrade "Festive biscuit" 0 noEffect
-   , Upgrade "Ghostly biscuit" 0 noEffect
-   , Upgrade "Lovesick biscuit" 0 noEffect
-   , Upgrade "Fool's biscuit" 0 noEffect
-   , Upgrade "Golden switch [off]" 0 noEffect
-   , Upgrade "Golden switch [on]" 0 noEffect
-   , Upgrade "Milk selector" 0 noEffect
-   , Upgrade "Golden goose egg" 0 noEffect
-   , Upgrade "Chocolate egg" 0 noEffect
+   , ("How to bake your dragon", noEffect)
+   , ("Tin of butter cookies"  , noEffect)
+   , ("Golden switch"          , cookieBonus 50)
+   , ("Classic dairy selection", noEffect)
+   , ("Belphegor"              , noEffect)
+   , ("Mammon"                 , noEffect)
+   , ("Abaddon"                , noEffect)
+   , ("Satan"                  , noEffect)
+   , ("Legacy"                 , noEffect)
+   , ("Synergies Vol. I"       , noEffect)
+   , ("Synergies Vol. II"      , noEffect)
+   , ("Elder Pledge"           , noEffect)
+   , ("Elder Covenant"         , noEffect)
+   , ("Festive biscuit"        , noEffect)
+   , ("Ghostly biscuit"        , noEffect)
+   , ("Lovesick biscuit"       , noEffect)
+   , ("Fool's biscuit"         , noEffect)
+   , ("Golden switch [off]"    , noEffect)
+   , ("Golden switch [on]"     , noEffect)
+   , ("Milk selector"          , noEffect)
+   , ("Golden goose egg"       , noEffect)
+   , ("Chocolate egg"          , noEffect)
    ]
 
 noEffect :: Effect
@@ -784,10 +790,7 @@ saveFileToGameInput now sav = GameInput
   , _cookiesMunched     = savMunched sav
   }
   where
-  idToUpgrade i =
-    Map.findWithDefault (error ("Unknown upgrade: " ++ Text.unpack name)) name upgradeMap
-    where
-    name = upgradeNameById !! i
+  idToUpgrade i = upgradeById !! i
 
   inShop (unlocked,bought) = unlocked && not bought
 

@@ -28,7 +28,6 @@ data BuildingStat = BuildingStat
 data Upgrade = Upgrade
   { _upgradeName   :: Text
   , _upgradeCost   :: Double
-  , _upgradeEffect :: GameInput -> GameState -> GameState
   }
 
 data GameState = GameState

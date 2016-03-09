@@ -107,13 +107,12 @@ parseBldg str =
      return BuildingSave{..}
 
 unpackBits :: Text -> [Bool]
-unpackBits bs = Text.foldr (aux . ord) [] bs
-
+unpackBits bs = Text.foldr (unpackOrd . ord) [] bs
   where
-  aux 0 _ = error "Bad bit packing"
-  aux 1 rest = rest
-  aux n rest | even n = aux (n`quot`2) (False : rest)
-             | otherwise = aux (n`quot`2) (True : rest)
+  unpackOrd n
+    | n < 1     = error "Bad bit packing"
+    | n == 1    = id
+    | otherwise = unpackOrd (n`quot`2) . (odd n:)
 
 toPairs (x:y:z) = (x,y) : toPairs z
 toPairs _       = []
@@ -154,4 +153,3 @@ parse str =
    savUnknown11, savUnknown12, savUnknown13, savUnknown14, savUnknown15, savUnknown16,
    savUnknown17, savUnknown18, savUnknown19, savUnknown20, savUnknown21, savUnknown22,
    savUnknown23, savUnknown24] = init (Text.splitOn ";" region3)
-
