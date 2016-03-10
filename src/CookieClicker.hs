@@ -84,18 +84,23 @@ initialCosts = Map.fromList
   ]
 
 upgradeEffect :: Upgrade -> Effect
-upgradeEffect u =
+upgradeEffect = views upgradeName upgradeEffectByName
+
+upgradeEffectByName :: Text -> Effect
+upgradeEffectByName n =
   Map.findWithDefault
-    (error ("Unknown effect: " ++ views upgradeName Text.unpack u))
-    (view upgradeName u)
+    (error ("Unknown effect: " ++ Text.unpack n))
+    n
     upgradeEffects
 
 computeGameState :: GameInput -> GameState
-computeGameState input =
-  foldl'
-    (\acc u -> upgradeEffect u input acc)
-    initialGameState
-    (view upgradesBought input)
+computeGameState input
+  = upgradeEffectByName (view dragonAura1 input) input
+  $ upgradeEffectByName (view dragonAura2 input) input
+  $ foldl'
+      (\acc u -> upgradeEffect u input acc)
+      initialGameState
+      (view upgradesBought input)
 
 type Effect = GameInput -> GameState -> GameState
 
@@ -209,15 +214,18 @@ payoff inp st =
     n' = n - view (buildingOwned b) inp
     cost = view upgradeCost u + sum (take (fromIntegral n') (iterate (*1.15) (costs ^?! ix b)))
     f = (upgradesBought %~ cons u)
-      . (achievementsEarned +~ a)
+      . (achievementsEarned %~ cons (fakeAchievement a))
       . (buildingOwned b .~ n)
 
   finishA n b = ("+" ++ show n' ++ " " ++ show b, cost, f)
     where
     n' = n - view (buildingOwned b) inp
     cost = sum (take (fromIntegral n') (iterate (*1.15) (costs ^?! ix b)))
-    f = (achievementsEarned +~ 1)
+    f = (achievementsEarned %~ cons (fakeAchievement 1))
       . (buildingOwned b .~ n)
+
+  fakeAchievement 1 = Achievement "fake" "normal"
+  fakeAchievement _ = Achievement "fake" "shadow"
 
 computeMultiplier :: GameInput -> GameState -> Double
 computeMultiplier inp st =
@@ -228,7 +236,12 @@ computeMultiplier inp st =
    view prestigeLevel inp / 100 + 1)
   where
   milkFactor = product [ 1 + milk * x * view milkMultiplier st | x <- view milkFactors st ]
-  milk = 0.04 * views achievementsEarned fromIntegral inp
+  milk = computeMilk inp
+
+computeMilk :: GameInput -> Double
+computeMilk input = fromIntegral n / 25
+  where
+  n = length $ filter (\a -> a^.achievementPool == "normal") $ input^.achievementsEarned
 
 computeCps :: GameInput -> GameState -> Double
 computeCps inp st =
@@ -739,6 +752,12 @@ upgradeEffects = Map.fromList
    , ("Milk selector"          , noEffect)
    , ("Golden goose egg"       , noEffect)
    , ("Chocolate egg"          , noEffect)
+
+   -- Dragon Auras
+   , ("No aura"         , noEffect)
+   , ("Radiant Appetite", cookieBonus 100)
+   , ("Dragonflight"    , noEffect) -- effect not modeled
+   , ("Mind Over Matter", noEffect) -- 0.75 multiplier to random drops
    ]
 
 noEffect :: Effect
@@ -782,19 +801,18 @@ saveFileToGameInput now sav = GameInput
   , _prestigeLevel      = savPrestige (savMain sav)
   , _sessionLength      = realToFrac (diffUTCTime now (savSessionStart (savStats sav)))
   , _cookiesMunched     = savMunched (savMain sav)
+  , _dragonAura1        = dragonAuras !! savDragonAura (savMain sav)
+  , _dragonAura2        = dragonAuras !! savDragonAura2 (savMain sav)
   }
   where
-  idToUpgrade i = upgradeById !! i
-
   inShop (unlocked,bought) = unlocked && not bought
 
   upgradeList f
-     = fmap idToUpgrade
+     = fmap (upgradeById !!)
      $ findIndices f
      $ savUpgrades sav
 
   achievements
-    = length
-    $ filter (\i -> achievementPoolById !! i == "normal")
+    = fmap (achievementById !!)
     $ findIndices id
     $ savAchievements sav

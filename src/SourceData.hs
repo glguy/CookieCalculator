@@ -19,19 +19,25 @@ import qualified Data.Map as Map
 
 upgradeById :: [Upgrade]
 upgradeById =
-  $(do v <- loadAeson "upgrades.json"
-       let parseUpgrade o = Upgrade <$> o .: "name" <*> o .: "price"
-           upgradeE (Upgrade x y) = appsE [conE 'Upgrade, stringE (Text.unpack x), lift y]
-       xs <- liftResult (parse (traverse parseUpgrade) v)
-       listE (map upgradeE xs)
+  $(do xs <- loadAeson "upgrades.json"
+       let upgradeE (Upgrade x y) = appsE [conE 'Upgrade, textE x, lift y]
+       listE (upgradeE <$> xs)
    )
 
 upgradeByName :: Map Text Upgrade
 upgradeByName = Map.fromList [ (view upgradeName u, u) | u <- upgradeById ]
 
-achievementPoolById :: [Text]
-achievementPoolById =
-  $(do v  <- loadAeson "achievements.json"
-       xs <- liftResult (parse (traverse (.: "pool")) v)
-       lift (xs :: [String])
+achievementById :: [Achievement]
+achievementById =
+  $(do xs <- loadAeson "achievements.json"
+       let achievementE (Achievement x y) = appsE [conE 'Achievement, textE x, textE y]
+       listE (achievementE <$> xs)
    )
+
+dragonAuras :: [Text]
+dragonAuras =
+  [ "No aura", "Breath of Milk", "Dragon Cursor", "Elder Battalion",
+    "Reaper of Fields", "Earth Shatterer", "Master of the Armory",
+    "Fierce Hoarder", "Dragon God", "Arcane Aura", "Dragonflight",
+    "Ancestral Metamorphosis", "Unholy Dominion", "Epoch Manipulator",
+    "Mind Over Matter", "Radiant Appetite"]

@@ -62,7 +62,7 @@ data SaveMain = SaveMain
   , savHeavenlyCookies :: Double
   , savAscensionMode :: Int
   , savPermUpgrade1, savPermUpgrade2
-  , savPermUpgrade3, savPermUpgrade4
+  , savPermUpgrade3, savPermUpgrade4, savPermUpgrade5
   , savDragonLevel, savDragonAura, savDragonAura2
   , savChimeType, savVolume :: Int
   } deriving (Show)

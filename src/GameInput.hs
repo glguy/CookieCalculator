@@ -4,6 +4,7 @@
 module GameInput where
 
 import Building
+import AesonTH
 
 import Data.Text (Text)
 import Data.Map (Map)
@@ -11,12 +12,14 @@ import Control.Lens
 
 data GameInput = GameInput
   { _buildingsOwned     :: !(Map Building Int)
-  , _achievementsEarned :: !Int
+  , _achievementsEarned :: ![Achievement]
   , _upgradesBought     :: ![Upgrade]
   , _upgradesAvailable  :: ![Upgrade]
   , _prestigeLevel      :: !Double
   , _sessionLength      :: !Double
   , _cookiesMunched     :: !Double
+  , _dragonAura1        :: !Text
+  , _dragonAura2        :: !Text
   }
   deriving (Read, Show)
 
@@ -29,6 +32,12 @@ data BuildingStat = BuildingStat
 data Upgrade = Upgrade
   { _upgradeName   :: !Text
   , _upgradeCost   :: !Double
+  }
+  deriving (Read, Show)
+
+data Achievement = Achievement
+  { _achievementName :: !Text
+  , _achievementPool :: !Text
   }
   deriving (Read, Show)
 
@@ -48,10 +57,11 @@ data GameState = GameState
   }
   deriving (Read, Show)
 
+makeLenses ''Achievement
+makeLenses ''BuildingStat
+makeLenses ''GameInput
 makeLenses ''GameState
 makeLenses ''Upgrade
-makeLenses ''GameInput
-makeLenses ''BuildingStat
 
 buildingStat :: Building -> Lens' GameState BuildingStat
 buildingStat k = buildingStats . singular (ix k)
@@ -76,3 +86,13 @@ buildingBase k = buildingStat k . bldgBase
 buildingFree :: Building -> Lens' GameState Int
 buildingFree k = buildingStat k . bldgFree
 {-# INLINE buildingFree #-}
+
+myDeriveJSON ''Upgrade
+  [ ("_upgradeName", "name")
+  , ("_upgradeCost","price")
+  ]
+
+myDeriveJSON ''Achievement
+  [ ("_achievementName", "name")
+  , ("_achievementPool", "pool")
+  ]

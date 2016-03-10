@@ -1,9 +1,12 @@
 module AesonTH where
 
 import           Data.Aeson
+import           Data.Aeson.TH
 import qualified Data.ByteString as B
 import           Language.Haskell.TH
 import           Language.Haskell.TH.Syntax
+import           Data.Text (Text)
+import qualified Data.Text as Text
 
 loadAeson :: FromJSON a => FilePath -> Q a
 loadAeson path =
@@ -16,3 +19,13 @@ loadAeson path =
 liftResult :: Monad m => Result a -> m a
 liftResult (Error   e) = fail e
 liftResult (Success x) = return x
+
+myDeriveJSON :: Name -> [(String,String)] -> DecsQ
+myDeriveJSON typeName fields = deriveJSON defaultOptions
+  { fieldLabelModifier = \str -> case lookup str fields of
+                                   Nothing -> error ("Unassigned field: " ++ str)
+                                   Just x  -> x
+  } typeName
+
+textE :: Text -> ExpQ
+textE = stringE . Text.unpack
