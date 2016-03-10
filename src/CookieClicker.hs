@@ -84,10 +84,10 @@ initialCosts = Map.fromList
   ]
 
 upgradeEffect :: Upgrade -> Effect
-upgradeEffect = views upgradeName upgradeEffectByName
+upgradeEffect = views upgradeName effectByName
 
-upgradeEffectByName :: Text -> Effect
-upgradeEffectByName n =
+effectByName :: Text -> Effect
+effectByName n =
   Map.findWithDefault
     (error ("Unknown effect: " ++ Text.unpack n))
     n
@@ -95,8 +95,8 @@ upgradeEffectByName n =
 
 computeGameState :: GameInput -> GameState
 computeGameState input
-  = upgradeEffectByName (view dragonAura1 input) input
-  $ upgradeEffectByName (view dragonAura2 input) input
+  = effectByName (view dragonAura1 input) input
+  $ effectByName (view dragonAura2 input) input
   $ foldl'
       (\acc u -> upgradeEffect u input acc)
       initialGameState
@@ -174,8 +174,7 @@ payoff inp st =
   frenzyReserve = 7 * 6000 * cps
 
   custom =
-    [ finishA 300 Bank
-    , finishA 300 Temple
+    [ finishA 300 Temple
     , finishA 300 WizardTower
     , finishA 400 Cursor
     , finish 1 250 Shipment "The final frontier"
@@ -267,6 +266,7 @@ main =
      putStrLn (payoff input st)
      let cps = computeCps input st
      putStrLn $ "Buildings:\t"   ++ show (sum (view buildingsOwned input))
+     putStrLn $ "Cookies:\t"     ++ prettyNumber LongSuffix (view cookiesBanked input)
      putStrLn $ "Munched:\t"     ++ prettyNumber LongSuffix (computeMunched input st)
      putStrLn $ "Cookie/s:\t"    ++ prettyNumber LongSuffix cps
      putStrLn $ "Cookie/c:\t"    ++ prettyNumber LongSuffix (computeClickCookies input st)
@@ -340,19 +340,21 @@ gpoc b bonus = \inp ->
   in buildingBase Grandma +~ bonus * gmas
 
 upgradeEffects :: Map Text Effect
-upgradeEffects = Map.fromList
+upgradeEffects = Map.fromList $
+   [ (name, doubler b) | b <- [Grandma .. ], name <- buildingTieredUpgrades b ]
+   ++
    [ ("Reinforced index finger"        , doubler Cursor)
    , ("Carpal tunnel prevention cream" , doubler Cursor)
    , ("Ambidextrous"                   , doubler Cursor)
-   , ("Thousand fingers"               , cursorAdd 0.1)
-   , ("Million fingers"                , cursorAdd 0.5)
-   , ("Billion fingers"                , cursorAdd 5)
-   , ("Trillion fingers"               , cursorAdd 50)
-   , ("Quadrillion fingers"            , cursorAdd 500)
-   , ("Quintillion fingers"            , cursorAdd 5000)
-   , ("Sextillion fingers"             , cursorAdd 50000)
-   , ("Septillion fingers"             , cursorAdd 500000)
-   , ("Octillion fingers"              , cursorAdd 5000000)
+   , ("Thousand fingers"               , cursorAdd 1.0e-1)
+   , ("Million fingers"                , cursorAdd 5.0e-1)
+   , ("Billion fingers"                , cursorAdd 5.0e+0)
+   , ("Trillion fingers"               , cursorAdd 5.0e+1)
+   , ("Quadrillion fingers"            , cursorAdd 5.0e+2)
+   , ("Quintillion fingers"            , cursorAdd 5.0e+3)
+   , ("Sextillion fingers"             , cursorAdd 5.0e+4)
+   , ("Septillion fingers"             , cursorAdd 5.0e+5)
+   , ("Octillion fingers"              , cursorAdd 5.0e+6)
 
        ---- MICE
    , ("Plastic mouse"    , mouseAdd)
@@ -364,16 +366,6 @@ upgradeEffects = Map.fromList
    , ("Wishalloy mouse"  , mouseAdd)
    , ("Fantasteel mouse" , mouseAdd)
    , ("Nevercrack mouse" , mouseAdd)
-
-   --    -- GRANDMAS
-   , ("Forwards from grandma"    , doubler Grandma)
-   , ("Steel-plated rolling pins", doubler Grandma)
-   , ("Lubricated dentures"      , doubler Grandma)
-   , ("Prune juice"              , doubler Grandma)
-   , ("Double-thick glasses"     , doubler Grandma)
-   , ("Aging agents"             , doubler Grandma)
-   , ("Xtreme walkers"           , doubler Grandma)
-   , ("The Unbridling"           , doubler Grandma)
 
    , ("Farmer grandmas"    , grandmaType Farm         1)
    , ("Miner grandmas"     , grandmaType Mine         2)
@@ -387,126 +379,6 @@ upgradeEffects = Map.fromList
    , ("Grandmas' grandmas" , grandmaType TimeMachine 10)
    , ("Antigrandmas"       , grandmaType Antimatter  11)
    , ("Rainbow grandmas"   , grandmaType Prism       12)
-
-   --    -- FARMS
-   , ("Cheap hoes"                  , doubler Farm)
-   , ("Fertilizer"                  , doubler Farm)
-   , ("Cookie trees"                , doubler Farm)
-   , ("Genetically-modified cookies", doubler Farm)
-   , ("Gingerbread scarecrows"      , doubler Farm)
-   , ("Pulsar sprinklers"           , doubler Farm)
-   , ("Fudge fungus"                , doubler Farm)
-   , ("Wheat triffids"              , doubler Farm)
-
-   --    -- MINES
-   , ("Sugar gas"       , doubler Mine)
-   , ("Megadrill"       , doubler Mine)
-   , ("Ultradrill"      , doubler Mine)
-   , ("Ultimadrill"     , doubler Mine)
-   , ("H-bomb mining"   , doubler Mine)
-   , ("Coreforge"       , doubler Mine)
-   , ("Planetsplitters" , doubler Mine)
-   , ("Canola oil wells", doubler Mine)
-
-   --    -- FACTORIES
-   , ("Sturdier conveyor belts", doubler Factory)
-   , ("Child labor"            , doubler Factory)
-   , ("Sweatshop"              , doubler Factory)
-   , ("Radium reactors"        , doubler Factory)
-   , ("Recombobulators"        , doubler Factory)
-   , ("Deep-bake process"      , doubler Factory)
-   , ("Cyborg workforce"       , doubler Factory)
-   , ("78-hour days"           , doubler Factory)
-
-   --    -- BANKS
-   , ("Taller tellers"                , doubler Bank)
-   , ("Scissor-resistant credit cards", doubler Bank)
-   , ("Acid-proof vaults"             , doubler Bank)
-   , ("Chocolate coins"               , doubler Bank)
-   , ("Exponential interest rates"    , doubler Bank)
-   , ("Financial zen"                 , doubler Bank)
-   , ("Way of the wallet"             , doubler Bank)
-   , ("The stuff rationale"           , doubler Bank)
-
-   --    -- TEMPLES
-   , ("Golden idols"          , doubler Temple)
-   , ("Sacrifices"            , doubler Temple)
-   , ("Delicious blessing"    , doubler Temple)
-   , ("Sun festival"          , doubler Temple)
-   , ("Enlarged pantheon"     , doubler Temple)
-   , ("Great Baker in the sky", doubler Temple)
-   , ("Creation myth"         , doubler Temple)
-   , ("Theocracy"             , doubler Temple)
-
-   --    -- WIZARDS
-   , ("Pointier hats"    , doubler WizardTower)
-   , ("Beardlier beards" , doubler WizardTower)
-   , ("Ancient grimoires", doubler WizardTower)
-   , ("Kitchen curses"   , doubler WizardTower)
-   , ("School of sorcery", doubler WizardTower)
-   , ("Dark formulas"    , doubler WizardTower)
-   , ("Cookiemancy"      , doubler WizardTower)
-   , ("Rabbit trick"     , doubler WizardTower)
-
-   --    -- SHIPMENTS
-   , ("Vanilla nebulae"     , doubler Shipment)
-   , ("Wormholes"          , doubler Shipment)
-   , ("Frequent flyer"     , doubler Shipment)
-   , ("Warp drive"         , doubler Shipment)
-   , ("Chocolate monoliths", doubler Shipment)
-   , ("Generation ship"    , doubler Shipment)
-   , ("Dyson sphere"       , doubler Shipment)
-   , ("The final frontier" , doubler Shipment)
-
-   --    -- ALCHEMY
-   , ("Antimony"                 , doubler AlchemyLab)
-   , ("Essence of dough"         , doubler AlchemyLab)
-   , ("True chocolate"           , doubler AlchemyLab)
-   , ("Ambrosia"                 , doubler AlchemyLab)
-   , ("Aqua crustulae"           , doubler AlchemyLab)
-   , ("Origin crucible"          , doubler AlchemyLab)
-   , ("Theory of atomic fluidity", doubler AlchemyLab)
-   , ("Beige goo"                , doubler AlchemyLab)
-
-   --    -- PORTAL
-   , ("Ancient tablet"        , doubler Portal)
-   , ("Insane oatling workers", doubler Portal)
-   , ("Soul bond"             , doubler Portal)
-   , ("Sanity dance"          , doubler Portal)
-   , ("Brane transplant"      , doubler Portal)
-   , ("Deity-sized portals"   , doubler Portal)
-   , ("End of times back-up plan", doubler Portal)
-   , ("Maddening chants"      , doubler Portal)
-
-   -- TIME MACHINE
-   , ("Flux capacitors"              , doubler TimeMachine)
-   , ("Time paradox resolver"        , doubler TimeMachine)
-   , ("Quantum conundrum"            , doubler TimeMachine)
-   , ("Causality enforcer"           , doubler TimeMachine)
-   , ("Yestermorrow comparators"     , doubler TimeMachine)
-   , ("Far future enactment"         , doubler TimeMachine)
-   , ("Great loop hypothesis"        , doubler TimeMachine)
-   , ("Cookietopian moments of maybe", doubler TimeMachine)
-
-   -- ANTIMATTER CONDENSER
-   , ("Sugar bosons"                                         , doubler Antimatter)
-   , ("String theory"                                        , doubler Antimatter)
-   , ("Large macaron collider"                               , doubler Antimatter)
-   , ("Big bang bake"                                        , doubler Antimatter)
-   , ("Reverse cyclotrons"                                   , doubler Antimatter)
-   , ("Nanocosmics"                                          , doubler Antimatter)
-   , ("The Pulse"                                            , doubler Antimatter)
-   , ("Some other super-tiny fundamental particle? Probably?", doubler Antimatter)
-
-   -- PRISM
-   , ("Gem polish"       , doubler Prism)
-   , ("9th color"        , doubler Prism)
-   , ("Chocolate light"  , doubler Prism)
-   , ("Grainbow"         , doubler Prism)
-   , ("Pure cosmic light", doubler Prism)
-   , ("Glow-in-the-dark" , doubler Prism)
-   , ("Lux sanctorum"    , doubler Prism)
-   , ("Reverse shadows"  , doubler Prism)
 
    --    -- KITTENS
    , ("Kitten helpers"    , kittenBonus 10)
@@ -760,6 +632,66 @@ upgradeEffects = Map.fromList
    , ("Mind Over Matter", noEffect) -- 0.75 multiplier to random drops
    ]
 
+buildingTieredUpgrades :: Building -> [Text]
+buildingTieredUpgrades b =
+  case b of
+    Cursor -> []
+
+    Grandma -> [ "Forwards from grandma", "Steel-plated rolling pins",
+                 "Lubricated dentures", "Prune juice", "Double-thick glasses",
+                 "Aging agents", "Xtreme walkers", "The Unbridling"]
+
+    Farm -> [ "Cheap hoes", "Fertilizer", "Cookie trees",
+              "Genetically-modified cookies", "Gingerbread scarecrows",
+              "Pulsar sprinklers", "Fudge fungus", "Wheat triffids"]
+
+    Mine -> [ "Sugar gas", "Megadrill", "Ultradrill", "Ultimadrill",
+              "H-bomb mining", "Coreforge", "Planetsplitters",
+              "Canola oil wells"]
+
+    Factory -> [ "Sturdier conveyor belts", "Child labor", "Sweatshop",
+                 "Radium reactors", "Recombobulators", "Deep-bake process",
+                 "Cyborg workforce", "78-hour days" ]
+
+    Bank -> [ "Taller tellers", "Scissor-resistant credit cards",
+              "Acid-proof vaults", "Chocolate coins",
+              "Exponential interest rates", "Financial zen",
+              "Way of the wallet", "The stuff rationale" ]
+
+    Temple -> [ "Golden idols", "Sacrifices", "Delicious blessing",
+                "Sun festival", "Enlarged pantheon", "Great Baker in the sky",
+                "Creation myth", "Theocracy" ]
+
+    WizardTower -> [ "Pointier hats", "Beardlier beards", "Ancient grimoires",
+                     "Kitchen curses", "School of sorcery", "Dark formulas",
+                     "Cookiemancy", "Rabbit trick" ]
+
+    Shipment -> [ "Vanilla nebulae", "Wormholes", "Frequent flyer",
+                  "Warp drive", "Chocolate monoliths", "Generation ship",
+                  "Dyson sphere", "The final frontier" ]
+
+    AlchemyLab -> [ "Antimony", "Essence of dough", "True chocolate",
+                    "Ambrosia", "Aqua crustulae", "Origin crucible",
+                    "Theory of atomic fluidity", "Beige goo" ]
+
+    Portal -> [ "Ancient tablet", "Insane oatling workers", "Soul bond",
+                "Sanity dance", "Brane transplant", "Deity-sized portals",
+                "End of times back-up plan", "Maddening chants" ]
+
+    TimeMachine -> [ "Flux capacitors", "Time paradox resolver",
+                     "Quantum conundrum", "Causality enforcer",
+                     "Yestermorrow comparators", "Far future enactment",
+                     "Great loop hypothesis", "Cookietopian moments of maybe" ]
+
+    Antimatter -> [ "Sugar bosons", "String theory", "Large macaron collider",
+                    "Big bang bake", "Reverse cyclotrons", "Nanocosmics",
+                    "The Pulse",
+                    "Some other super-tiny fundamental particle? Probably?" ]
+
+    Prism -> [ "Gem polish", "9th color", "Chocolate light", "Grainbow",
+               "Pure cosmic light", "Glow-in-the-dark", "Lux sanctorum" ,
+               "Reverse shadows" ]
+
 noEffect :: Effect
 noEffect _ st = st
 
@@ -801,6 +733,7 @@ saveFileToGameInput now sav = GameInput
   , _prestigeLevel      = savPrestige (savMain sav)
   , _sessionLength      = realToFrac (diffUTCTime now (savSessionStart (savStats sav)))
   , _cookiesMunched     = savMunched (savMain sav)
+  , _cookiesBanked      = savCookies (savMain sav)
   , _dragonAura1        = dragonAuras !! savDragonAura (savMain sav)
   , _dragonAura2        = dragonAuras !! savDragonAura2 (savMain sav)
   }
