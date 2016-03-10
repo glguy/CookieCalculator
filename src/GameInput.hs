@@ -44,6 +44,7 @@ data GameState = GameState
   , _upgradeCostMultiplier  :: !Double
   , _milkMultiplier         :: !Double
   , _milkFactors            :: ![Double]
+  , _wrinklerMultiplier      :: !Double
   }
   deriving (Read, Show)
 

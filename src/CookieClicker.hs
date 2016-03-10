@@ -44,6 +44,7 @@ initialGameState = GameState
   , _upgradeCostMultiplier   = 1
   , _milkMultiplier          = 1
   , _milkFactors             = []
+  , _wrinklerMultiplier      = 1.1
   }
 
 baseCps :: Map Building Double
@@ -253,12 +254,15 @@ main =
      putStrLn (payoff input st)
      let cps = computeCps input st
      putStrLn $ "Buildings:\t"   ++ show (sum (view buildingsOwned input))
-     putStrLn $ "Munched:\t"     ++ prettyNumber LongSuffix (view cookiesMunched input)
+     putStrLn $ "Munched:\t"     ++ prettyNumber LongSuffix (computeMunched input st)
      putStrLn $ "Cookie/s:\t"    ++ prettyNumber LongSuffix cps
      putStrLn $ "Cookie/c:\t"    ++ prettyNumber LongSuffix (computeClickCookies input st)
      putStrLn $ "Reserve:\t"     ++ prettyNumber LongSuffix (7*6000*cps)
      putStrLn $ "Cookie/s x7:\t" ++ prettyNumber LongSuffix (7*cps)
      putStrLn $ "Lucky x7:\t"    ++ prettyNumber LongSuffix (7*900*cps)
+
+computeMunched :: GameInput -> GameState -> Double
+computeMunched input st = view wrinklerMultiplier st * view cookiesMunched input
 
 data SuffixLength = LongSuffix | ShortSuffix
 
@@ -611,6 +615,7 @@ upgradeEffects = Map.fromList
    , ("Frogspawn"    , eggBonus)
    , ("Century egg"  , addEggTimeBonus)
    , ("Cookie egg"   , \_ -> mouseMultiplier *~ 1.1)
+   , ("Wrinklerspawn", \_ -> wrinklerMultiplier *~ 1.05)
 
    , ("Faberge egg", \_ -> buildingCostMultiplier *~ 0.99)
    , ("\"egg\"", \_ -> bonusCps +~ 9)
