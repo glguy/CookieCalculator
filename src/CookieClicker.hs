@@ -169,16 +169,16 @@ payoff inp st =
   frenzyReserve = 7 * 6000 * cps
 
   custom =
-    [ finishA 300 Temple
-    , finishA 300 Factory
+    [ finishA 300 Bank
+    , finishA 300 Temple
+    , finishA 300 WizardTower
     , finishA 400 Cursor
-    , finish 1 250 WizardTower "Rabbit trick"
     , finish 1 250 Shipment "The final frontier"
     , finish 1 250 AlchemyLab "Beige goo"
-    , finish 1 200 Portal "End of times back-up plan"
+    , finish 1 250 Portal "Maddening chants"
     , finish 1 200 TimeMachine "Great loop hypothesis"
     , finish 1 200 Antimatter "The Pulse"
-    , finish 1 150 Prism "Glow-in-the-dark"
+    , finish 1 200 Prism "Lux sanctorum"
     ]
 
   buyBuilding =
@@ -225,7 +225,7 @@ computeMultiplier inp st =
   milkFactor *
   view eggMultiplier st *
   (views prestigeMultiplier fromIntegral st / 100 *
-   views prestigeLevel      fromIntegral inp / 100 + 1)
+   view prestigeLevel inp / 100 + 1)
   where
   milkFactor = product [ 1 + milk * x * view milkMultiplier st | x <- view milkFactors st ]
   milk = 0.04 * views achievementsEarned fromIntegral inp
@@ -773,18 +773,15 @@ synergy major minor inp
   minorCount = view (buildingOwned minor) inp
 
 
-computePrestige :: Double -> Int
-computePrestige cs = floor ((cs/1e12)**(1/3))
-
 saveFileToGameInput :: UTCTime -> SaveFile -> GameInput
 saveFileToGameInput now sav = GameInput
   { _buildingsOwned     = bldgCurrent <$> savBuildings sav
   , _achievementsEarned = achievements
   , _upgradesBought     = upgradeList snd
   , _upgradesAvailable  = upgradeList inShop
-  , _prestigeLevel      = computePrestige (savForfeited sav)
-  , _sessionLength      = realToFrac (diffUTCTime now (savSessionStart sav))
-  , _cookiesMunched     = savMunched sav
+  , _prestigeLevel      = savPrestige (savMain sav)
+  , _sessionLength      = realToFrac (diffUTCTime now (savSessionStart (savStats sav)))
+  , _cookiesMunched     = savMunched (savMain sav)
   }
   where
   idToUpgrade i = upgradeById !! i

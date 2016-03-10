@@ -1,74 +1,80 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 module SaveFormat where
 
-import Building
+import           Building
 
-import Data.Time
-import Data.Time.Clock.POSIX
-import Numeric
-import Data.Char
-import Data.ByteString (ByteString)
-import Data.ByteString.Base64
-import Data.Text (Text)
-import Data.Text.Read
-import qualified Data.Text as Text
-import Data.Text.Encoding
+import           Data.ByteString (ByteString)
+import           Data.ByteString.Base64
+import           Data.Char
+import           Data.Map (Map)
+import           Data.Text (Text)
+import           Data.Text.Encoding
+import           Data.Text.Read
+import           Data.Time
+import           Data.Time.Clock.POSIX
+import           Numeric
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
-import           Data.Map (Map)
 import qualified Data.Map as Map
+import qualified Data.Text as Text
+import qualified Data.Text.IO
 
 data BuildingSave = BuildingSave
   { bldgCurrent, bldgTotal, bldgSpecial :: Int
   , bldgBaked :: Double }
-  deriving Show
+  deriving (Show)
 
-data SaveFile = SaveFile
-  { savVersion :: Text
-  , savReserved :: Text
-  , savSessionStart, savLegacyStart, savLastSave :: UTCTime
+-- NOTE: The order of the fields in SaveStats, SavePrefs, and SaveMain
+-- must match the order found in the save format
+
+data SaveStats = SaveStats
+  { savSessionStart, savLegacyStart, savLastSave :: UTCTime
   , savName :: Text
-  , savBank :: Text
-  , savSessionBaked :: Double
-  , savClicks :: Text
-  , savGoldenLegacy :: Text
-  , savHandMade :: Text
-  , savMissedGolden :: Text
-  , savUnknown2 :: Text
-  , savUnknown3 :: Text
-  , savForfeited :: Double
-  , savWrath :: Text
-  , savPledges :: Text
-  , savUnknown4 :: Text
-  , savUnknown5 :: Text
-  , savUnknown6 :: Text
-  , savSeasons :: Text
-  , savGoldenSession :: Text
-  , savMunchedTotal :: Double
-  , savWrinklersPopped :: Int
-  , savUnknown7 :: Text
-  , savReindeer :: Text
-  , savUnknown8 :: Text
-  , savUnknown9 :: Text
+  }
+  deriving (Show)
+
+data SavePrefs = SavePrefs
+  { savParticles, savNumbers, savAutosave, savAutoupdate
+  , savMilk, savFancy, savWarn, savCursors
+  , savFocus, savFormat, savNotifs, savWobbly
+  , savMonospace, savFilters, savCookieSound
+  , savCrates :: Bool
+  } deriving (Show)
+
+data SaveMain = SaveMain
+  { savCookies, savCookiesEarned :: Double
+  , savCookieClicks, savGoldenClicks :: Int
+  , savHandmadeCookies :: Double
+  , savMissedGoldenClicks, savBackgroundType, savMilkType :: Int
+  , savCookiesReset :: Double
+  , savElderWrath, savPledges, savPledgesT, savNextResearch
+  , savResearchT, savResets, savGoldenClicksLocal :: Int
+  , savCookiesSucked :: Double
+  , savWrinklersPopped, savSantaLevel, savReindeerClicked
+  , savSeasonT, savSeasonUses :: Int
   , savSeason :: Text
   , savMunched :: Double
   , savWrinklers :: Int
-  , savUnknown10 :: Text
-  , savUnknown11 :: Text
-  , savUnknown12 :: Text
-  , savUnknown13 :: Text
-  , savUnknown14 :: Text
-  , savUnknown15 :: Text
-  , savUnknown16 :: Text
-  , savUnknown17 :: Text
-  , savUnknown18 :: Text
-  , savUnknown19 :: Text
-  , savUnknown20 :: Text
-  , savUnknown21 :: Text
-  , savUnknown22 :: Text
-  , savUnknown23 :: Text
-  , savUnknown24 :: Text
+  , savPrestige, savHeavenlyChips, savHeavenlyChipsSpent
+  , savHeavenlyCookies :: Double
+  , savAscensionMode :: Int
+  , savPermUpgrade1, savPermUpgrade2
+  , savPermUpgrade3, savPermUpgrade4
+  , savDragonLevel, savDragonAura, savDragonAura2
+  , savChimeType, savVolume :: Int
+  } deriving (Show)
+
+  
+
+data SaveFile = SaveFile
+  { savVersion :: Double
+  , savReserved :: Text
+  , savStats :: SaveStats
+  , savPrefs :: SavePrefs
+  , savMain :: SaveMain
   , savBuildings :: Map Building BuildingSave
   , savUpgrades :: [(Bool,Bool)] --(unlocked,bought)
   , savAchievements :: [Bool]
@@ -124,34 +130,49 @@ integerToUTCTime ms = posixSecondsToUTCTime (realToFrac s)
   where
   s = fromInteger ms / 1000 :: Rational
 
+parsePrefs :: Text -> SavePrefs
+parsePrefs x = SavePrefs{..}
+  where
+  [ savParticles, savNumbers, savAutosave, savAutoupdate
+    , savMilk, savFancy, savWarn, savCursors
+    , savFocus, savFormat, savNotifs, savWobbly
+    , savMonospace, savFilters, savCookieSound
+    , savCrates ] = unpackBits x
+
 parse :: Text -> Either String SaveFile
 parse str =
-  do savBuildings <- Map.fromList . zip [Cursor ..] <$> traverse parseBldg (init (Text.splitOn ";" region4))
-     savSessionStart <- integerToUTCTime . fst <$> decimal savSessionStartStr
-     savLegacyStart  <- integerToUTCTime . fst <$> decimal savLegacyStartStr
-     savLastSave     <- integerToUTCTime . fst <$> decimal savLastSaveStr
+  do let [savVersionStr, savReserved,
+            region1, region2, region3, region4, region5, region6]
+            = Text.splitOn "|" str
 
-     savForfeited    <- fst <$> rational savForfeitedStr
-     savSessionBaked <- fst <$> rational savSessionBakedStr
+     savVersion <- parser savVersionStr
+     savStats <- populate (Text.splitOn ";" region1) SaveStats
+     let savPrefs = parsePrefs region2
 
-     savMunched      <- fst <$> rational savMunchedStr
-     savMunchedTotal <- fst <$> rational savMunchedTotalStr
-     savWrinklers    <- fst <$> decimal savWrinklersStr
-     savWrinklersPopped <- fst <$> decimal savWrinklersPoppedStr
+     savMain  <- populate (Text.splitOn ";" region3) SaveMain
+
+     savBuildings <- Map.fromList . zip [Cursor ..]
+              <$> traverse parseBldg (init (Text.splitOn ";" region4))
+
+     let savUpgrades = toPairs $ unpackBits region5
+         savAchievements = unpackBits region6
+
      return SaveFile{..}
-  where
-  [savVersion, savReserved, region1, _region2, region3, region4, region5, region6] = Text.splitOn "|" str
 
-  savUpgrades = toPairs $ unpackBits region5
-  savAchievements = unpackBits region6
 
-  [savSessionStartStr, savLegacyStartStr, savLastSaveStr, savName] = Text.splitOn ";" region1
+class    HasParser a       where parser :: Text -> Either String a
+instance HasParser Double  where parser x = fst <$> signed rational x
+instance HasParser Int     where parser x = fst <$> signed decimal x
+instance HasParser Text    where parser = Right
+instance HasParser UTCTime where parser x = integerToUTCTime . fst <$> decimal x
 
-  [savBank, savSessionBakedStr, savClicks, savGoldenLegacy,
-   savHandMade, savMissedGolden, savUnknown2, savUnknown3, savForfeitedStr,
-   savWrath, savPledges, savUnknown4, savUnknown5, savUnknown6, savSeasons,
-   savGoldenSession, savMunchedTotalStr, savWrinklersPoppedStr, savUnknown7, savReindeer,
-   savUnknown8, savUnknown9, savSeason, savMunchedStr, savWrinklersStr, savUnknown10,
-   savUnknown11, savUnknown12, savUnknown13, savUnknown14, savUnknown15, savUnknown16,
-   savUnknown17, savUnknown18, savUnknown19, savUnknown20, savUnknown21, savUnknown22,
-   savUnknown23, savUnknown24] = init (Text.splitOn ";" region3)
+class Populate a r where
+  populate :: [Text] -> a -> Either String r
+
+instance (HasParser a, Populate b r) => Populate (a -> b) r where
+  populate [] _ = Left "Too few arguments"
+  populate (x:xs) f = do g <- f <$> parser x
+                         populate xs g
+
+instance Populate r r where
+  populate _ r = Right r

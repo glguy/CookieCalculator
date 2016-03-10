@@ -14,7 +14,7 @@ data GameInput = GameInput
   , _achievementsEarned :: !Int
   , _upgradesBought     :: ![Upgrade]
   , _upgradesAvailable  :: ![Upgrade]
-  , _prestigeLevel      :: !Int
+  , _prestigeLevel      :: !Double
   , _sessionLength      :: !Double
   , _cookiesMunched     :: !Double
   }
