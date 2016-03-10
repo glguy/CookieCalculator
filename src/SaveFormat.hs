@@ -93,7 +93,7 @@ loadMySave =
   do raw <- readFile "save.txt"
      let unesc = B8.pack (unescape raw)
          noend = removeEnd unesc
-         Right utf8utf8 = Data.ByteString.Base64.decode noend
+         utf8utf8 = Data.ByteString.Base64.decodeLenient noend
          txt = decodeUtf8 (B8.pack (Text.unpack (decodeUtf8 utf8utf8))) -- sorry, not my format
      either fail return $ parse txt
 

@@ -42,7 +42,7 @@ initialGameState :: GameInput -> GameState
 initialGameState input = GameState
   { _buildingStats           = initialBuildingStat <$> baseCps
   , _multiplier              = 1
-  , _eggMultipliers          = 0
+  , _eggMultiplier           = 1
   , _mouseBonus              = 0
   , _mouseMultiplier         = 1
   , _prestigeMultiplier      = 0
@@ -112,7 +112,7 @@ mouseAdd :: Effect
 mouseAdd = \_ -> mouseBonus +~ 0.01
 
 kittenBonus :: Double -> Effect
-kittenBonus pct = \inp -> milkFactors %~ (pct/100:)
+kittenBonus pct = \_ -> milkFactors %~ (pct/100:)
 
 cookieBonus :: Double -> Effect
 cookieBonus pct = \_ -> multiplier *~ (1+pct/100)
@@ -134,22 +134,21 @@ doubler k _ = buildingMult k *~ 2
 computeBuildingStatCps :: BuildingStat -> Double
 computeBuildingStatCps stat = stat^.bldgBonus + stat^.bldgMult * stat^.bldgBase
 
-
 computeBuildingCps :: GameState -> Map Building Double
 computeBuildingCps st = computeBuildingStatCps <$> view buildingStats st
 
+leftJoinWith' :: Ord k => (a -> b -> a) -> Map k a -> Map k b -> Map k a
+leftJoinWith' f = Map.mergeWithKey (\_ x y -> Just $! f x y) id (\_ -> Map.empty)
 
 buildingCosts :: GameInput -> GameState -> Map Building Double
 buildingCosts inp st
   = fmap (* view buildingCostMultiplier st)
-  $ Map.mergeWithKey
-      (\_ cnt base -> Just (base * 1.15 ^ cnt))
-      (\_          -> Map.empty)
-      id
-      owned'
+  $ leftJoinWith'
+      (\base n -> base * 1.15 ** fromIntegral n)
       initialCosts
+      owned'
   where
-  owned' = Map.unionWith (-)
+  owned' = leftJoinWith' (-)
              (view buildingsOwned inp)
              (view bldgFree <$> view buildingStats st)
 
@@ -234,7 +233,7 @@ computeMultiplier :: GameInput -> GameState -> Double
 computeMultiplier inp st =
   view multiplier st *
   milkFactor *
-  (view eggMultipliers     st / 100 + 1) *
+  view eggMultiplier st *
   (views prestigeMultiplier fromIntegral st / 100 *
    views prestigeLevel      fromIntegral inp / 100 + 1)
   where
@@ -747,16 +746,16 @@ noEffect :: Effect
 noEffect _ st = st
 
 eggBonus :: Effect
-eggBonus _ = eggMultipliers +~ 1
+eggBonus _ = eggMultiplier +~ 0.01
 
 prestigeBonus :: Int -> Effect
 prestigeBonus n _ = prestigeMultiplier +~ n
 
 addEggTimeBonus :: Effect
-addEggTimeBonus inp = eggMultipliers +~ views sessionLength eggTimeBonus inp
+addEggTimeBonus inp = eggMultiplier +~ views sessionLength eggTimeBonus inp
 
 eggTimeBonus :: Double -> Double
-eggTimeBonus s = (1 - (1 - day/100)**3) * 10
+eggTimeBonus s = (1 - (1 - day/100)**3) / 10
   where
   floor' = fromInteger . floor
   day = min 100

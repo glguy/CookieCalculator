@@ -33,7 +33,7 @@ data Upgrade = Upgrade
 data GameState = GameState
   { _buildingStats   :: !(Map Building BuildingStat)
   , _multiplier      :: !Double
-  , _eggMultipliers  :: !Double
+  , _eggMultiplier   :: !Double
   , _prestigeMultiplier :: !Int
   , _mouseBonus      :: !Double
   , _mouseMultiplier :: !Double
