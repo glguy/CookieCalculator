@@ -10,24 +10,17 @@ import Building
 import SaveFormat
 import SourceData
 
-import Data.Aeson
 import Data.Text (Text)
 import Data.Map (Map)
 import qualified Data.Map.Strict as Map
 import Control.Lens hiding (ReifiedPrism(..), prism)
 import Data.List
-import Data.Fixed
-import Data.Ord
-import Data.Maybe
-import Data.Foldable
 import Data.Time
 import Foreign.C.Types (CDouble(..))
 import Numeric
-import Text.Read
 import Spreadsheet
 import Spreadsheet.Renderer
 import Spreadsheet.Sorting
-import qualified Data.Text.IO as Text
 import qualified Data.Text as Text
 
 initialBuildingStat :: Double -> BuildingStat
@@ -38,8 +31,8 @@ initialBuildingStat base = BuildingStat
   , _bldgFree = 0
   }
 
-initialGameState :: GameInput -> GameState
-initialGameState input = GameState
+initialGameState :: GameState
+initialGameState = GameState
   { _buildingStats           = initialBuildingStat <$> baseCps
   , _multiplier              = 1
   , _eggMultiplier           = 1
@@ -100,11 +93,8 @@ computeGameState :: GameInput -> GameState
 computeGameState input =
   foldl'
     (\acc u -> upgradeEffect u input acc)
-    (initialGameState input)
+    initialGameState
     (view upgradesBought input)
-
-computeMilk :: GameInput -> Double
-computeMilk = views achievementsEarned $ \x -> fromIntegral x * 0.04
 
 type Effect = GameInput -> GameState -> GameState
 
@@ -122,9 +112,10 @@ cursorAdd bonus = \inp ->
   let count = sum (Map.delete Cursor (view buildingsOwned inp))
   in buildingBonus Cursor +~ bonus * fromIntegral count
 
-grandmaType :: Building -> Double -> Effect
+grandmaType :: Building -> Int -> Effect
 grandmaType building count = \inp ->
-    let bonus = views (buildingOwned Grandma) fromIntegral inp / count
+    let bonus = fromIntegral (inp^.buildingOwned Grandma)
+              / fromIntegral count
     in (buildingMult building *~ (1 + 0.01 * bonus))
      . (buildingMult Grandma  *~ 2)
 
@@ -176,8 +167,6 @@ payoff inp st =
   where
   frenzyReserve = 7 * 6000 * cps
 
-  fingersNeeded = 240 - view (buildingOwned Cursor) inp
-  fingersCost   = sum $ take (fromIntegral fingersNeeded) $ iterate (*1.15) $ costs ^?! ix Cursor
   custom =
     [ finishA 300 Temple
     , finishA 300 Factory
@@ -201,7 +190,7 @@ payoff inp st =
   buyUpgrades =
      [ ( views upgradeName Text.unpack u
        , view upgradeCost u * view upgradeCostMultiplier st
-       , upgradesBought <>~ [u]
+       , upgradesBought %~ cons u
        )
      | u <- view upgradesAvailable inp
      ]
@@ -218,7 +207,7 @@ payoff inp st =
                upgradeByName
     n' = n - view (buildingOwned b) inp
     cost = view upgradeCost u + sum (take (fromIntegral n') (iterate (*1.15) (costs ^?! ix b)))
-    f = (upgradesBought <>~ [u])
+    f = (upgradesBought %~ cons u)
       . (achievementsEarned +~ a)
       . (buildingOwned b .~ n)
 
@@ -311,6 +300,7 @@ numberWithSeparators
   . reverse
   . show
 
+{-
 prettyTime :: Integer -> String
 prettyTime t = part y 'y' (y  > 0)
              $ part d 'd' (d' > 0)
@@ -325,6 +315,7 @@ prettyTime t = part y 'y' (y  > 0)
 
   part _ _ False = id
   part n c True  = shows n . showChar c
+-}
 
 gpoc :: Building -> Double -> Effect
 gpoc b bonus = \inp ->
@@ -757,7 +748,6 @@ addEggTimeBonus inp = eggMultiplier +~ views sessionLength eggTimeBonus inp
 eggTimeBonus :: Double -> Double
 eggTimeBonus s = (1 - (1 - day/100)**3) / 10
   where
-  floor' = fromInteger . floor
   day = min 100
       $ floor' (s / 10) * 10 / (60 * 60 * 24)
 

@@ -18,17 +18,19 @@ data GameInput = GameInput
   , _sessionLength      :: !Double
   , _cookiesMunched     :: !Double
   }
+  deriving (Read, Show)
 
 data BuildingStat = BuildingStat
-  { _bldgBase, _bldgMult, _bldgBonus :: Double
-  , _bldgFree :: Int
+  { _bldgBase, _bldgMult, _bldgBonus :: !Double
+  , _bldgFree :: !Int
   }
-  deriving (Show, Read, Eq)
+  deriving (Show, Read)
 
 data Upgrade = Upgrade
-  { _upgradeName   :: Text
-  , _upgradeCost   :: Double
+  { _upgradeName   :: !Text
+  , _upgradeCost   :: !Double
   }
+  deriving (Read, Show)
 
 data GameState = GameState
   { _buildingStats   :: !(Map Building BuildingStat)
@@ -52,18 +54,24 @@ makeLenses ''BuildingStat
 
 buildingStat :: Building -> Lens' GameState BuildingStat
 buildingStat k = buildingStats . singular (ix k)
+{-# INLINE buildingStat #-}
 
 buildingOwned :: Building -> Lens' GameInput Int
 buildingOwned k = buildingsOwned . at k . non 0
+{-# INLINE buildingOwned #-}
 
 buildingMult :: Building -> Lens' GameState Double
 buildingMult k = buildingStat k . bldgMult
+{-# INLINE buildingMult #-}
 
 buildingBonus :: Building -> Lens' GameState Double
 buildingBonus k = buildingStat k . bldgBonus
+{-# INLINE buildingBonus #-}
 
 buildingBase :: Building -> Lens' GameState Double
 buildingBase k = buildingStat k . bldgBase
+{-# INLINE buildingBase #-}
 
 buildingFree :: Building -> Lens' GameState Int
 buildingFree k = buildingStat k . bldgFree
+{-# INLINE buildingFree #-}

@@ -10,7 +10,6 @@ import Numeric
 import Data.Char
 import Data.ByteString (ByteString)
 import Data.ByteString.Base64
-import Data.Bits
 import Data.Text (Text)
 import Data.Text.Read
 import qualified Data.Text as Text
@@ -84,11 +83,13 @@ unescape ('%':x:y:z) =
 unescape [] = []
 unescape (x:xs) = x : unescape xs
 
+removeEnd :: ByteString -> ByteString
 removeEnd bs =
   case B.breakSubstring (B8.pack "!END!") bs of
     (a,b) | B.null b -> error "removeEnd: No end marker"
           | otherwise -> a
 
+loadMySave :: IO SaveFile
 loadMySave =
   do raw <- readFile "save.txt"
      let unesc = B8.pack (unescape raw)
@@ -114,6 +115,7 @@ unpackBits bs = Text.foldr (unpackOrd . ord) [] bs
     | n == 1    = id
     | otherwise = unpackOrd (n`quot`2) . (odd n:)
 
+toPairs :: [a] -> [(a,a)]
 toPairs (x:y:z) = (x,y) : toPairs z
 toPairs _       = []
 
@@ -138,7 +140,7 @@ parse str =
      savWrinklersPopped <- fst <$> decimal savWrinklersPoppedStr
      return SaveFile{..}
   where
-  [savVersion, savReserved, region1, region2, region3, region4, region5, region6] = Text.splitOn "|" str
+  [savVersion, savReserved, region1, _region2, region3, region4, region5, region6] = Text.splitOn "|" str
 
   savUpgrades = toPairs $ unpackBits region5
   savAchievements = unpackBits region6
