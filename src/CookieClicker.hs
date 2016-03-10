@@ -559,15 +559,18 @@ upgradeEffects = Map.fromList
    , ("Butter swirls"                        , cookieBonus 4)
 
    , ("Milk chocolate butter biscuit"        , cookieBonus 10)
+   , ("Dark chocolate butter biscuit"        , cookieBonus 10)
+   , ("White chocolate butter biscuit"       , cookieBonus 10)
+   , ("Ruby chocolate butter biscuit"        , cookieBonus 10)
 
    , ("Dragon cookie", cookieBonus 5)
 
-   , (  "Digits"       , cookieBonus 2)
-   , (  "Jaffa cakes"  , cookieBonus 2)
-   , (  "Loreols"      , cookieBonus 2)
-   , (  "Fig gluttons" , cookieBonus 2)
-   , (  "Grease's cups", cookieBonus 2)
-   , (  "Shortfolios"  , cookieBonus 3)
+   , ("Digits"       , cookieBonus 2)
+   , ("Jaffa cakes"  , cookieBonus 2)
+   , ("Loreols"      , cookieBonus 2)
+   , ("Fig gluttons" , cookieBonus 2)
+   , ("Grease's cups", cookieBonus 2)
+   , ("Shortfolios"  , cookieBonus 3)
 
    , ("British tea biscuits"                                 , cookieBonus 2)
    , ("Chocolate british tea biscuits"                       , cookieBonus 2)
@@ -658,9 +661,9 @@ upgradeEffects = Map.fromList
    , ("Santa's helpers"           , \_ -> mouseMultiplier *~ 1.1)
    , ("Santa's legacy"            , cookieBonus (15*3))
    , ("Santa's milk and cookies"  , \_ -> milkMultiplier *~ 1.05)
-   , ("Santa's dominion"          , cookieBonus 20)
-                                                -- buildings 1
-                                                -- upgrades 2
+   , ("Santa's dominion"          , \inp -> cookieBonus 20 inp
+                                         . (buildingCostMultiplier *~ 0.99)
+                                         . (upgradeCostMultiplier *~ 0.98))
 
    , ("Skull cookies"  , cookieBonus 2)
    , ("Ghost cookies"  , cookieBonus 2)
@@ -716,7 +719,7 @@ upgradeEffects = Map.fromList
 
    , ("How to bake your dragon", noEffect)
    , ("Tin of butter cookies"  , noEffect)
-   , ("Golden switch"          , cookieBonus 50)
+   , ("Golden switch"          , noEffect) -- enables the switch
    , ("Classic dairy selection", noEffect)
    , ("Belphegor"              , noEffect)
    , ("Mammon"                 , noEffect)
@@ -731,7 +734,7 @@ upgradeEffects = Map.fromList
    , ("Ghostly biscuit"        , noEffect)
    , ("Lovesick biscuit"       , noEffect)
    , ("Fool's biscuit"         , noEffect)
-   , ("Golden switch [off]"    , noEffect)
+   , ("Golden switch [off]"    , cookieBonus 50)
    , ("Golden switch [on]"     , noEffect)
    , ("Milk selector"          , noEffect)
    , ("Golden goose egg"       , noEffect)
