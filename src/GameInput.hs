@@ -18,6 +18,7 @@ data GameInput = GameInput
   , _prestigeLevel      :: !Double
   , _sessionLength      :: !Double
   , _cookiesMunched     :: !Double
+  , _wrinklers          :: !Int
   , _cookiesBanked      :: !Double
   , _dragonAura1        :: !Text
   , _dragonAura2        :: !Text

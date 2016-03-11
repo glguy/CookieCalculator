@@ -110,8 +110,8 @@ mouseAdd = \_ -> mouseBonus +~ 0.01
 kittenBonus :: Double -> Effect
 kittenBonus pct = \_ -> milkFactors %~ (pct/100:)
 
-cookieBonus :: Double -> Effect
-cookieBonus pct = \_ -> multiplier *~ (1+pct/100)
+cookieBonus :: Int -> Effect
+cookieBonus pct = \_ -> multiplier *~ (1+fromIntegral pct/100)
 
 cursorAdd :: Double -> Effect
 cursorAdd bonus = \inp ->
@@ -157,13 +157,13 @@ payoff inp st =
                 , Column "Metric" (NumberT (Just 0)) (Just Ascending)
                 , Column "Saveup" (NumberT (Just 1)) Nothing
                 , Column "Buy at" StringT Nothing
-                , Column "∆C/s" StringT Nothing
+                , Column "∆% C/s" StringT Nothing
                 ]
      [ [ StringV act
        , NumberV (toRational (cost / delta))
        , NumberV (toRational (cost / (7*900*cps)))
        , StringV (prettyNumber ShortSuffix (cost + frenzyReserve))
-       , StringV (prettyNumber ShortSuffix delta)
+       , StringV (prettyNumber ShortSuffix (delta / cps * 100))
        ]
      | (act, cost, f) <- buyBuilding ++ buyUpgrades ++ custom
      , let delta = effect f
@@ -176,8 +176,8 @@ payoff inp st =
   custom =
     [ finishA 300 Temple
     , finishA 300 WizardTower
-    , finishA 400 Cursor
-    , finish True 250 Shipment "The final frontier"
+    , finishA 500 Cursor
+    , finishA 300 Shipment
     , finish True 250 AlchemyLab "Beige goo"
     , finish True 250 Portal "Maddening chants"
     , finish True 200 TimeMachine "Great loop hypothesis"
@@ -247,13 +247,14 @@ computeMilk input = fromIntegral n / 25
   n = lengthOf (achievementsEarned . folded . filtered (views achievementPool (/= "shadow"))) input
 
 computeCps :: GameInput -> GameState -> Double
-computeCps inp st =
-  computeMultiplier inp st *
-  (view bonusCps st +
-  sum (Map.intersectionWith (\count cps -> fromIntegral count * cps)
-         (view buildingsOwned inp)
-         (computeBuildingCps st))
-  )
+computeCps inp st = computeMultiplier inp st * (view bonusCps st + buildingCps)
+  where
+  buildingCps
+    = sum
+    $ Map.intersectionWith
+        (\count cps -> fromIntegral count * cps)
+        (view buildingsOwned inp)
+        (computeBuildingCps st)
 
 computeClickCookies :: GameInput -> GameState -> Double
 computeClickCookies inp st = view mouseMultiplier st * cpc
@@ -261,8 +262,6 @@ computeClickCookies inp st = view mouseMultiplier st * cpc
   cpc = computeCps inp st * view mouseBonus st
       + view (buildingBonus Cursor) st
       + view (buildingMult Cursor) st
-
-  mult = computeMultiplier inp st
 
 loadMyInput :: IO GameInput
 loadMyInput =
@@ -277,10 +276,12 @@ report input =
   do let st = computeGameState input
      putStrLn (payoff input st)
      let cps = computeCps input st
+         ecps = cps * computeWrinklerEffect input st
      putStrLn $ "Buildings:\t"   ++ show (sum (view buildingsOwned input))
      putStrLn $ "Cookies:\t"     ++ prettyNumber LongSuffix (view cookiesBanked input)
      putStrLn $ "Munched:\t"     ++ prettyNumber LongSuffix (computeMunched input st)
      putStrLn $ "Cookie/s:\t"    ++ prettyNumber LongSuffix cps
+     putStrLn $ "ECookie/s:\t"   ++ prettyNumber LongSuffix ecps
      putStrLn $ "Cookie/c:\t"    ++ prettyNumber LongSuffix (computeClickCookies input st)
      putStrLn $ "Reserve:\t"     ++ prettyNumber LongSuffix (7*6000*cps)
      putStrLn $ "Cookie/s x7:\t" ++ prettyNumber LongSuffix (7*cps)
@@ -288,6 +289,12 @@ report input =
 
 computeMunched :: GameInput -> GameState -> Double
 computeMunched input st = view wrinklerMultiplier st * view cookiesMunched input
+
+computeWrinklerEffect :: GameInput -> GameState -> Double
+computeWrinklerEffect input st = (1 - wither) + wither * view wrinklerMultiplier st * n
+  where
+  n = views wrinklers fromIntegral input
+  wither = n * 0.05
 
 data SuffixLength = LongSuffix | ShortSuffix
 
@@ -352,8 +359,8 @@ gpoc b bonus = \inp ->
 
 upgradeEffects :: Map Text Effect
 upgradeEffects = Map.fromList $
-   [ (name, doubler b) | b <- [Grandma .. ], name <- buildingTieredUpgrades b ]
-   ++
+   [ (name, doubler b) | b <- [Grandma .. ], name <- buildingTieredUpgrades b ] ++
+   [ (name, cookieBonus n) | (name, n) <- cookies ++ specialCookies ] ++
    [ ("Reinforced index finger"        , doubler Cursor)
    , ("Carpal tunnel prevention cream" , doubler Cursor)
    , ("Ambidextrous"                   , doubler Cursor)
@@ -403,86 +410,6 @@ upgradeEffects = Map.fromList $
    , ("Kitten angels"     , kittenBonus 10)
 
    --    -- COOKIES
-   , ("Plain cookies"                        , cookieBonus 1)
-   , ("Sugar cookies"                        , cookieBonus 1)
-   , ("Oatmeal raisin cookies"               , cookieBonus 1)
-   , ("Peanut butter cookies"                , cookieBonus 1)
-   , ("Coconut cookies"                      , cookieBonus 1)
-   , ("White chocolate cookies"              , cookieBonus 2)
-   , ("Macadamia nut cookies"                , cookieBonus 2)
-   , ("Double-chip cookies"                  , cookieBonus 2)
-   , ("White chocolate macadamia nut cookies", cookieBonus 2)
-   , ("All-chocolate cookies"                , cookieBonus 2)
-   , ("Dark chocolate-coated cookies"        , cookieBonus 4)
-   , ("White chocolate-coated cookies"       , cookieBonus 4)
-   , ("Eclipse cookies"                      , cookieBonus 2)
-   , ("Zebra cookies"                        , cookieBonus 2)
-   , ("Snickerdoodles"                       , cookieBonus 2)
-   , ("Stroopwafels"                         , cookieBonus 2)
-   , ("Macaroons"                            , cookieBonus 2)
-   , ("Empire biscuits"                      , cookieBonus 2)
-   , ("Madeleines"                           , cookieBonus 2)
-   , ("Palmiers"                             , cookieBonus 2)
-   , ("Palets"                               , cookieBonus 2)
-   , ("Sablés"                               , cookieBonus 2)
-   , ("Caramoas"                             , cookieBonus 3)
-   , ("Sagalongs"                            , cookieBonus 3)
-   , ("Shortfoils"                           , cookieBonus 3)
-   , ("Win mints"                            , cookieBonus 3)
-   , ("Gingerbread men"                      , cookieBonus 2)
-   , ("Gingerbread trees"                    , cookieBonus 2)
-   , ("Pure black chocolate cookies"         , cookieBonus 4)
-   , ("Pure white chocolate cookies"         , cookieBonus 4)
-   , ("Ladyfingers"                          , cookieBonus 3)
-   , ("Tuiles"                               , cookieBonus 3)
-   , ("Chocolate-stuffed biscuits"           , cookieBonus 3)
-   , ("Checker cookies"                      , cookieBonus 3)
-   , ("Butter cookies"                       , cookieBonus 3)
-   , ("Cream cookies"                        , cookieBonus 3)
-   , ("Gingersnaps"                          , cookieBonus 4)
-   , ("Cinnamon cookies"                     , cookieBonus 4)
-   , ("Vanity cookies"                       , cookieBonus 4)
-   , ("Cigars"                               , cookieBonus 4)
-   , ("Pinwheel cookies"                     , cookieBonus 4)
-   , ("Fudge squares"                        , cookieBonus 4)
-   , ("Butter horseshoes"                    , cookieBonus 4)
-   , ("Shortbread biscuits"                  , cookieBonus 4)
-   , ("Butter pucks"                         , cookieBonus 4)
-   , ("Butter knots"                         , cookieBonus 4)
-   , ("Caramel cookies"                      , cookieBonus 4)
-   , ("Millionaires' shortbreads"            , cookieBonus 4)
-   , ("Butter slabs"                         , cookieBonus 4)
-   , ("Butter swirls"                        , cookieBonus 4)
-
-   , ("Milk chocolate butter biscuit"        , cookieBonus 10)
-   , ("Dark chocolate butter biscuit"        , cookieBonus 10)
-   , ("White chocolate butter biscuit"       , cookieBonus 10)
-   , ("Ruby chocolate butter biscuit"        , cookieBonus 10)
-
-   , ("Dragon cookie", cookieBonus 5)
-
-   , ("Digits"       , cookieBonus 2)
-   , ("Jaffa cakes"  , cookieBonus 2)
-   , ("Loreols"      , cookieBonus 2)
-   , ("Fig gluttons" , cookieBonus 2)
-   , ("Grease's cups", cookieBonus 2)
-   , ("Shortfolios"  , cookieBonus 3)
-
-   , ("British tea biscuits"                                 , cookieBonus 2)
-   , ("Chocolate british tea biscuits"                       , cookieBonus 2)
-   , ("Round british tea biscuits"                           , cookieBonus 2)
-   , ("Round chocolate british tea biscuits"                 , cookieBonus 2)
-   , ("Round british tea biscuits with heart motif"          , cookieBonus 2)
-   , ("Round chocolate british tea biscuits with heart motif", cookieBonus 2)
-
-   , ("Rose macarons"     , cookieBonus 3)
-   , ("Lemon macarons"    , cookieBonus 3)
-   , ("Chocolate macarons", cookieBonus 3)
-   , ("Pistachio macarons", cookieBonus 3)
-   , ("Hazelnut macarons" , cookieBonus 3)
-   , ("Violet macarons"   , cookieBonus 3)
-   , ("Caramel macarons"  , cookieBonus 3)
-   , ("Licorice macarons" , cookieBonus 3)
 
    , ("Lucky day"  , noEffect)
    , ("Serendipity", noEffect)
@@ -521,21 +448,6 @@ upgradeEffects = Map.fromList $
 
    , ("A crumbly egg", noEffect)
 
-   , ("Pure heart biscuits"   , cookieBonus 2)
-   , ("Ardent heart biscuits" , cookieBonus 2)
-   , ("Sour heart biscuits"   , cookieBonus 2)
-   , ("Weeping heart biscuits", cookieBonus 2)
-   , ("Golden heart biscuits" , cookieBonus 2)
-   , ("Eternal heart biscuits", cookieBonus 2)
-
-   , ("Christmas tree biscuits", cookieBonus 2)
-   , ("Snowflake biscuits"     , cookieBonus 2)
-   , ("Snowman biscuits"       , cookieBonus 2)
-   , ("Holly biscuits"         , cookieBonus 2)
-   , ("Candy cane biscuits"    , cookieBonus 2)
-   , ("Bell biscuits"          , cookieBonus 2)
-   , ("Present biscuits"       , cookieBonus 2)
-
    , ("Heavenly chip secret"  , prestigeBonus 5)
    , ("Heavenly cookie stand" , prestigeBonus 20)
    , ("Heavenly bakery"       , prestigeBonus 25)
@@ -561,36 +473,31 @@ upgradeEffects = Map.fromList $
                                          . (buildingCostMultiplier *~ 0.99)
                                          . (upgradeCostMultiplier *~ 0.98))
 
-   , ("Skull cookies"  , cookieBonus 2)
-   , ("Ghost cookies"  , cookieBonus 2)
-   , ("Bat cookies"    , cookieBonus 2)
-   , ("Slime cookies"  , cookieBonus 2)
-   , ("Pumpkin cookies", cookieBonus 2)
-   , ("Eyeball cookies", cookieBonus 2)
-   , ("Spider cookies" , cookieBonus 2)
+   , ("Future almanacs"             , synergy Farm        TimeMachine)
+   , ("Seismic magic"               , synergy Mine        WizardTower)
+   , ("Quantum electronics"         , synergy Factory     Antimatter )
+   , ("Contracts from beyond"       , synergy Bank        Portal     )
+   , ("Paganism"                    , synergy Temple      Portal     )
+   , ("Arcane knowledge"            , synergy WizardTower AlchemyLab )
+   , ("Fossil fuels"                , synergy Mine        Shipment   )
+   , ("Primordial ores"             , synergy Mine        AlchemyLab )
+   , ("Infernal crops"              , synergy Farm        Portal     )
+   , ("Extra physics funding"       , synergy Bank        Antimatter )
+   , ("Relativistic parsec-skipping", synergy Shipment    TimeMachine)
+   , ("Light magic"                 , synergy WizardTower Prism      )
 
-   , ("Future almanacs"             , synergy Farm TimeMachine)
-   , ("Seismic magic"               , synergy Mine WizardTower)
-   , ("Quantum electronics"         , synergy Factory Antimatter)
-   , ("Contracts from beyond"       , synergy Bank Portal)
-   , ("Paganism"                    , synergy Temple Portal)
-   , ("Arcane knowledge"            , synergy WizardTower AlchemyLab)
-   , ("Fossil fuels"                , synergy Mine Shipment)
-   , ("Primordial ores"             , synergy Mine AlchemyLab)
-   , ("Infernal crops"              , synergy Farm Portal)
-   , ("Relativistic parsec-skipping", synergy Shipment TimeMachine)
-   , ("Extra physics funding"       , synergy Bank Antimatter)
-   , ("Light magic"                 , synergy WizardTower Prism)
-
-   -- , ("Rain prayer" 0 $ synergy Temple Farm
-   -- , ("Asteroid mining" 0 $ synergy Mine Shipment
-   -- , ("Temporal overclocking" 0 $ synergy Factory TimeMachine
-   -- , ("Printing press" 0 $ synergy Bank Factory
-   -- , ("God particle" 0 $ synergy Antimatter Temple
-   -- , ("Magical botany" 0 $ synergy Farm WizardTower
-   -- , ("Shipyards" 0 $ synergy Factory Shipment
-   -- , ("Gold fund" 0 $ synergy Bank AlchemyLab
-   -- , ("Abysmal glimmer" 0 $ synergy Portal Prism
+   , ("Rain prayer"                 , synergy Farm        Temple     )
+   , ("Asteroid mining"             , synergy Mine        Shipment   )
+   , ("Temporal overclocking"       , synergy Factory     TimeMachine)
+   , ("Printing presses"            , synergy Factory     Bank       )
+   , ("God particle"                , synergy Temple      Antimatter )
+   , ("Magical botany"              , synergy Farm        WizardTower)
+   , ("Shipyards"                   , synergy Factory     Shipment   )
+   , ("Gold fund"                   , synergy Bank        AlchemyLab )
+   , ("Abysmal glimmer"             , synergy Portal      Prism      )
+   , ("Primeval glow"               , synergy TimeMachine Prism      )
+   , ("Chemical proficiency"        , synergy AlchemyLab  Antimatter )
+   , ("Mystical energies"           , synergy Temple      Prism      )
 
    , ("Revoke Elder Covenant"      , noEffect)
    , ("Persistent memory"          , noEffect)
@@ -645,6 +552,110 @@ upgradeEffects = Map.fromList $
    , ("Radiant Appetite", cookieBonus 100)
    , ("Dragonflight"    , noEffect) -- effect not modeled
    , ("Mind Over Matter", noEffect) -- 0.75 multiplier to random drops
+   ]
+
+-- XXX: Implement "Starlove"
+-- if (Game.Has('Starlove')) return 3; else return ",2;
+specialCookies :: [(Text, Int)]
+specialCookies =
+   [ ("Pure heart biscuits",    2)
+   , ("Ardent heart biscuits",  2)
+   , ("Sour heart biscuits",    2)
+   , ("Weeping heart biscuits", 2)
+   , ("Golden heart biscuits",  2)
+   , ("Eternal heart biscuits", 2)
+   ]
+
+cookies :: [(Text, Int)]
+cookies =
+   [ ("Plain cookies",                                         1)
+   , ("Sugar cookies",                                         1)
+   , ("Oatmeal raisin cookies",                                1)
+   , ("Peanut butter cookies",                                 1)
+   , ("Coconut cookies",                                       1)
+   , ("White chocolate cookies",                               2)
+   , ("Macadamia nut cookies",                                 2)
+   , ("Double-chip cookies",                                   2)
+   , ("White chocolate macadamia nut cookies",                 2)
+   , ("All-chocolate cookies",                                 2)
+   , ("Dark chocolate-coated cookies",                         4)
+   , ("White chocolate-coated cookies",                        4)
+   , ("Eclipse cookies",                                       2)
+   , ("Zebra cookies",                                         2)
+   , ("Snickerdoodles",                                        2)
+   , ("Stroopwafels",                                          2)
+   , ("Macaroons",                                             2)
+   , ("Empire biscuits",                                       2)
+   , ("British tea biscuits",                                  2)
+   , ("Chocolate british tea biscuits",                        2)
+   , ("Round british tea biscuits",                            2)
+   , ("Round chocolate british tea biscuits",                  2)
+   , ("Round british tea biscuits with heart motif",           2)
+   , ("Round chocolate british tea biscuits with heart motif", 2)
+   , ("Madeleines",                                            2)
+   , ("Palmiers",                                              2)
+   , ("Palets",                                                2)
+   , ("Sablés",                                                2)
+   , ("Caramoas",                                              3)
+   , ("Sagalongs",                                             3)
+   , ("Shortfoils",                                            3)
+   , ("Win mints",                                             3)
+   , ("Fig gluttons",                                          2)
+   , ("Loreols",                                               2)
+   , ("Jaffa cakes",                                           2)
+   , ("Grease's cups",                                         2)
+   , ("Skull cookies",                                         2)
+   , ("Ghost cookies",                                         2)
+   , ("Bat cookies",                                           2)
+   , ("Slime cookies",                                         2)
+   , ("Pumpkin cookies",                                       2)
+   , ("Eyeball cookies",                                       2)
+   , ("Spider cookies",                                        2)
+   , ("Christmas tree biscuits",                               2)
+   , ("Snowflake biscuits",                                    2)
+   , ("Snowman biscuits",                                      2)
+   , ("Holly biscuits",                                        2)
+   , ("Candy cane biscuits",                                   2)
+   , ("Bell biscuits",                                         2)
+   , ("Present biscuits",                                      2)
+   , ("Gingerbread men",                                       2)
+   , ("Gingerbread trees",                                     2)
+   , ("Rose macarons",                                         3)
+   , ("Lemon macarons",                                        3)
+   , ("Chocolate macarons",                                    3)
+   , ("Pistachio macarons",                                    3)
+   , ("Hazelnut macarons",                                     3)
+   , ("Violet macarons",                                       3)
+   , ("Caramel macarons",                                      3)
+   , ("Licorice macarons",                                     3)
+   , ("Pure black chocolate cookies",                          4)
+   , ("Pure white chocolate cookies",                          4)
+   , ("Ladyfingers",                                           3)
+   , ("Tuiles",                                                3)
+   , ("Chocolate-stuffed biscuits",                            3)
+   , ("Checker cookies",                                       3)
+   , ("Butter cookies",                                        3)
+   , ("Cream cookies",                                         3)
+   , ("Dragon cookie",                                         5)
+   , ("Milk chocolate butter biscuit",                         10)
+   , ("Dark chocolate butter biscuit",                         10)
+   , ("White chocolate butter biscuit",                        10)
+   , ("Ruby chocolate butter biscuit",                         10)
+   , ("Gingersnaps",                                           4)
+   , ("Cinnamon cookies",                                      4)
+   , ("Vanity cookies",                                        4)
+   , ("Cigars",                                                4)
+   , ("Pinwheel cookies",                                      4)
+   , ("Fudge squares",                                         4)
+   , ("Digits",                                                2)
+   , ("Butter horseshoes",                                     4)
+   , ("Butter pucks",                                          4)
+   , ("Butter knots",                                          4)
+   , ("Butter slabs",                                          4)
+   , ("Butter swirls",                                         4)
+   , ("Shortbread biscuits",                                   4)
+   , ("Millionaires' shortbreads",                             4)
+   , ("Caramel cookies",                                       4)
    ]
 
 buildingTieredUpgrades :: Building -> [Text]
@@ -748,6 +759,7 @@ saveFileToGameInput now sav = GameInput
   , _prestigeLevel      = savPrestige (savMain sav)
   , _sessionLength      = realToFrac (diffUTCTime now (savSessionStart (savStats sav)))
   , _cookiesMunched     = savMunched (savMain sav)
+  , _wrinklers          = savWrinklers (savMain sav)
   , _cookiesBanked      = savCookies (savMain sav)
   , _dragonAura1        = dragonAuras !! savDragonAura (savMain sav)
   , _dragonAura2        = dragonAuras !! savDragonAura2 (savMain sav)
