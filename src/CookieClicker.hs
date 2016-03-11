@@ -256,11 +256,13 @@ computeCps inp st =
   )
 
 computeClickCookies :: GameInput -> GameState -> Double
-computeClickCookies inp st =
-  view mouseMultiplier st *
-  (
-    computeCps inp st * view mouseBonus st
-  + computeMultiplier inp st * (view (buildingMult Cursor) st + view (buildingBonus Cursor) st))
+computeClickCookies inp st = view mouseMultiplier st * cpc
+  where
+  cpc = computeCps inp st * view mouseBonus st
+      + view (buildingBonus Cursor) st
+      + view (buildingMult Cursor) st
+
+  mult = computeMultiplier inp st
 
 loadMyInput :: IO GameInput
 loadMyInput =
@@ -600,6 +602,9 @@ upgradeEffects = Map.fromList $
    , ("Box of brand biscuits"      , noEffect)
    , ("Permanent upgrade slot I"   , noEffect)
    , ("Permanent upgrade slot II"  , noEffect)
+   , ("Permanent upgrade slot III"  , noEffect)
+   , ("Permanent upgrade slot IIIV"  , noEffect)
+   , ("Permanent upgrade slot V"  , noEffect)
    , ("Angels"                     , noEffect)
    , ("Archangels"                 , noEffect)
    , ("Virtues"                    , noEffect)
@@ -633,6 +638,7 @@ upgradeEffects = Map.fromList $
    , ("Milk selector"          , noEffect)
    , ("Golden goose egg"       , noEffect)
    , ("Chocolate egg"          , noEffect)
+   , ("Decisive fate"          , noEffect)
 
    -- Dragon Auras
    , ("No aura"         , noEffect)
