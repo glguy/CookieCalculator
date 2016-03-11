@@ -7,13 +7,10 @@ import           AesonTH
 import           GameInput
 
 import           Control.Lens
-import           Data.Aeson
-import           Data.Aeson.Types
-import           Data.Text (Text)
-import qualified Data.Text as Text
 import           Language.Haskell.TH
 import           Language.Haskell.TH.Syntax
 import           Data.Map (Map)
+import           Data.Text (Text)
 import qualified Data.Map as Map
 
 

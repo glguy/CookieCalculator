@@ -177,12 +177,12 @@ payoff inp st =
     [ finishA 300 Temple
     , finishA 300 WizardTower
     , finishA 400 Cursor
-    , finish 1 250 Shipment "The final frontier"
-    , finish 1 250 AlchemyLab "Beige goo"
-    , finish 1 250 Portal "Maddening chants"
-    , finish 1 200 TimeMachine "Great loop hypothesis"
-    , finish 1 200 Antimatter "The Pulse"
-    , finish 1 200 Prism "Lux sanctorum"
+    , finish True 250 Shipment "The final frontier"
+    , finish True 250 AlchemyLab "Beige goo"
+    , finish True 250 Portal "Maddening chants"
+    , finish True 200 TimeMachine "Great loop hypothesis"
+    , finish True 200 Antimatter "The Pulse"
+    , finish True 200 Prism "Lux sanctorum"
     ]
 
   buyBuilding =
@@ -205,6 +205,7 @@ payoff inp st =
 
   effect f = computeCps (f inp) (computeGameState (f inp)) - cps
 
+  finish :: Bool -> Int -> Building -> Text -> (String, Double, GameInput -> GameInput)
   finish a n b up = ("+" ++ show n' ++ " " ++ show b, cost, f)
     where
     u = Map.findWithDefault (error ("Unknown upgrade: " ++ Text.unpack up))
@@ -220,27 +221,30 @@ payoff inp st =
     where
     n' = n - view (buildingOwned b) inp
     cost = sum (take (fromIntegral n') (iterate (*1.15) (costs ^?! ix b)))
-    f = (achievementsEarned %~ cons (fakeAchievement 1))
+    f = (achievementsEarned %~ cons (fakeAchievement True))
       . (buildingOwned b .~ n)
 
-  fakeAchievement 1 = Achievement "fake" "normal"
-  fakeAchievement _ = Achievement "fake" "shadow"
+  fakeAchievement True  = Achievement "fake" "normal"
+  fakeAchievement False = Achievement "fake" "shadow"
 
 computeMultiplier :: GameInput -> GameState -> Double
-computeMultiplier inp st =
-  view multiplier st *
-  milkFactor *
-  view eggMultiplier st *
-  (views prestigeMultiplier fromIntegral st / 100 *
-   view prestigeLevel inp / 100 + 1)
+computeMultiplier inp st
+  = view multiplier st
+  * milkFactor
+  * view eggMultiplier st
+  * prestigeFactor
+
   where
-  milkFactor = product [ 1 + milk * x * view milkMultiplier st | x <- view milkFactors st ]
-  milk = computeMilk inp
+  milkFactor = product [ 1 + milk * x | x <- view milkFactors st ]
+  milk = computeMilk inp * view milkMultiplier st
+
+  prestigeFactor = 1 + view prestigeMultiplier st
+                     * view prestigeLevel inp / 100
 
 computeMilk :: GameInput -> Double
 computeMilk input = fromIntegral n / 25
   where
-  n = length $ filter (\a -> a^.achievementPool == "normal") $ input^.achievementsEarned
+  n = lengthOf (achievementsEarned . folded . filtered (views achievementPool (/= "shadow"))) input
 
 computeCps :: GameInput -> GameState -> Double
 computeCps inp st =
@@ -258,11 +262,17 @@ computeClickCookies inp st =
     computeCps inp st * view mouseBonus st
   + computeMultiplier inp st * (view (buildingMult Cursor) st + view (buildingBonus Cursor) st))
 
-main :: IO ()
-main =
+loadMyInput :: IO GameInput
+loadMyInput =
   do now <- getCurrentTime
-     input <- saveFileToGameInput now <$> loadMySave
-     let st = computeGameState input
+     saveFileToGameInput now <$> loadMySave
+
+main :: IO ()
+main = report =<< loadMyInput
+
+report :: GameInput -> IO ()
+report input =
+  do let st = computeGameState input
      putStrLn (payoff input st)
      let cps = computeCps input st
      putStrLn $ "Buildings:\t"   ++ show (sum (view buildingsOwned input))
@@ -281,7 +291,6 @@ data SuffixLength = LongSuffix | ShortSuffix
 
 prettyNumber :: SuffixLength -> Double -> String
 prettyNumber s n
-  | n < 1e3 = showFFloat (Just 1) n ""
   | n < 1e6 = let (w,p) = properFraction n
               in numberWithSeparators w ++ drop 1 (showFFloat (Just 1) p "")
   | n < 1e9   = showFFloat (Just 3) (n / 1e6 ) (suffix " M" " million")
@@ -698,8 +707,8 @@ noEffect _ st = st
 eggBonus :: Effect
 eggBonus _ = eggMultiplier +~ 0.01
 
-prestigeBonus :: Int -> Effect
-prestigeBonus n _ = prestigeMultiplier +~ n
+prestigeBonus :: Double -> Effect
+prestigeBonus n _ = prestigeMultiplier +~ n / 100
 
 addEggTimeBonus :: Effect
 addEggTimeBonus inp = eggMultiplier +~ views sessionLength eggTimeBonus inp

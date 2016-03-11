@@ -20,7 +20,6 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.Map as Map
 import qualified Data.Text as Text
-import qualified Data.Text.IO
 
 data BuildingSave = BuildingSave
   { bldgCurrent, bldgTotal, bldgSpecial :: Int
@@ -67,7 +66,6 @@ data SaveMain = SaveMain
   , savChimeType, savVolume :: Int
   } deriving (Show)
 
-  
 
 data SaveFile = SaveFile
   { savVersion :: Double

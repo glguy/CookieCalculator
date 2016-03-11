@@ -46,7 +46,7 @@ data GameState = GameState
   { _buildingStats   :: !(Map Building BuildingStat)
   , _multiplier      :: !Double
   , _eggMultiplier   :: !Double
-  , _prestigeMultiplier :: !Int
+  , _prestigeMultiplier :: !Double
   , _mouseBonus      :: !Double
   , _mouseMultiplier :: !Double
   , _bonusCps        :: !Double

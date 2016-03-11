@@ -1,3 +1,4 @@
+{-# Language TemplateHaskell #-}
 module AesonTH where
 
 import           Data.Aeson
@@ -28,4 +29,6 @@ myDeriveJSON typeName fields = deriveJSON defaultOptions
   } typeName
 
 textE :: Text -> ExpQ
-textE = stringE . Text.unpack
+textE txt = [| Text.pack str |]
+  where
+  str = Text.unpack txt
