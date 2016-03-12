@@ -213,7 +213,7 @@ payoff inp st =
                up
                upgradeByName
     n' = n - view (buildingOwned b) inp
-    cost = view upgradeCost u + sum (take (fromIntegral n') (iterate (*1.15) (costs ^?! ix b)))
+    cost = view upgradeCost u + buyMore n' (costs ^?! ix b)
     f = (upgradesBought %~ cons u)
       . (achievementsEarned %~ cons (fakeAchievement a))
       . (buildingOwned b .~ n)
@@ -221,12 +221,15 @@ payoff inp st =
   finishA n b = ("+" ++ show n' ++ " " ++ show b, cost, f)
     where
     n' = n - view (buildingOwned b) inp
-    cost = sum (take (fromIntegral n') (iterate (*1.15) (costs ^?! ix b)))
+    cost = buyMore n' (costs ^?! ix b)
     f = (achievementsEarned %~ cons (fakeAchievement True))
       . (buildingOwned b .~ n)
 
   fakeAchievement True  = Achievement "fake" "normal"
   fakeAchievement False = Achievement "fake" "shadow"
+
+buyMore :: Int -> Double -> Double
+buyMore count nextPrice = sum (take count (iterate (*1.15) nextPrice))
 
 computeMultiplier :: GameInput -> GameState -> Double
 computeMultiplier inp st
