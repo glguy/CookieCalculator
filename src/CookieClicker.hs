@@ -13,6 +13,7 @@ import SourceData
 import Data.Text (Text)
 import Data.Map (Map)
 import qualified Data.Map.Strict as Map
+import Data.Maybe
 import Control.Lens hiding (ReifiedPrism(..), prism)
 import Data.List
 import Data.Time
@@ -161,7 +162,7 @@ payoff :: GameInput -> GameState -> [PayoffRow]
 payoff inp st =
      [ PayoffRow act (cost / delta) (cost / (7*900*cps)) (cost + reserve)
                         (delta / cps * 100)
-     | (act, cost, f) <- buyBuilding ++ buyUpgrades ++ custom
+     | (act, cost, f) <- buyBuilding ++ buyUpgrades ++ buyUpgradeRequirements ++ custom
      , let delta = effect f
      , delta > 0
      ]
@@ -174,9 +175,6 @@ payoff inp st =
     , finishA 300 Shipment
     , finishA 300 AlchemyLab
     , finishA 300 Portal
-    , finish True 250 TimeMachine "Cookietopian moments of maybe"
-    , finish True 250 Antimatter "Some other super-tiny fundamental particle? Probably?" 
-    , finish True 200 Prism "Lux sanctorum"
     ]
 
   buyBuilding =
@@ -199,8 +197,17 @@ payoff inp st =
 
   effect f = computeCps (f inp) (computeGameState (f inp)) - cps
 
+  buyUpgradeRequirements =
+     [ finish True count b up
+     | (b, Just (count, up)) <- Map.toList $
+        Map.intersectionWith nextUpgrade (view buildingsOwned inp) upgradeRequirements
+     ]
+
+  nextUpgrade now options = listToMaybe
+     [ (target, up) | (target, up) <- options, target > now ]
+
   finish :: Bool -> Int -> Building -> Text -> (String, Double, GameInput -> GameInput)
-  finish a n b up = ("+" ++ show n' ++ " " ++ show b, cost, f)
+  finish a n b up = ("+" ++ show n' ++ " " ++ show b ++ " + " ++ Text.unpack up, cost, f)
     where
     u = Map.findWithDefault (error ("Unknown upgrade: " ++ Text.unpack up))
                up
@@ -340,6 +347,154 @@ gpoc :: Building -> Double -> Effect
 gpoc b bonus = \inp ->
   let gmas = views (buildingOwned b) fromIntegral inp
   in buildingBase Grandma +~ bonus * gmas
+
+upgradeRequirements :: Map.Map Building [(Int, Text)]
+upgradeRequirements = Map.fromList
+   [ (Cursor,
+      [ (1, "Reinforced index finger")
+      , (1, "Carpal tunnel prevention cream")
+      , (10, "Ambidextrous")
+      , (20, "Thousand fingers")
+      , (40, "Million fingers")
+      , (80, "Billion fingers")
+      , (120, "Trillion fingers")
+      , (160, "Quadrillion fingers")
+      , (200, "Quintillion fingers")
+      , (240, "Sextillion fingers")
+      , (280, "Septillion fingers")
+      , (320, "Octillion fingers")
+      ])
+   , (Grandma,
+      [ (1, "Forwards from grandma")
+      , (5, "Steel-plated rolling pins")
+      , (25, "Lubricated dentures")
+      , (50, "Prune juice")
+      , (100, "Double-thick glasses")
+      , (150, "Aging agents")
+      , (200, "Xtreme walkers")
+      , (250, "The Unbridling")
+      ])
+   , (Farm,
+      [ (1, "Cheap hoes")
+      , (5, "Fertilizer")
+      , (25, "Cookie trees")
+      , (50, "Genetically-modified cookies")
+      , (100, "Gingerbread scarecrows")
+      , (150, "Pulsar sprinklers")
+      , (200, "Fudge fungus")
+      , (250, "Wheat triffids")
+      ])
+   , (Mine,
+      [ (1, "Sugar gas")
+      , (5, "Megadrill")
+      , (25, "Ultradrill")
+      , (50, "Ultimadrill")
+      , (100, "H-bomb mining")
+      , (150, "Coreforge")
+      , (200, "Planetsplitters")
+      , (250, "Canola oil wells")
+      ])
+   , (Factory,
+      [ (1, "Sturdier conveyor belts")
+      , (5, "Child labor")
+      , (25, "Sweatshop")
+      , (50, "Radium reactors")
+      , (100, "Recombobulators")
+      , (150, "Deep-bake process")
+      , (200, "Cyborg workforce")
+      , (250, "78-hour days")
+      ])
+   , (Bank,
+      [ (1, "Taller tellers")
+      , (5, "Scissor-resistant credit cards")
+      , (25, "Acid-proof vaults")
+      , (50, "Chocolate coins")
+      , (100, "Exponential interest rates")
+      , (150, "Financial zen")
+      , (200, "Way of the wallet")
+      , (250, "The stuff rationale")
+      ])
+   , (Temple,
+      [ (1, "Golden idols")
+      , (5, "Sacrifices")
+      , (25, "Delicious blessing")
+      , (50, "Sun festival")
+      , (100, "Enlarged pantheon")
+      , (150, "Great Baker in the sky")
+      , (200, "Creation myth")
+      , (250, "Theocracy")
+      ])
+   , (WizardTower,
+      [ (1, "Pointier hats")
+      , (5, "Beardlier beards")
+      , (25, "Ancient grimoires")
+      , (50, "Kitchen curses")
+      , (100, "School of sorcery")
+      , (150, "Dark formulas")
+      , (200, "Cookiemancy")
+      , (250, "Rabbit trick")
+      ])
+   , (Shipment,
+      [ (1, "Vanilla nebulae")
+      , (5, "Wormholes")
+      , (25, "Frequent flyer")
+      , (50, "Warp drive")
+      , (100, "Chocolate monoliths")
+      , (150, "Generation ship")
+      , (200, "Dyson sphere")
+      , (250, "The final frontier")
+      ])
+   , (AlchemyLab,
+      [ (1, "Antimony")
+      , (5, "Essence of dough")
+      , (25, "True chocolate")
+      , (50, "Ambrosia")
+      , (100, "Aqua crustulae")
+      , (150, "Origin crucible")
+      , (200, "Theory of atomic fluidity")
+      , (250, "Beige goo")
+      ])
+   , (Portal,
+      [ (1, "Ancient tablet")
+      , (5, "Insane oatling workers")
+      , (25, "Soul bond")
+      , (50, "Sanity dance")
+      , (100, "Brane transplant")
+      , (150, "Deity-sized portals")
+      , (200, "End of times back-up plan")
+      , (250, "Maddening chants")
+      ])
+   , (TimeMachine,
+      [ (1, "Flux capacitors")
+      , (5, "Time paradox resolver")
+      , (25, "Quantum conundrum")
+      , (50, "Causality enforcer")
+      , (100, "Yestermorrow comparators")
+      , (150, "Far future enactment")
+      , (200, "Great loop hypothesis")
+      , (250, "Cookietopian moments of maybe")
+      ])
+   , (Antimatter,
+      [ (1, "Sugar bosons")
+      , (5, "String theory")
+      , (25, "Large macaron collider")
+      , (50, "Big bang bake")
+      , (100, "Reverse cyclotrons")
+      , (150, "Nanocosmics")
+      , (200, "The Pulse")
+      , (250, "Some other super-tiny fundamental particle? Probably?")
+      ])
+   , (Prism,
+      [ (1, "Gem polish")
+      , (5, "9th color")
+      , (25, "Chocolate light")
+      , (50, "Grainbow")
+      , (100, "Pure cosmic light")
+      , (150, "Glow-in-the-dark")
+      , (200, "Lux sanctorum")
+      , (250, "Reverse shadows")
+      ])
+   ]
 
 upgradeEffects :: Map Text Effect
 upgradeEffects = Map.fromList $
