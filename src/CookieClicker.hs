@@ -18,6 +18,7 @@ import Data.List
 import Data.Time
 import Foreign.C.Types (CDouble(..))
 import Numeric
+import Control.Exception
 import Spreadsheet
 import Spreadsheet.Renderer
 import Spreadsheet.Sorting
@@ -25,10 +26,10 @@ import qualified Data.Text as Text
 
 initialBuildingStat :: Double -> BuildingStat
 initialBuildingStat base = BuildingStat
-  { _bldgBase = base
-  , _bldgMult = 1
+  { _bldgBase  = base
+  , _bldgMult  = 1
   , _bldgBonus = 0
-  , _bldgFree = 0
+  , _bldgFree  = 0
   }
 
 initialGameState :: GameState
@@ -509,9 +510,9 @@ upgradeEffects = Map.fromList $
    , ("Box of brand biscuits"      , noEffect)
    , ("Permanent upgrade slot I"   , noEffect)
    , ("Permanent upgrade slot II"  , noEffect)
-   , ("Permanent upgrade slot III"  , noEffect)
-   , ("Permanent upgrade slot IIIV"  , noEffect)
-   , ("Permanent upgrade slot V"  , noEffect)
+   , ("Permanent upgrade slot III" , noEffect)
+   , ("Permanent upgrade slot IIIV", noEffect)
+   , ("Permanent upgrade slot V"   , noEffect)
    , ("Angels"                     , noEffect)
    , ("Archangels"                 , noEffect)
    , ("Virtues"                    , noEffect)
@@ -743,7 +744,8 @@ foreign import ccall "math.h floor" c_floor :: CDouble -> CDouble
 
 synergy :: Building -> Building -> Effect
 synergy major minor inp
-  = (buildingMult major *~ (1 + 0.05 * fromIntegral minorCount))
+  = assert (major < minor)
+  $ (buildingMult major *~ (1 + 0.05 * fromIntegral minorCount))
   . (buildingMult minor *~ (1 + 0.001 * fromIntegral majorCount))
   where
   majorCount = view (buildingOwned major) inp
