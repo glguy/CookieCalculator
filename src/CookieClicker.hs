@@ -446,6 +446,7 @@ upgradeEffects = Map.fromList $
 
    , ("Faberge egg", \_ -> buildingCostMultiplier *~ 0.99)
    , ("\"egg\"", \_ -> bonusCps +~ 9)
+   , ("Omelette", noEffect)
 
    , ("A crumbly egg", noEffect)
 
