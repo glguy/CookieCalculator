@@ -20,15 +20,17 @@ executable CookieClicker
   other-modules:       SaveFormat, Building, GameInput, SourceData, AesonTH
   -- other-extensions:    
   build-depends:       base              >=4.8 && <4.9,
-                       containers        >=0.5 && <0.6,
-                       lens              >= 4.13.2 && <4.14,
                        Spreadsheet,
-                       text              >=1.2 && <1.3,
-                       time              >=1.5 && <1.6,
+                       aeson             >=0.9  && <0.12,
+                       base64-bytestring >=1.0  && <1.1,
                        bytestring        >=0.10 && <0.11,
+                       containers        >=0.5  && <0.6,
+                       filepath          >=1.4  && <1.5,
+                       fsnotify          >=0.2  && <0.3,
+                       lens              >=4.13 && <4.14,
                        template-haskell  >=2.10 && <2.11,
-                       aeson             >=0.9 && <0.12,
-                       base64-bytestring >=1.0 && <1.1
+                       text              >=1.2  && <1.3,
+                       time              >=1.5  && <1.6
 
   hs-source-dirs:      src
   default-language:    Haskell2010

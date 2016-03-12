@@ -10,6 +10,10 @@ import Building
 import SaveFormat
 import SourceData
 
+import System.FSNotify
+import System.FilePath
+import Control.Concurrent (threadDelay)
+import Control.Monad (forever)
 import Data.Text (Text)
 import Data.Map (Map)
 import qualified Data.Map.Strict as Map
@@ -46,6 +50,7 @@ initialGameState = GameState
   , _milkMultiplier          = 1
   , _milkFactors             = []
   , _wrinklerMultiplier      = 1.1
+  , _goldTimeMultiplier      = 1
   }
 
 baseCps :: Map Building Double
@@ -180,7 +185,7 @@ payoff inp st =
     , finishA 500 Cursor
     , finishA 300 Shipment
     , finish True 250 AlchemyLab "Beige goo"
-    , finish True 250 Portal "Maddening chants"
+    , finish False 200 Portal                 "End of times back-up plan"
     , finish True 200 TimeMachine "Great loop hypothesis"
     , finish True 200 Antimatter "The Pulse"
     , finish True 200 Prism "Lux sanctorum"
@@ -270,7 +275,16 @@ loadMyInput =
      saveFileToGameInput now <$> loadMySave
 
 main :: IO ()
-main = report =<< loadMyInput
+main =
+  withManager $ \mgr ->
+  do let action = report =<< loadMyInput
+         isSaveTxtEvent (Added    fp _) = takeFileName fp == "save.txt"
+         isSaveTxtEvent (Modified fp _) = takeFileName fp == "save.txt"
+         isSaveTxtEvent _               = False
+     action
+     watchDir mgr "." isSaveTxtEvent (\_ -> action)
+     forever (threadDelay 1000000)
+
 
 report :: GameInput -> IO ()
 report input =
@@ -278,15 +292,21 @@ report input =
      putStrLn (payoff input st)
      let cps = computeCps input st
          ecps = cps * computeWrinklerEffect input st
-     putStrLn $ "Buildings:\t"   ++ show (sum (view buildingsOwned input))
-     putStrLn $ "Cookies:\t"     ++ prettyNumber LongSuffix (view cookiesBanked input)
-     putStrLn $ "Munched:\t"     ++ prettyNumber LongSuffix (computeMunched input st)
-     putStrLn $ "Cookie/s:\t"    ++ prettyNumber LongSuffix cps
-     putStrLn $ "ECookie/s:\t"   ++ prettyNumber LongSuffix ecps
-     putStrLn $ "Cookie/c:\t"    ++ prettyNumber LongSuffix (computeClickCookies input st)
-     putStrLn $ "Reserve:\t"     ++ prettyNumber LongSuffix (7*6000*cps)
-     putStrLn $ "Cookie/s x7:\t" ++ prettyNumber LongSuffix (7*cps)
-     putStrLn $ "Lucky x7:\t"    ++ prettyNumber LongSuffix (7*900*cps)
+         munched = computeMunched input st
+     putStrLn $ "Buildings:   "  ++ show (sum (view buildingsOwned input))
+     putStrLn $ "Bank/Munch:  "  ++ prettyNumber LongSuffix (view cookiesBanked input)
+             ++ "  +  "          ++ prettyNumber LongSuffix munched
+             ++ "  =  "          ++ prettyNumber LongSuffix (view cookiesBanked input + munched)
+     putStrLn $ "Cookie/s:    "  ++ prettyNumber LongSuffix cps
+             ++ "\t"             ++ prettyNumber LongSuffix (7*cps)
+     putStrLn $ "Reserve:     "  ++ prettyNumber LongSuffix (6000*cps)
+             ++ "\t"             ++ prettyNumber LongSuffix (7*6000*cps)
+     putStrLn $ "Lucky:       "  ++ prettyNumber LongSuffix (900*cps)
+             ++ "\t"             ++ prettyNumber LongSuffix (7*900*cps)
+     putStrLn $ "ECookie/s:   "  ++ prettyNumber LongSuffix ecps
+     putStrLn $ "ElderFenzy:  "  ++ prettyNumber LongSuffix
+                                        (computeElderFrenzyTime st * ecps * 666)
+     putStrLn $ "Cookie/c:    "  ++ prettyNumber LongSuffix (computeClickCookies input st)
 
 computeMunched :: GameInput -> GameState -> Double
 computeMunched input st = view wrinklerMultiplier st * view cookiesMunched input
@@ -414,7 +434,7 @@ upgradeEffects = Map.fromList $
 
    , ("Lucky day"  , noEffect)
    , ("Serendipity", noEffect)
-   , ("Get lucky"  , noEffect)
+   , ("Get lucky"  , \_ -> goldTimeMultiplier *~ 2)
 
    , ("Bingo center/Research facility", \_ -> buildingMult Grandma *~ 4)
    , ("Specialized chocolate chips"   , cookieBonus 1)
@@ -520,7 +540,7 @@ upgradeEffects = Map.fromList $
    , ("Dominions"                  , noEffect)
    , ("Twin Gates of Transcendence", noEffect)
    , ("Heavenly luck"              , noEffect)
-   , ("Lasting fortune"            , noEffect)
+   , ("Lasting fortune"            , \_ -> goldTimeMultiplier *~ 1.1)
 
    , ("Starter kit"    , \_ -> buildingFree Cursor  +~ 10)
    , ("Starter kitchen", \_ -> buildingFree Grandma +~  5)
@@ -741,7 +761,11 @@ eggTimeBonus s = (1 - (1 - day/100)**3) / 10
 floor' :: Double -> Double
 floor' = realToFrac . c_floor . realToFrac
 
+ceil' :: Double -> Double
+ceil' = realToFrac . c_ceil . realToFrac
+
 foreign import ccall "math.h floor" c_floor :: CDouble -> CDouble
+foreign import ccall "math.h ceil" c_ceil :: CDouble -> CDouble
 
 synergy :: Building -> Building -> Effect
 synergy major minor inp
@@ -779,3 +803,25 @@ saveFileToGameInput now sav = GameInput
     = fmap (achievementById !!)
     $ findIndices id
     $ savAchievements sav
+
+sellOff :: GameInput -> GameState -> Double
+sellOff input st = view buildingCostMultiplier st * sums
+  where
+  cost1 n p = sum $ take n $ iterate (*1.15) p
+
+  sums = sum $ Map.intersectionWith cost1 owned initialCosts
+
+  owned = leftJoinWith' (-)
+                (view buildingsOwned input)
+                (view bldgFree <$> view buildingStats st)
+
+computeElderFrenzyTime :: GameState -> Double
+computeElderFrenzyTime st = ceil' (6 * view goldTimeMultiplier st)
+
+-- | Cost factor to buy @count@ buildings when you have @start@ of them
+-- already. Multiply this number by the initial cost of the building.
+buildingRangeCostFactor :: Int -> Int -> Double
+buildingRangeCostFactor start count = realToFrac res
+  where
+  res = 20 * z^start * ( z^count - 1 ) / 3 :: Rational
+  z = 23/20

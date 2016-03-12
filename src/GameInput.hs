@@ -56,6 +56,7 @@ data GameState = GameState
   , _milkMultiplier         :: !Double
   , _milkFactors            :: ![Double]
   , _wrinklerMultiplier      :: !Double
+  , _goldTimeMultiplier :: !Double
   }
   deriving (Read, Show)
 
