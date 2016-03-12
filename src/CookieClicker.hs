@@ -142,7 +142,7 @@ buildingCosts :: GameInput -> GameState -> Map Building Double
 buildingCosts inp st
   = fmap (* view buildingCostMultiplier st)
   $ leftJoinWith'
-      (\base n -> base * 1.15 ** fromIntegral n)
+      (\base n -> base * 1.15 ^ n)
       initialCosts
       owned'
   where
