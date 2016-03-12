@@ -229,7 +229,8 @@ payoff inp st =
   fakeAchievement False = Achievement "fake" "shadow"
 
 buyMore :: Int -> Double -> Double
-buyMore count nextPrice = sum (take count (iterate (*1.15) nextPrice))
+-- https://en.wikipedia.org/wiki/Geometric_series#Formula
+buyMore count nextPrice = nextPrice * (1 - 1.15 ^ count) / (1 - 1.15)
 
 computeMultiplier :: GameInput -> GameState -> Double
 computeMultiplier inp st
