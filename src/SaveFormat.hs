@@ -94,9 +94,11 @@ removeEnd bs =
           | otherwise -> a
 
 loadMySave :: IO SaveFile
-loadMySave =
-  do raw <- readFile "save.txt"
-     let unesc = B8.pack (unescape raw)
+loadMySave = loadSave =<< readFile "save.txt"
+
+loadSave :: String -> IO SaveFile
+loadSave raw =
+  do let unesc = B8.pack (unescape raw)
          noend = removeEnd unesc
          utf8utf8 = Data.ByteString.Base64.decodeLenient noend
          txt = decodeUtf8 (B8.pack (Text.unpack (decodeUtf8 utf8utf8))) -- sorry, not my format

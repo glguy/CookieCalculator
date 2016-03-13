@@ -18,7 +18,6 @@ library
   hs-source-dirs:      src
   exposed-modules:     CookieClicker, SaveFormat, Building, GameInput, SourceData, AesonTH
   build-depends:       base              >=4.8 && <4.9,
-                       Spreadsheet,
                        aeson             >=0.9  && <0.12,
                        base64-bytestring >=1.0  && <1.1,
                        bytestring        >=0.10 && <0.11,
@@ -36,7 +35,22 @@ executable CookieClicker
   main-is:             Main.hs
 
   build-depends:       base >=4.8 && <4.9,
+                       lens              >=4.13 && <4.14,
+                       Spreadsheet,
                        CookieCalculator,
                        filepath          >=1.4  && <1.5,
                        fsnotify          >=0.2  && <0.3
+  default-language:    Haskell2010
+
+executable CookieClickerGtk
+  hs-source-dirs:      gui
+  main-is:             Main.hs
+
+  build-depends:       base >=4.8 && <4.9,
+                       lens              >=4.13 && <4.14,
+                       time              >=1.5  && <1.6,
+                       containers        >=0.5  && <0.6,
+                       CookieCalculator,
+                       gtk3
+
   default-language:    Haskell2010
