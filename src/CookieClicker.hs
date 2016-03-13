@@ -160,7 +160,7 @@ payoff inp st =
   renderSpreadsheet
   $ sortSpreadsheet
   $ Spreadsheet [ Column "Action" StringT Nothing
-                , Column "Metric" (NumberT (Just 0)) (Just Ascending)
+                , Column "Metric" (NumberT (Just 0)) (Just Descending)
                 , Column "Saveup" (NumberT (Just 1)) Nothing
                 , Column "Buy at" StringT Nothing
                 , Column "∆% C/s" StringT Nothing
@@ -364,7 +364,6 @@ numberWithSeparators
   . reverse
   . show
 
-{-
 prettyTime :: Integer -> String
 prettyTime t = part y 'y' (y  > 0)
              $ part d 'd' (d' > 0)
@@ -379,7 +378,6 @@ prettyTime t = part y 'y' (y  > 0)
 
   part _ _ False = id
   part n c True  = shows n . showChar c
--}
 
 gpoc :: Building -> Double -> Effect
 gpoc b bonus = \inp ->
@@ -546,6 +544,10 @@ upgradeEffects = Map.fromList $
    , ("Archangels"                 , noEffect)
    , ("Virtues"                    , noEffect)
    , ("Dominions"                  , noEffect)
+   , ("Cherubim"                   , noEffect)
+   , ("Asmodeus"                   , noEffect)
+   , ("Halo gloves"                , \_ -> mouseBonus *~ 1.1) -- XXX
+   , ("Unholy bait"                , noEffect)
    , ("Twin Gates of Transcendence", noEffect)
    , ("Heavenly luck"              , noEffect)
    , ("Lasting fortune"            , \_ -> goldTimeMultiplier *~ 1.1)
