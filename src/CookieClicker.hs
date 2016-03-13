@@ -546,7 +546,7 @@ upgradeEffects = Map.fromList $
    , ("Dominions"                  , noEffect)
    , ("Cherubim"                   , noEffect)
    , ("Asmodeus"                   , noEffect)
-   , ("Halo gloves"                , \_ -> mouseBonus *~ 1.1) -- XXX
+   , ("Halo gloves"                , \_ -> mouseMultiplier *~ 1.1)
    , ("Unholy bait"                , noEffect)
    , ("Twin Gates of Transcendence", noEffect)
    , ("Heavenly luck"              , noEffect)
