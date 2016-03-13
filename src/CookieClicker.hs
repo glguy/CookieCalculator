@@ -162,7 +162,7 @@ payoff :: GameInput -> GameState -> [PayoffRow]
 payoff inp st =
      [ PayoffRow act (cost / delta) (cost / (7*900*cps)) (cost + reserve)
                         (delta / cps * 100)
-     | (act, cost, f) <- buyBuilding ++ buyUpgrades ++ buyUpgradeRequirements ++ custom
+     | (act, cost, f) <- buyBuilding ++ buyUpgrades ++ buyGrandmas ++ buyUpgradeRequirements ++ custom
      , let delta = effect f
      , delta > 0
      ]
@@ -190,6 +190,26 @@ payoff inp st =
        , upgradesBought %~ cons u
        )
      | u <- view upgradesAvailable inp
+     ]
+
+  buyGrandmas =
+     [ finish False 15 b up
+     | view (buildingOwned Grandma) inp >= 1
+     , (b, up) <-
+        [ (Farm, "Farmer grandmas")
+        , (Mine, "Miner grandmas")
+        , (Factory, "Worker grandmas")
+        , (Bank, "Banker grandmas")
+        , (Temple, "Priestess grandmas")
+        , (WizardTower, "Witch grandmas")
+        , (Shipment, "Cosmic grandmas")
+        , (AlchemyLab, "Transmuted grandmas")
+        , (Portal, "Altered grandmas")
+        , (TimeMachine, "Grandmas' grandmas")
+        , (Antimatter, "Antigrandmas")
+        , (Prism, "Rainbow grandmas")
+        ]
+     , view (buildingOwned b) inp < 15
      ]
 
   costs = buildingCosts inp st
