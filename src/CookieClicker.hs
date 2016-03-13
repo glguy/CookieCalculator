@@ -168,7 +168,7 @@ payoff inp st =
      [ [ StringV act
        , NumberV (toRational (cost / delta))
        , NumberV (toRational (cost / (7*900*cps)))
-       , StringV (prettyNumber ShortSuffix (cost + frenzyReserve))
+       , StringV (prettyNumber ShortSuffix (cost + reserve))
        , StringV (prettyNumber ShortSuffix (delta / cps * 100))
        ]
      | (act, cost, f) <- buyBuilding ++ buyUpgrades ++ custom
@@ -177,7 +177,7 @@ payoff inp st =
      ]
 
   where
-  frenzyReserve = 7 * 6000 * cps
+  reserve = 6000 * cps
 
   custom =
     [ finishA 300 Temple
@@ -185,8 +185,8 @@ payoff inp st =
     , finishA 500 Cursor
     , finishA 300 Shipment
     , finish True 250 AlchemyLab "Beige goo"
-    , finish False 200 Portal                 "End of times back-up plan"
-    , finish True 200 TimeMachine "Great loop hypothesis"
+    , finish True 250 Portal  "Maddening chants"
+    , finish True 250 TimeMachine "Cookietopian moments of maybe"
     , finish True 200 Antimatter "The Pulse"
     , finish True 200 Prism "Lux sanctorum"
     ]
