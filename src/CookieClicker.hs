@@ -3,17 +3,13 @@
 {-# Language ForeignFunctionInterface #-}
 {-# Language RankNTypes #-}
 
-module Main (main) where
+module CookieClicker where
 
 import GameInput
 import Building
 import SaveFormat
 import SourceData
 
-import System.FSNotify
-import System.FilePath
-import Control.Concurrent (threadDelay)
-import Control.Monad (forever)
 import Data.Text (Text)
 import Data.Map (Map)
 import qualified Data.Map.Strict as Map
@@ -183,10 +179,10 @@ payoff inp st =
     [ finishA 300 WizardTower
     , finishA 500 Cursor
     , finishA 300 Shipment
-    , finishA 300 AlchemyLab
+    , finish False 250 AlchemyLab "Beige goo" 
     , finish True 250 Portal  "Maddening chants"
     , finish True 250 TimeMachine "Cookietopian moments of maybe"
-    , finish True 250 Antimatter "Some other super-tiny fundamental particle? Probably?"
+    , finish False 200 Antimatter "The Pulse"
     , finish True 200 Prism "Lux sanctorum"
     ]
 
@@ -272,17 +268,6 @@ loadMyInput :: IO GameInput
 loadMyInput =
   do now <- getCurrentTime
      saveFileToGameInput now <$> loadMySave
-
-main :: IO ()
-main =
-  withManager $ \mgr ->
-  do let action = report =<< loadMyInput
-         isSaveTxtEvent (Added    fp _) = takeFileName fp == "save.txt"
-         isSaveTxtEvent (Modified fp _) = takeFileName fp == "save.txt"
-         isSaveTxtEvent _               = False
-     action
-     watchDir mgr "." isSaveTxtEvent (\_ -> action)
-     forever (threadDelay 1000000)
 
 
 report :: GameInput -> IO ()

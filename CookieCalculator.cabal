@@ -9,28 +9,34 @@ license:             ISC
 license-file:        LICENSE
 author:              Eric Mertens
 maintainer:          emertens@gmail.com
--- copyright:           
+copyright:           2016 Eric Mertens
 category:            Game
 build-type:          Simple
--- extra-source-files:  
 cabal-version:       >=1.10
 
-executable CookieClicker
-  main-is:             CookieClicker.hs
-  other-modules:       SaveFormat, Building, GameInput, SourceData, AesonTH
-  -- other-extensions:    
+library
+  hs-source-dirs:      src
+  exposed-modules:     CookieClicker, SaveFormat, Building, GameInput, SourceData, AesonTH
   build-depends:       base              >=4.8 && <4.9,
                        Spreadsheet,
                        aeson             >=0.9  && <0.12,
                        base64-bytestring >=1.0  && <1.1,
                        bytestring        >=0.10 && <0.11,
                        containers        >=0.5  && <0.6,
-                       filepath          >=1.4  && <1.5,
-                       fsnotify          >=0.2  && <0.3,
                        lens              >=4.13 && <4.14,
                        template-haskell  >=2.10 && <2.11,
                        text              >=1.2  && <1.3,
-                       time              >=1.5  && <1.6
+                       time              >=1.5  && <1.6,
+                       gtk3
 
-  hs-source-dirs:      src
+  default-language:    Haskell2010
+
+executable CookieClicker
+  hs-source-dirs:      cli
+  main-is:             Main.hs
+
+  build-depends:       base >=4.8 && <4.9,
+                       CookieCalculator,
+                       filepath          >=1.4  && <1.5,
+                       fsnotify          >=0.2  && <0.3
   default-language:    Haskell2010
