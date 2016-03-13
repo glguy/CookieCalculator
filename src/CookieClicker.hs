@@ -180,14 +180,13 @@ payoff inp st =
   reserve = 6000 * cps
 
   custom =
-    [ finishA 300 Temple
-    , finishA 300 WizardTower
+    [ finishA 300 WizardTower
     , finishA 500 Cursor
     , finishA 300 Shipment
-    , finish True 250 AlchemyLab "Beige goo"
+    , finishA 300 AlchemyLab
     , finish True 250 Portal  "Maddening chants"
     , finish True 250 TimeMachine "Cookietopian moments of maybe"
-    , finish True 200 Antimatter "The Pulse"
+    , finish True 250 Antimatter "Some other super-tiny fundamental particle? Probably?"
     , finish True 200 Prism "Lux sanctorum"
     ]
 
@@ -307,6 +306,15 @@ report input =
      putStrLn $ "ElderFenzy:  "  ++ prettyNumber LongSuffix
                                         (computeElderFrenzyTime st * ecps * 666)
      putStrLn $ "Cookie/c:    "  ++ prettyNumber LongSuffix (computeClickCookies input st)
+     putStrLn $ "Upgrades:    "  ++ show (countUpgrades input)
+
+countUpgrades :: GameInput -> Int
+countUpgrades = length . filter (views upgradePool validPool) . view upgradesBought
+  where
+  validPool "" = True
+  validPool "tech" = True
+  validPool "cookie" = True
+  validPool _ = False
 
 computeMunched :: GameInput -> GameState -> Double
 computeMunched input st = view wrinklerMultiplier st * view cookiesMunched input
@@ -381,7 +389,7 @@ gpoc b bonus = \inp ->
 upgradeEffects :: Map Text Effect
 upgradeEffects = Map.fromList $
    [ (name, doubler b) | b <- [Grandma .. ], name <- buildingTieredUpgrades b ] ++
-   [ (name, cookieBonus n) | (name, n) <- cookies ++ specialCookies ] ++
+   [ (name, cookieBonus n) | (name, n) <- specialCookies ++ cookies ] ++
    [ ("Reinforced index finger"        , doubler Cursor)
    , ("Carpal tunnel prevention cream" , doubler Cursor)
    , ("Ambidextrous"                   , doubler Cursor)
@@ -588,97 +596,14 @@ specialCookies =
    , ("Eternal heart biscuits", 2)
    ]
 
+
 cookies :: [(Text, Int)]
 cookies =
-   [ ("Plain cookies",                                         1)
-   , ("Sugar cookies",                                         1)
-   , ("Oatmeal raisin cookies",                                1)
-   , ("Peanut butter cookies",                                 1)
-   , ("Coconut cookies",                                       1)
-   , ("White chocolate cookies",                               2)
-   , ("Macadamia nut cookies",                                 2)
-   , ("Double-chip cookies",                                   2)
-   , ("White chocolate macadamia nut cookies",                 2)
-   , ("All-chocolate cookies",                                 2)
-   , ("Dark chocolate-coated cookies",                         4)
-   , ("White chocolate-coated cookies",                        4)
-   , ("Eclipse cookies",                                       2)
-   , ("Zebra cookies",                                         2)
-   , ("Snickerdoodles",                                        2)
-   , ("Stroopwafels",                                          2)
-   , ("Macaroons",                                             2)
-   , ("Empire biscuits",                                       2)
-   , ("British tea biscuits",                                  2)
-   , ("Chocolate british tea biscuits",                        2)
-   , ("Round british tea biscuits",                            2)
-   , ("Round chocolate british tea biscuits",                  2)
-   , ("Round british tea biscuits with heart motif",           2)
-   , ("Round chocolate british tea biscuits with heart motif", 2)
-   , ("Madeleines",                                            2)
-   , ("Palmiers",                                              2)
-   , ("Palets",                                                2)
-   , ("Sablés",                                                2)
-   , ("Caramoas",                                              3)
-   , ("Sagalongs",                                             3)
-   , ("Shortfoils",                                            3)
-   , ("Win mints",                                             3)
-   , ("Fig gluttons",                                          2)
-   , ("Loreols",                                               2)
-   , ("Jaffa cakes",                                           2)
-   , ("Grease's cups",                                         2)
-   , ("Skull cookies",                                         2)
-   , ("Ghost cookies",                                         2)
-   , ("Bat cookies",                                           2)
-   , ("Slime cookies",                                         2)
-   , ("Pumpkin cookies",                                       2)
-   , ("Eyeball cookies",                                       2)
-   , ("Spider cookies",                                        2)
-   , ("Christmas tree biscuits",                               2)
-   , ("Snowflake biscuits",                                    2)
-   , ("Snowman biscuits",                                      2)
-   , ("Holly biscuits",                                        2)
-   , ("Candy cane biscuits",                                   2)
-   , ("Bell biscuits",                                         2)
-   , ("Present biscuits",                                      2)
-   , ("Gingerbread men",                                       2)
-   , ("Gingerbread trees",                                     2)
-   , ("Rose macarons",                                         3)
-   , ("Lemon macarons",                                        3)
-   , ("Chocolate macarons",                                    3)
-   , ("Pistachio macarons",                                    3)
-   , ("Hazelnut macarons",                                     3)
-   , ("Violet macarons",                                       3)
-   , ("Caramel macarons",                                      3)
-   , ("Licorice macarons",                                     3)
-   , ("Pure black chocolate cookies",                          4)
-   , ("Pure white chocolate cookies",                          4)
-   , ("Ladyfingers",                                           3)
-   , ("Tuiles",                                                3)
-   , ("Chocolate-stuffed biscuits",                            3)
-   , ("Checker cookies",                                       3)
-   , ("Butter cookies",                                        3)
-   , ("Cream cookies",                                         3)
-   , ("Dragon cookie",                                         5)
-   , ("Milk chocolate butter biscuit",                         10)
-   , ("Dark chocolate butter biscuit",                         10)
-   , ("White chocolate butter biscuit",                        10)
-   , ("Ruby chocolate butter biscuit",                         10)
-   , ("Gingersnaps",                                           4)
-   , ("Cinnamon cookies",                                      4)
-   , ("Vanity cookies",                                        4)
-   , ("Cigars",                                                4)
-   , ("Pinwheel cookies",                                      4)
-   , ("Fudge squares",                                         4)
-   , ("Digits",                                                2)
-   , ("Butter horseshoes",                                     4)
-   , ("Butter pucks",                                          4)
-   , ("Butter knots",                                          4)
-   , ("Butter slabs",                                          4)
-   , ("Butter swirls",                                         4)
-   , ("Shortbread biscuits",                                   4)
-   , ("Millionaires' shortbreads",                             4)
-   , ("Caramel cookies",                                       4)
-   ]
+   [ (view upgradeName u, n)
+       | u <- upgradeById
+       , "cookie" == view upgradePool u
+       , Just n <- [view upgradePower u]
+       ]
 
 buildingTieredUpgrades :: Building -> [Text]
 buildingTieredUpgrades b =

@@ -7,8 +7,11 @@ import Building
 import AesonTH
 
 import Data.Text (Text)
+import Data.Aeson (Value)
+import qualified Data.Text as Text
 import Data.Map (Map)
 import Control.Lens
+import Language.Haskell.TH.Syntax
 
 data GameInput = GameInput
   { _buildingsOwned     :: !(Map Building Int)
@@ -33,6 +36,9 @@ data BuildingStat = BuildingStat
 
 data Upgrade = Upgrade
   { _upgradeName   :: !Text
+  , _upgradePool   :: !Text
+  , _upgradeBuildingTie :: !(Maybe Text)
+  , _upgradePower :: !(Maybe Int)
   , _upgradeCost   :: !Double
   }
   deriving (Read, Show)
@@ -92,6 +98,9 @@ buildingFree k = buildingStat k . bldgFree
 
 myDeriveJSON ''Upgrade
   [ ("_upgradeName", "name")
+  , ("_upgradePool", "pool")
+  , ("_upgradePower", "power")
+  , ("_upgradeBuildingTie", "buildingTie")
   , ("_upgradeCost","price")
   ]
 
@@ -99,3 +108,14 @@ myDeriveJSON ''Achievement
   [ ("_achievementName", "name")
   , ("_achievementPool", "pool")
   ]
+
+instance Lift Text where
+  lift txt = [| Text.pack str |]
+    where
+    str = Text.unpack txt
+
+instance Lift Upgrade where
+  lift (Upgrade v w x y z) = [| Upgrade v w x y z |]
+
+instance Lift Achievement where
+  lift (Achievement x y) = [| Achievement x y |]

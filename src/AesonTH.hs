@@ -27,8 +27,3 @@ myDeriveJSON typeName fields = deriveJSON defaultOptions
                                    Nothing -> error ("Unassigned field: " ++ str)
                                    Just x  -> x
   } typeName
-
-textE :: Text -> ExpQ
-textE txt = [| Text.pack str |]
-  where
-  str = Text.unpack txt
