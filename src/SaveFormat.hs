@@ -87,22 +87,22 @@ unescape ('%':x:y:z) =
 unescape [] = []
 unescape (x:xs) = x : unescape xs
 
-removeEnd :: ByteString -> ByteString
+removeEnd :: ByteString -> Either String ByteString
 removeEnd bs =
   case B.breakSubstring (B8.pack "!END!") bs of
-    (a,b) | B.null b -> error "removeEnd: No end marker"
-          | otherwise -> a
+    (a,b) | B.null b -> Left "removeEnd: No end marker"
+          | otherwise -> Right a
 
 loadMySave :: IO SaveFile
-loadMySave = loadSave =<< readFile "save.txt"
+loadMySave = either fail return . loadSave =<< readFile "save.txt"
 
-loadSave :: String -> IO SaveFile
+loadSave :: String -> Either String SaveFile
 loadSave raw =
   do let unesc = B8.pack (unescape raw)
-         noend = removeEnd unesc
-         utf8utf8 = Data.ByteString.Base64.decodeLenient noend
+     noend <- removeEnd unesc
+     let utf8utf8 = Data.ByteString.Base64.decodeLenient noend
          txt = decodeUtf8 (B8.pack (Text.unpack (decodeUtf8 utf8utf8))) -- sorry, not my format
-     either fail return $ parse txt
+     parse txt
 
 parseBldg :: Text -> Either String BuildingSave
 parseBldg str =
