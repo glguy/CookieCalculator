@@ -144,10 +144,12 @@ buildingCosts :: GameInput -> GameState -> Map Building Double
 buildingCosts inp st
   = fmap (* view buildingCostMultiplier st)
   $ leftJoinWith'
-      (\base n -> base * 1.15 ^ n)
+      (\base n -> base * 1.15 ^ max 0 n)
       initialCosts
       owned'
   where
+  -- When you've sold your free buildings they don't
+  -- get cheaper, hence the 'max 0' above
   owned' = leftJoinWith' (-)
              (view buildingsOwned inp)
              (view bldgFree <$> view buildingStats st)
@@ -263,7 +265,9 @@ payoff inp st =
       . (buildingOwned b .~ n)
 
 buyMore :: Int -> Double -> Double
-buyMore count nextPrice = nextPrice * (1 - 1.15 ^ count) / (1 - 1.15)
+buyMore count nextPrice
+  | count < 0 = error "buyMore: negative count"
+  | otherwise = nextPrice * (1 - 1.15 ^ count) / (1 - 1.15)
 
 computeMultiplier :: GameInput -> GameState -> Double
 computeMultiplier inp st
@@ -854,6 +858,7 @@ upgradeEffects = Map.fromList $
    -- Dragon Auras
    , ("No aura"         , noEffect)
    , ("Radiant Appetite", cookieBonus 100)
+   , ("Earth Shatterer",  noEffect)
    , ("Dragonflight"    , noEffect) -- effect not modeled
    , ("Mind Over Matter", noEffect) -- 0.75 multiplier to random drops
    ]
@@ -1016,14 +1021,6 @@ sellOff input st = view buildingCostMultiplier st * sums
 
 computeElderFrenzyTime :: GameState -> Double
 computeElderFrenzyTime st = ceil' (6 * view goldTimeMultiplier st)
-
--- | Cost factor to buy @count@ buildings when you have @start@ of them
--- already. Multiply this number by the initial cost of the building.
-buildingRangeCostFactor :: Int -> Int -> Double
-buildingRangeCostFactor start count = realToFrac res
-  where
-  res = 20 * z^start * ( z^count - 1 ) / 3 :: Rational
-  z = 23/20
 
 cpsToChainReserve6 :: Double -> Double
 cpsToChainReserve6 cps = 4 * floor6 (m*cps)
