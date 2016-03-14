@@ -89,7 +89,7 @@ main = do
 
            set reserveOutput [labelText := prettyNumber ShortSuffix (6000 * cps)]
            set reserve7Output [labelText := prettyNumber ShortSuffix (7 * 6000 * cps)]
-           set reserveCOutput [labelText := prettyNumber ShortSuffix (6 * 60 * 60 * cps)]
+           set reserveCOutput [labelText := prettyNumber ShortSuffix (cpsToChainReserve6 cps)]
 
   -- LAYOUT GRID ---------------------------------------------
 

@@ -709,3 +709,14 @@ buildingRangeCostFactor start count = realToFrac res
   where
   res = 20 * z^start * ( z^count - 1 ) / 3 :: Rational
   z = 23/20
+
+cpsToChainReserve6 :: Double -> Double
+cpsToChainReserve6 cps = 4 * floor6 (m*cps)
+  where
+  m = 6 * 60 * 60
+
+floor6 :: Double -> Double
+floor6 x = last (6 : zs)
+  where
+  zs = takeWhile (<= x) $ map (2/3*) $ iterate (*10) 100
+--var maxPayout=Math.min(Game.cookiesPs*60*60*6,Game.cookies*0.25)*mult;
