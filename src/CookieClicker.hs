@@ -170,13 +170,12 @@ payoff inp st =
   reserve = 6000 * cps
 
   custom =
-    [ finishA 300 WizardTower
-    , finishA 500 Cursor
+    [ finishA 500 Cursor
     , finishA 300 Shipment
     , finishA 300 AlchemyLab
-    , finish True 250 Portal  "Maddening chants"
+    , finishA 300 Portal
     , finish True 250 TimeMachine "Cookietopian moments of maybe"
-    , finish False 250 Antimatter "Some other super-tiny fundamental particle? Probably?" 
+    , finish True 250 Antimatter "Some other super-tiny fundamental particle? Probably?" 
     , finish True 200 Prism "Lux sanctorum"
     ]
 
@@ -286,8 +285,7 @@ data SuffixLength = LongSuffix | ShortSuffix
 
 prettyNumber :: SuffixLength -> Double -> String
 prettyNumber s n
-  | n < 1e6 = let (w,p) = properFraction n
-              in numberWithSeparators w ++ drop 1 (showFFloat (Just 1) p "")
+  | n < 1e6   = numberWithSeparators (showFFloat (Just 1) n "")
   | n < 1e9   = showFFloat (Just 3) (n / 1e6 ) (suffix " M" " million")
   | n < 1e12  = showFFloat (Just 3) (n / 1e9 ) (suffix " B" " billion")
   | n < 1e15  = showFFloat (Just 3) (n / 1e12) (suffix " T" " trillion")
@@ -302,24 +300,26 @@ prettyNumber s n
   | n < 1e42  = showFFloat (Just 3) (n / 1e39) (suffix " DoD" " duodecillion")
   | n < 1e45  = showFFloat (Just 3) (n / 1e42) (suffix " TrD" " tredecillion")
   | n < 1e48  = showFFloat (Just 3) (n / 1e45) (suffix " QaD" " quattuordecillion")
-  | otherwise = let (w,p) = properFraction (n / 1e48)
-                in numberWithSeparators w
-                ++ drop 1 (showFFloat (Just 3) p (suffix " QiD" " quindecillion"))
+  | otherwise = numberWithSeparators
+              $ showFFloat (Just 3) (n / 1e48) (suffix " QiD" " quindecillion")
   where
   suffix short long =
     case s of
       ShortSuffix -> short
       LongSuffix  -> long
 
-numberWithSeparators :: Integer -> String
-numberWithSeparators
-  = reverse
-  . intercalate ","
-  . takeWhile (not . null)
-  . map     (take 3)
-  . iterate (drop 3)
-  . reverse
-  . show
+numberWithSeparators :: String -> String
+numberWithSeparators str
+  = case break ('.'==) str of
+      (a,b) -> commas a ++ b
+  where
+  commas
+    = reverse
+    . intercalate ","
+    . takeWhile (not . null)
+    . map     (take 3)
+    . iterate (drop 3)
+    . reverse
 
 prettyTime :: Integer -> String
 prettyTime t = part y 'y' (y  > 0)

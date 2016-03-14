@@ -48,7 +48,7 @@ main = do
     [ cellText := payoffName row ]
 
   cellLayoutSetAttributes metricColumn metricCell model $ \row ->
-    [ cellText := show (floor (payoffMetric row)) ]
+    [ cellText := prettyNumber ShortSuffix (logBase 2 (payoffMetric row)) ]
 
   cellLayoutSetAttributes saveupColumn saveupCell model $ \row ->
     [ cellText := show (floor (payoffSaveup row)) ]
