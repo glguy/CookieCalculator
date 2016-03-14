@@ -10,9 +10,13 @@ import Building
 import SaveFormat
 import SourceData
 
+import Control.Monad (guard)
 import Data.Text (Text)
 import Data.Map (Map)
 import qualified Data.Map.Strict as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
+import Data.Maybe
 import Control.Lens hiding (ReifiedPrism(..), prism)
 import Data.List
 import Data.Time
@@ -161,7 +165,7 @@ payoff :: GameInput -> GameState -> [PayoffRow]
 payoff inp st =
      [ PayoffRow act (cost / delta) (cost / (7*900*cps)) (cost + reserve)
                         (delta / cps * 100)
-     | (act, cost, f) <- buyBuilding ++ buyUpgrades ++ custom
+     | (act, cost, f) <- buyBuilding ++ buyUpgrades ++ buyGrandmas ++ buyUpgradeRequirements ++ buyAchievements
      , let delta = effect f
      , delta > 0
      ]
@@ -169,22 +173,16 @@ payoff inp st =
   where
   reserve = 6000 * cps
 
-  custom =
-    [ finishA 500 Cursor
-    , finishA 300 Shipment
-    , finishA 300 AlchemyLab
-    , finishA 300 Portal
-    , finish True 250 TimeMachine "Cookietopian moments of maybe"
-    , finish True 250 Antimatter "Some other super-tiny fundamental particle? Probably?" 
-    , finish True 200 Prism "Lux sanctorum"
-    ]
-
   buyBuilding =
     [( "+1 " ++ show x
-     , costs ^?! ix x
-     , buildingOwned x +~ 1
+     , cost
+     , buildingOwned x .~ new
      )
-    | x <- [Cursor ..] ]
+    | (x, cost) <- Map.toList costs
+    , let new = view (buildingOwned x) inp + 1
+    -- only offer this if we aren't also 1 buy from an achievement
+    , new /= maybe 0 fst (Map.lookup x nextAchievements)
+    ]
 
   buyUpgrades =
      [ ( views upgradeName Text.unpack u
@@ -194,32 +192,75 @@ payoff inp st =
      | u <- view upgradesAvailable inp
      ]
 
+  buyGrandmas =
+     [ finish 15 b up
+     | view (buildingOwned Grandma) inp >= 1
+     , (b, up) <-
+        [ (Farm, "Farmer grandmas")
+        , (Mine, "Miner grandmas")
+        , (Factory, "Worker grandmas")
+        , (Bank, "Banker grandmas")
+        , (Temple, "Priestess grandmas")
+        , (WizardTower, "Witch grandmas")
+        , (Shipment, "Cosmic grandmas")
+        , (AlchemyLab, "Transmuted grandmas")
+        , (Portal, "Altered grandmas")
+        , (TimeMachine, "Grandmas' grandmas")
+        , (Antimatter, "Antigrandmas")
+        , (Prism, "Rainbow grandmas")
+        ]
+     , view (buildingOwned b) inp < 15
+     ]
+
+  achievements = Set.fromList (map (view achievementName) (view achievementsEarned inp))
   costs = buildingCosts inp st
   cps   = computeCps inp st
 
   effect f = computeCps (f inp) (computeGameState (f inp)) - cps
 
-  finish :: Bool -> Int -> Building -> Text -> (String, Double, GameInput -> GameInput)
-  finish a n b up = ("+" ++ show n' ++ " " ++ show b, cost, f)
+  buyUpgradeRequirements =
+     [ finish count b up
+     | (b, Just (count, up)) <- Map.toList $
+        Map.intersectionWith nextUpgrade (view buildingsOwned inp) upgradeRequirements
+     ]
+
+  nextAchievements = Map.mapMaybe candidate $
+     Map.intersectionWith nextUpgrade (view buildingsOwned inp) buildingAchievements
     where
+    candidate m = do
+      (count, aName) <- m
+      guard (aName `Set.notMember` achievements)
+      let a = Map.findWithDefault (error ("Unknown achievement: " ++ Text.unpack aName))
+               aName
+               achievementByName
+      return (count, a)
+
+  buyAchievements = [ finishA count b a | (b, (count, a)) <- Map.toList nextAchievements ]
+
+  nextUpgrade now options = listToMaybe
+     [ (target, up) | (target, up) <- options, target > now ]
+
+  finish :: Int -> Building -> Text -> (String, Double, GameInput -> GameInput)
+  finish n b up = ("+" ++ show n' ++ " " ++ show b ++ " + " ++ Text.unpack up, cost, f)
+    where
+    fa = case Map.lookup b nextAchievements of
+      Just (count, a) | count <= n -> achievementsEarned %~ cons a
+      _ -> id
     u = Map.findWithDefault (error ("Unknown upgrade: " ++ Text.unpack up))
                up
                upgradeByName
     n' = n - view (buildingOwned b) inp
     cost = view upgradeCost u + sum (take (fromIntegral n') (iterate (*1.15) (costs ^?! ix b)))
     f = (upgradesBought %~ cons u)
-      . (achievementsEarned %~ cons (fakeAchievement a))
+      . fa
       . (buildingOwned b .~ n)
 
-  finishA n b = ("+" ++ show n' ++ " " ++ show b, cost, f)
+  finishA n b a = ("+" ++ show n' ++ " " ++ show b, cost, f)
     where
     n' = n - view (buildingOwned b) inp
     cost = sum (take (fromIntegral n') (iterate (*1.15) (costs ^?! ix b)))
-    f = (achievementsEarned %~ cons (fakeAchievement True))
+    f = (achievementsEarned %~ cons a)
       . (buildingOwned b .~ n)
-
-  fakeAchievement True  = Achievement "fake" "normal"
-  fakeAchievement False = Achievement "fake" "shadow"
 
 computeMultiplier :: GameInput -> GameState -> Double
 computeMultiplier inp st
@@ -340,6 +381,277 @@ gpoc :: Building -> Double -> Effect
 gpoc b bonus = \inp ->
   let gmas = views (buildingOwned b) fromIntegral inp
   in buildingBase Grandma +~ bonus * gmas
+
+upgradeRequirements :: Map.Map Building [(Int, Text)]
+upgradeRequirements = Map.fromList
+   [ (Cursor,
+      [ (1, "Reinforced index finger")
+      , (1, "Carpal tunnel prevention cream")
+      , (10, "Ambidextrous")
+      , (20, "Thousand fingers")
+      , (40, "Million fingers")
+      , (80, "Billion fingers")
+      , (120, "Trillion fingers")
+      , (160, "Quadrillion fingers")
+      , (200, "Quintillion fingers")
+      , (240, "Sextillion fingers")
+      , (280, "Septillion fingers")
+      , (320, "Octillion fingers")
+      ])
+   , (Grandma,
+      [ (1, "Forwards from grandma")
+      , (5, "Steel-plated rolling pins")
+      , (25, "Lubricated dentures")
+      , (50, "Prune juice")
+      , (100, "Double-thick glasses")
+      , (150, "Aging agents")
+      , (200, "Xtreme walkers")
+      , (250, "The Unbridling")
+      ])
+   , (Farm,
+      [ (1, "Cheap hoes")
+      , (5, "Fertilizer")
+      , (25, "Cookie trees")
+      , (50, "Genetically-modified cookies")
+      , (100, "Gingerbread scarecrows")
+      , (150, "Pulsar sprinklers")
+      , (200, "Fudge fungus")
+      , (250, "Wheat triffids")
+      ])
+   , (Mine,
+      [ (1, "Sugar gas")
+      , (5, "Megadrill")
+      , (25, "Ultradrill")
+      , (50, "Ultimadrill")
+      , (100, "H-bomb mining")
+      , (150, "Coreforge")
+      , (200, "Planetsplitters")
+      , (250, "Canola oil wells")
+      ])
+   , (Factory,
+      [ (1, "Sturdier conveyor belts")
+      , (5, "Child labor")
+      , (25, "Sweatshop")
+      , (50, "Radium reactors")
+      , (100, "Recombobulators")
+      , (150, "Deep-bake process")
+      , (200, "Cyborg workforce")
+      , (250, "78-hour days")
+      ])
+   , (Bank,
+      [ (1, "Taller tellers")
+      , (5, "Scissor-resistant credit cards")
+      , (25, "Acid-proof vaults")
+      , (50, "Chocolate coins")
+      , (100, "Exponential interest rates")
+      , (150, "Financial zen")
+      , (200, "Way of the wallet")
+      , (250, "The stuff rationale")
+      ])
+   , (Temple,
+      [ (1, "Golden idols")
+      , (5, "Sacrifices")
+      , (25, "Delicious blessing")
+      , (50, "Sun festival")
+      , (100, "Enlarged pantheon")
+      , (150, "Great Baker in the sky")
+      , (200, "Creation myth")
+      , (250, "Theocracy")
+      ])
+   , (WizardTower,
+      [ (1, "Pointier hats")
+      , (5, "Beardlier beards")
+      , (25, "Ancient grimoires")
+      , (50, "Kitchen curses")
+      , (100, "School of sorcery")
+      , (150, "Dark formulas")
+      , (200, "Cookiemancy")
+      , (250, "Rabbit trick")
+      ])
+   , (Shipment,
+      [ (1, "Vanilla nebulae")
+      , (5, "Wormholes")
+      , (25, "Frequent flyer")
+      , (50, "Warp drive")
+      , (100, "Chocolate monoliths")
+      , (150, "Generation ship")
+      , (200, "Dyson sphere")
+      , (250, "The final frontier")
+      ])
+   , (AlchemyLab,
+      [ (1, "Antimony")
+      , (5, "Essence of dough")
+      , (25, "True chocolate")
+      , (50, "Ambrosia")
+      , (100, "Aqua crustulae")
+      , (150, "Origin crucible")
+      , (200, "Theory of atomic fluidity")
+      , (250, "Beige goo")
+      ])
+   , (Portal,
+      [ (1, "Ancient tablet")
+      , (5, "Insane oatling workers")
+      , (25, "Soul bond")
+      , (50, "Sanity dance")
+      , (100, "Brane transplant")
+      , (150, "Deity-sized portals")
+      , (200, "End of times back-up plan")
+      , (250, "Maddening chants")
+      ])
+   , (TimeMachine,
+      [ (1, "Flux capacitors")
+      , (5, "Time paradox resolver")
+      , (25, "Quantum conundrum")
+      , (50, "Causality enforcer")
+      , (100, "Yestermorrow comparators")
+      , (150, "Far future enactment")
+      , (200, "Great loop hypothesis")
+      , (250, "Cookietopian moments of maybe")
+      ])
+   , (Antimatter,
+      [ (1, "Sugar bosons")
+      , (5, "String theory")
+      , (25, "Large macaron collider")
+      , (50, "Big bang bake")
+      , (100, "Reverse cyclotrons")
+      , (150, "Nanocosmics")
+      , (200, "The Pulse")
+      , (250, "Some other super-tiny fundamental particle? Probably?")
+      ])
+   , (Prism,
+      [ (1, "Gem polish")
+      , (5, "9th color")
+      , (25, "Chocolate light")
+      , (50, "Grainbow")
+      , (100, "Pure cosmic light")
+      , (150, "Glow-in-the-dark")
+      , (200, "Lux sanctorum")
+      , (250, "Reverse shadows")
+      ])
+   ]
+
+buildingAchievements :: Map Building [(Int, Text)]
+buildingAchievements = Map.fromList
+   [ (Cursor,
+      [ (1, "Click")
+      , (2, "Double-click")
+      , (50, "Mouse wheel")
+      , (100, "Of Mice and Men")
+      , (200, "The Digital")
+      , (300, "Extreme polydactyly")
+      , (400, "Dr. T")
+      , (500, "Thumbs, phalanges, metacarpals")
+      ])
+   , (Grandma,
+      [ (1, "Grandma's cookies")
+      , (50, "Sloppy kisses")
+      , (100, "Retirement home")
+      , (150, "Friend of the ancients")
+      , (200, "Ruler of the ancients")
+      , (250, "The old never bothered me anyway")
+      , (300, "The agemaster")
+      , (350, "To oldly go")
+      ])
+   , (Farm,
+      [ (1, "My first farm")
+      , (50, "Reap what you sow")
+      , (100, "Farm ill")
+      , (150, "Perfected agriculture")
+      , (200, "Homegrown")
+      , (250, "Gardener extraordinaire")
+      , (300, "Seedy business")
+      ])
+   , (Factory,
+      [ (1, "Production chain")
+      , (50, "Industrial revolution")
+      , (100, "Global warming")
+      , (150, "Ultimate automation")
+      , (200, "Technocracy")
+      , (250, "Rise of the machines")
+      , (300, "Modern times")
+      ])
+   , (Bank,
+      [ (1, "Pretty penny")
+      , (50, "Fit the bill")
+      , (100, "A loan in the dark")
+      , (150, "Need for greed")
+      , (200, "It's the economy, stupid")
+      , (250, "Acquire currency")
+      , (300, "The nerve of war")
+      ])
+   , (Temple,
+      [ (1, "Your time to shrine")
+      , (50, "Shady sect")
+      , (100, "New-age cult")
+      , (150, "Organized religion")
+      , (200, "Fanaticism")
+      , (250, "Zealotry")
+      , (300, "Wololo")
+      ])
+   , (WizardTower,
+      [ (1, "Bewitched")
+      , (50, "The sorcerer's apprentice")
+      , (100, "Charms and enchantments")
+      , (150, "Curses and maledictions")
+      , (200, "Magic kingdom")
+      , (250, "The wizarding world")
+      , (300, "And now for my next trick, I'll need a volunteer from the audience")
+      ])
+   , (Shipment,
+      [ (1, "Expedition")
+      , (50, "Galactic highway")
+      , (100, "Far far away")
+      , (150, "Type II civilization")
+      , (200, "We come in peace")
+      , (250, "Parsec-masher")
+      , (300, "It's not delivery")
+      ])
+   , (AlchemyLab,
+      [ (1, "Transmutation")
+      , (50, "Transmogrification")
+      , (100, "Gold member")
+      , (150, "Gild wars")
+      , (200, "The secrets of the universe")
+      , (250, "The work of a lifetime")
+      , (300, "Gold, Jerry! Gold!")
+      ])
+   , (Portal,
+      [ (1, "A whole new world")
+      , (50, "Now you're thinking")
+      , (100, "Dimensional shift")
+      , (150, "Brain-split")
+      , (200, "Realm of the Mad God")
+      , (250, "A place lost in time")
+      , (300, "Forbidden zone")
+      ])
+   , (TimeMachine,
+      [ (1, "Time warp")
+      , (50, "Alternate timeline")
+      , (100, "Rewriting history")
+      , (150, "Time duke")
+      , (200, "Forever and ever")
+      , (250, "Heat death")
+      , (300, "cookie clicker forever and forever a hundred years cookie clicker, all day long forever, forever a hundred times, over and over cookie clicker adventures dot com")
+      ])
+   , (Antimatter,
+      [ (1, "Antibatter")
+      , (50, "Quirky quarks")
+      , (100, "It does matter!")
+      , (150, "Molecular maestro")
+      , (200, "Walk the planck")
+      , (250, "Microcosm")
+      , (300, "Scientists baffled everywhere")
+      ])
+   , (Prism,
+      [ (1, "Lone photon")
+      , (50, "Dazzling glimmer")
+      , (100, "Blinding flash")
+      , (150, "Unending glow")
+      , (200, "Rise and shine")
+      , (250, "Bright future")
+      , (300, "Harmony of the spheres")
+      ])
+   ]
 
 upgradeEffects :: Map Text Effect
 upgradeEffects = Map.fromList $

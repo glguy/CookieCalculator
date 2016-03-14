@@ -29,6 +29,9 @@ achievementById =
        lift (xs :: [Achievement])
    )
 
+achievementByName :: Map Text Achievement
+achievementByName = Map.fromList [ (view achievementName a, a) | a <- achievementById ]
+
 dragonAuras :: [Text]
 dragonAuras =
   [ "No aura", "Breath of Milk", "Dragon Cursor", "Elder Battalion",
