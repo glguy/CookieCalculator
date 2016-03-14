@@ -56,6 +56,10 @@ main = do
   reserve7Output <- labelNew_ "7x Lucky!"
   reserveCOutput <- labelNew_ "Chain"
 
+  jackpotLabel   <- labelNew (Just "Jackpot (7/E/D):")
+  jackpot7Output  <- labelNew_ "Frenzy + Lucky! gold cookies"
+  jackpotEOutput <- labelNew_ "Elder frenzy"
+  jackpotDOutput <- labelNew_ "Elder frenzy + Reindeer"
 
   ------------------------------------------------------------
 
@@ -79,17 +83,24 @@ main = do
                ecps    = computeWrinklerEffect i st * cps
                munched = L.view cookiesMunched i
                banked  = L.view cookiesBanked i
-           set cpsOutput   [labelText := prettyNumber ShortSuffix cps]
-           set wcpsOutput  [labelText := prettyNumber ShortSuffix (ecps-cps)]
-           set tcpsOutput  [labelText := prettyNumber ShortSuffix ecps]
 
-           set bankOutput  [labelText := prettyNumber ShortSuffix (banked)]
-           set munchOutput [labelText := prettyNumber ShortSuffix munched]
-           set totalOutput [labelText := prettyNumber ShortSuffix (banked + munched)]
+           let setOut l n = set l [labelText := prettyNumber ShortSuffix n]
 
-           set reserveOutput [labelText := prettyNumber ShortSuffix (6000 * cps)]
-           set reserve7Output [labelText := prettyNumber ShortSuffix (7 * 6000 * cps)]
-           set reserveCOutput [labelText := prettyNumber ShortSuffix (cpsToChainReserve6 cps)]
+           setOut cpsOutput      $ cps
+           setOut wcpsOutput     $ ecps-cps
+           setOut tcpsOutput     $ ecps
+
+           setOut bankOutput     $ banked
+           setOut munchOutput    $ munched
+           setOut totalOutput    $ banked + munched
+
+           setOut reserveOutput  $ 6000 * cps
+           setOut reserve7Output $ 7 * 6000 * cps
+           setOut reserveCOutput $ cpsToChainReserve6 cps
+
+           setOut jackpot7Output $ 7 * 900 * cps
+           setOut jackpotEOutput $ ecps * 666 * ceil' (6 * 2 * 1.1) -- XXX: generalize
+           setOut jackpotDOutput $ ecps * 666 * ceil' (6 * 2 * 1.1) + 666 * 60 * cps
 
   -- LAYOUT GRID ---------------------------------------------
 
@@ -110,12 +121,17 @@ main = do
   gridAttach layout wcpsOutput 2 2 1 1
   gridAttach layout tcpsOutput 3 2 1 1
 
-  gridAttach layout reserveLabel  0 3 1 1
-  gridAttach layout reserveOutput 1 3 1 1
+  gridAttach layout reserveLabel   0 3 1 1
+  gridAttach layout reserveOutput  1 3 1 1
   gridAttach layout reserve7Output 2 3 1 1
   gridAttach layout reserveCOutput 3 3 1 1
 
-  gridAttach layout button    0 4 4 1
+  gridAttach layout jackpotLabel   0 4 1 1
+  gridAttach layout jackpot7Output 1 4 1 1
+  gridAttach layout jackpotEOutput 2 4 1 1
+  gridAttach layout jackpotDOutput 3 4 1 1
+
+  gridAttach layout button    0 5 4 1
 
   -- WINDOW --------------------------------------------------
 
@@ -133,5 +149,8 @@ main = do
 
 labelNew_ tooltip =
   do l <- labelNew (Nothing :: Maybe String)
-     set l [ widgetTooltipText := Just tooltip ]
+     set l [ widgetTooltipText := Just tooltip
+           , miscXalign := 1
+           , labelSingleLineMode := True
+           ]
      return l
