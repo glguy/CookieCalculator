@@ -144,7 +144,7 @@ buildingCosts :: GameInput -> GameState -> Map Building Double
 buildingCosts inp st
   = fmap (* view buildingCostMultiplier st)
   $ leftJoinWith'
-      (\base n -> base * 1.15 ** fromIntegral n)
+      (\base n -> base * 1.15 ^ n)
       initialCosts
       owned'
   where
@@ -250,7 +250,7 @@ payoff inp st =
                up
                upgradeByName
     n' = n - view (buildingOwned b) inp
-    cost = view upgradeCost u + sum (take (fromIntegral n') (iterate (*1.15) (costs ^?! ix b)))
+    cost = view upgradeCost u + buyMore n' (costs ^?! ix b)
     f = (upgradesBought %~ cons u)
       . fa
       . (buildingOwned b .~ n)
@@ -258,9 +258,12 @@ payoff inp st =
   finishA n b a = ("+" ++ show n' ++ " " ++ show b, cost, f)
     where
     n' = n - view (buildingOwned b) inp
-    cost = sum (take (fromIntegral n') (iterate (*1.15) (costs ^?! ix b)))
+    cost = buyMore n' (costs ^?! ix b)
     f = (achievementsEarned %~ cons a)
       . (buildingOwned b .~ n)
+
+buyMore :: Int -> Double -> Double
+buyMore count nextPrice = nextPrice * (1 - 1.15 ^ count) / (1 - 1.15)
 
 computeMultiplier :: GameInput -> GameState -> Double
 computeMultiplier inp st
