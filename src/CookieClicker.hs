@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# Language TemplateHaskell #-}
 {-# Language ForeignFunctionInterface #-}
 {-# Language RankNTypes #-}
 

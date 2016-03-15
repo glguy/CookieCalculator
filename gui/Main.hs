@@ -18,11 +18,6 @@ import           Data.Time
 import           Graphics.UI.Gtk
 import           Graphics.UI.Gtk.Builder
 
-
-
-noString :: Maybe String
-noString = Nothing
-
 data MyGtkApp = MyGtkApp
   { cpsOutput, wcpsOutput, tcpsOutput
   , bankOutput, munchOutput, totalOutput
@@ -40,26 +35,28 @@ getMyGtkApp =
   do builder <- builderNew
      builderAddFromString builder $$(embedString "gui/MainWindow.glade")
 
-     payoffTable    <- builderGetObject builder castToTreeView "payoffTable"
+     let load name = builderGetObject builder cast name
 
-     cpsOutput      <- builderGetObject builder castToLabel "cpsOutput"
-     wcpsOutput     <- builderGetObject builder castToLabel "wcpsOutput"
-     tcpsOutput     <- builderGetObject builder castToLabel "tcpsOutput"
+     payoffTable    <- load "payoffTable"
 
-     bankOutput     <- builderGetObject builder castToLabel "bankOutput"
-     munchOutput    <- builderGetObject builder castToLabel "munchOutput"
-     totalOutput    <- builderGetObject builder castToLabel "bankMunchOutput"
+     cpsOutput      <- load "cpsOutput"
+     wcpsOutput     <- load "wcpsOutput"
+     tcpsOutput     <- load "tcpsOutput"
 
-     reserveOutput  <- builderGetObject builder castToLabel "reserveOutput"
-     reserve7Output <- builderGetObject builder castToLabel "reserve7Output"
-     reserveCOutput <- builderGetObject builder castToLabel "reserveCOutput"
+     bankOutput     <- load "bankOutput"
+     munchOutput    <- load "munchOutput"
+     totalOutput    <- load "bankMunchOutput"
 
-     jackpot7Output <- builderGetObject builder castToLabel "jackpot7Output"
-     jackpotEOutput <- builderGetObject builder castToLabel "jackpotEOutput"
-     jackpotDOutput <- builderGetObject builder castToLabel "jackpotDOutput"
+     reserveOutput  <- load "reserveOutput"
+     reserve7Output <- load "reserve7Output"
+     reserveCOutput <- load "reserveCOutput"
 
-     loadButton     <- builderGetObject builder castToButton "loadButton"
-     mainWindow     <- builderGetObject builder castToWindow "mainWindow"
+     jackpot7Output <- load "jackpot7Output"
+     jackpotEOutput <- load "jackpotEOutput"
+     jackpotDOutput <- load "jackpotDOutput"
+
+     loadButton     <- load "loadButton"
+     mainWindow     <- load "mainWindow"
 
      payoffModel    <- listStoreNew []
      set payoffTable [ treeViewModel := payoffModel ]
@@ -134,20 +131,26 @@ loadFormFromSave MyGtkApp{..} sav =
          munched = L.view cookiesMunched i
          banked  = L.view cookiesBanked i
 
-     let setOut l n = set l [labelText := prettyNumber ShortSuffix n]
+         setOut l n = set l [labelText := prettyNumber ShortSuffix n]
 
-     setOut cpsOutput      $ cps
-     setOut wcpsOutput     $ ecps-cps
-     setOut tcpsOutput     $ ecps
+     setOut cpsOutput      cps
+     setOut wcpsOutput     (ecps-cps)
+     setOut tcpsOutput     ecps
 
-     setOut bankOutput     $ banked
-     setOut munchOutput    $ munched
-     setOut totalOutput    $ banked + munched
+     setOut bankOutput     banked
+     setOut munchOutput    munched
+     setOut totalOutput    (banked + munched)
 
-     setOut reserveOutput  $ 6000 * cps
-     setOut reserve7Output $ 7 * 6000 * cps
-     setOut reserveCOutput $ cpsToChainReserve6 cps
+     setOut reserveOutput  (6000 * cps)
+     setOut reserve7Output (7 * 6000 * cps)
+     setOut reserveCOutput (cpsToChainReserve6 cps)
 
-     setOut jackpot7Output $ 7 * 900 * cps
-     setOut jackpotEOutput $ ecps * 666 * ceil' (6 * 2 * 1.1) -- XXX: generalize
-     setOut jackpotDOutput $ ecps * 666 * ceil' (6 * 2 * 1.1) + 666 * 60 * cps
+     setOut jackpot7Output (7 * 900 * cps)
+     setOut jackpotEOutput (ecps * 666 * ceil' (6 * 2 * 1.1)) -- XXX: generalize
+     setOut jackpotDOutput (ecps * 666 * ceil' (6 * 2 * 1.1) + 666 * 60 * cps)
+
+class GObjectClass a => GObjectCast a where cast :: GObject -> a
+instance GObjectCast Window   where cast = castToWindow
+instance GObjectCast Label    where cast = castToLabel
+instance GObjectCast Button   where cast = castToButton
+instance GObjectCast TreeView where cast = castToTreeView
