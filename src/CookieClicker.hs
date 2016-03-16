@@ -156,17 +156,20 @@ buildingCosts inp st
 
 data PayoffRow = PayoffRow
   { payoffName :: String
-  , payoffMetric :: Double
-  , payoffSaveup :: Double
-  , payoffBuyAt :: Double
-  , payoffDelta :: Double
+  , payoffCost :: !Double
+  , payoffDelta :: !Double
   }
 
 payoff :: GameInput -> GameState -> [PayoffRow]
 payoff inp st =
-     [ PayoffRow act (cost / delta) (cost / (7*900*cps)) (cost + reserve)
-                        (delta / cps * 100)
-     | (act, cost, f) <- buyBuilding ++ buyUpgrades ++ buyGrandmas ++ buyUpgradeRequirements ++ buyAchievements
+     [ PayoffRow
+         { payoffName = act
+         , payoffCost = cost
+         , payoffDelta = delta / cps
+         }
+     | (act, cost, f) <- buyBuilding ++ buyUpgrades
+                      ++ buyGrandmas ++ buyUpgradeRequirements
+                      ++ buyAchievements
      , let delta = effect f
      , delta > 0
      ]

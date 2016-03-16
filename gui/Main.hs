@@ -79,17 +79,19 @@ main =
 
      mainGUI
 
+computeMetric :: PayoffRow -> Double
+computeMetric PayoffRow{..} = logBase 2 (payoffCost * payoffDelta)
+
 installColumns :: MyGtkApp -> IO ()
 installColumns app =
 
   do nameCell   <- addColumn app "Name"   payoffName
-     metricCell <- addColumn app "Metric" (prettyNumber ShortSuffix . logBase 2 . payoffMetric)
-     saveupCell <- addColumn app "Saveup" (prettyNumber ShortSuffix . payoffSaveup )
-     buyatCell  <- addColumn app "Buy at" (prettyNumber ShortSuffix . payoffBuyAt)
-     deltaCell  <- addColumn app "Delta"  (prettyNumber ShortSuffix . payoffDelta)
+     metricCell <- addColumn app "Metric" (prettyNumber ShortSuffix . computeMetric)
+     buyatCell  <- addColumn app "Cost"   (prettyNumber ShortSuffix . payoffCost)
+     deltaCell  <- addColumn app "Delta"  (prettyNumber ShortSuffix . (*100) . payoffDelta)
 
      let attrs = [ cellXAlign := 1, cellTextFamily := "Monospace", cellTextSize := 18 ]
-     traverse_ (`set` attrs) [ metricCell, saveupCell, buyatCell, deltaCell ]
+     traverse_ (`set` attrs) [ metricCell, buyatCell, deltaCell ]
 
 addColumn :: MyGtkApp -> String -> (PayoffRow -> String) -> IO CellRendererText
 addColumn MyGtkApp{payoffTable, payoffModel} name render =
@@ -124,7 +126,7 @@ loadFormFromSave MyGtkApp{..} sav =
 
      let i    = saveFileToGameInput now sav
          st   = computeGameState i
-         rows = sortBy (comparing payoffMetric) (payoff i st)
+         rows = sortBy (comparing computeMetric) (payoff i st)
 
      listStoreClear payoffModel
      traverse_ (listStoreAppend payoffModel) rows

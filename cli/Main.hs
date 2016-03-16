@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 module Main where
 
 import CookieClicker
@@ -12,12 +13,11 @@ import System.FilePath
 import Control.Concurrent (threadDelay)
 import Control.Monad (forever)
 
-payoffRowToSS row =
-  [ StringV (payoffName row)
-  , NumberV (toRational (payoffMetric row))
-  , NumberV (toRational (payoffSaveup row))
-  , StringV (prettyNumber ShortSuffix (payoffBuyAt row))
-  , StringV (prettyNumber ShortSuffix (payoffDelta row))
+payoffRowToSS PayoffRow{..} =
+  [ StringV payoffName
+  , NumberV (toRational (payoffCost / payoffDelta))
+  , StringV (prettyNumber ShortSuffix payoffCost)
+  , StringV (prettyNumber ShortSuffix payoffDelta)
   ]
 
 payoffSS input st =
@@ -25,11 +25,12 @@ payoffSS input st =
   $ sortSpreadsheet
   $ Spreadsheet [ Column "Action" StringT Nothing
                 , Column "Metric" (NumberT (Just 0)) (Just Descending)
-                , Column "Saveup" (NumberT (Just 1)) Nothing
-                , Column "Buy at" StringT Nothing
+                , Column "Cost" StringT Nothing
                 , Column "∆% C/s" StringT Nothing
                 ]
                 (payoffRowToSS <$> payoff input st)
+  where
+  cps = computeCps input st
 
 report :: GameInput -> IO ()
 report input =
