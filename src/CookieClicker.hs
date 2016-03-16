@@ -993,6 +993,10 @@ saveFileToGameInput now sav = GameInput
   , _cookiesBanked      = savCookies (savMain sav)
   , _dragonAura1        = dragonAuras !! savDragonAura (savMain sav)
   , _dragonAura2        = dragonAuras !! savDragonAura2 (savMain sav)
+
+  , _cookiesForfeit     = savCookiesReset  (savMain sav)
+  , _cookiesEarned      = savCookiesEarned (savMain sav)
+  , _heavenlyChips      = savHeavenlyChips (savMain sav)
   }
   where
   inShop (unlocked,bought) = unlocked && not bought
@@ -1031,3 +1035,6 @@ floor6 x = last (6 : zs)
   where
   zs = takeWhile (<= x) $ map (2/3*) $ iterate (*10) 100
 --var maxPayout=Math.min(Game.cookiesPs*60*60*6,Game.cookies*0.25)*mult;
+
+cookiesToPrestige :: Double -> Double
+cookiesToPrestige c = (c / 1e12) ** (1/3)

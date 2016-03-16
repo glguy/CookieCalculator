@@ -25,6 +25,10 @@ data GameInput = GameInput
   , _cookiesBanked      :: !Double
   , _dragonAura1        :: !Text
   , _dragonAura2        :: !Text
+
+  , _cookiesForfeit     :: !Double
+  , _cookiesEarned      :: !Double
+  , _heavenlyChips      :: !Double
   }
   deriving (Read, Show)
 

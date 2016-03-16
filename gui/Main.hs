@@ -22,7 +22,8 @@ data MyGtkApp = MyGtkApp
   { cpsOutput, wcpsOutput, tcpsOutput
   , bankOutput, munchOutput, totalOutput
   , reserveOutput, reserve7Output, reserveCOutput
-  , jackpot7Output, jackpotEOutput, jackpotDOutput :: Label
+  , jackpot7Output, jackpotEOutput, jackpotDOutput
+  , effHChipsOutput :: Label
 
   , payoffModel :: ListStore PayoffRow
   , payoffTable :: TreeView
@@ -54,6 +55,8 @@ getMyGtkApp =
      jackpot7Output <- load "jackpot7Output"
      jackpotEOutput <- load "jackpotEOutput"
      jackpotDOutput <- load "jackpotDOutput"
+
+     effHChipsOutput <- load "effHChipsOutput"
 
      loadButton     <- load "loadButton"
      mainWindow     <- load "mainWindow"
@@ -128,7 +131,7 @@ loadFormFromSave MyGtkApp{..} sav =
 
      let cps     = computeCps i st
          ecps    = computeWrinklerEffect i st * cps
-         munched = L.view cookiesMunched i
+         munched = L.view cookiesMunched i * L.view wrinklerMultiplier st
          banked  = L.view cookiesBanked i
 
          setOut l n = set l [labelText := prettyNumber ShortSuffix n]
@@ -148,6 +151,10 @@ loadFormFromSave MyGtkApp{..} sav =
      setOut jackpot7Output (7 * 900 * cps)
      setOut jackpotEOutput (ecps * 666 * ceil' (6 * 2 * 1.1)) -- XXX: generalize
      setOut jackpotDOutput (ecps * 666 * ceil' (6 * 2 * 1.1) + 666 * 60 * cps)
+
+     setOut effHChipsOutput $ cookiesToPrestige (L.view cookiesEarned i + L.view cookiesForfeit i + munched)
+                            - L.view prestigeLevel i
+                            + L.view heavenlyChips i
 
 class GObjectClass a => GObjectCast a where cast :: GObject -> a
 instance GObjectCast Window   where cast = castToWindow
