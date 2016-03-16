@@ -239,7 +239,10 @@ payoff inp st =
   buyAchievements = [ finishA count b a | (b, (count, a)) <- Map.toList nextAchievements ]
 
   nextUpgrade now options = listToMaybe
-     [ (target, up) | (target, up) <- options, target > now ]
+     [ (target, up)
+         | (target, up) <- options
+         , target > now
+         , notElemOf (upgradesBought . folded . upgradeName) up inp ]
 
   finish :: Int -> Building -> Text -> (String, Double, GameInput -> GameInput)
   finish n b up = ("+" ++ show n' ++ " " ++ show b ++ " + " ++ Text.unpack up, cost, f)
@@ -860,6 +863,9 @@ upgradeEffects = Map.fromList $
    , ("Earth Shatterer",  noEffect)
    , ("Dragonflight"    , noEffect) -- effect not modeled
    , ("Mind Over Matter", noEffect) -- 0.75 multiplier to random drops
+
+   , ("Divine discount", \_ -> buildingCostMultiplier *~ 0.99)
+   , ("Divine sales", \_ -> upgradeCostMultiplier *~ 0.99)
    ]
 
 -- XXX: Implement "Starlove"
