@@ -862,6 +862,7 @@ upgradeEffects = Map.fromList $
 
    -- Dragon Auras
    , ("No aura"         , noEffect)
+   , ("Breath of Milk", \_ -> milkMultiplier *~ 1.05 )
    , ("Radiant Appetite", cookieBonus 100)
    , ("Earth Shatterer",  noEffect)
    , ("Dragonflight"    , noEffect) -- effect not modeled
@@ -1047,3 +1048,8 @@ floor6 x = last (6 : zs)
 
 cookiesToPrestige :: Double -> Double
 cookiesToPrestige c = (c / 1e12) ** (1/3)
+
+sacrificeCost :: Int -> GameInput -> GameState -> Double
+sacrificeCost n i st = sum (buyMore n <$> buildingCosts i' st)
+  where
+  i' = over (buildingsOwned . mapped) (subtract n) i
