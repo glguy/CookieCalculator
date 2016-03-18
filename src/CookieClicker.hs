@@ -18,6 +18,7 @@ import qualified Data.Set as Set
 import Data.Maybe
 import Control.Lens hiding (ReifiedPrism(..), prism)
 import Data.List
+import Data.Ord
 import Data.Time
 import Foreign.C.Types (CDouble(..))
 import Numeric
@@ -158,19 +159,22 @@ data PayoffRow = PayoffRow
   { payoffName :: String
   , payoffCost :: !Double
   , payoffDelta :: !Double
+  , payoffInput :: !GameInput
   }
 
 payoff :: GameInput -> GameState -> [PayoffRow]
 payoff inp st =
      [ PayoffRow
-         { payoffName = act
-         , payoffCost = cost
+         { payoffName  = act
+         , payoffCost  = cost
          , payoffDelta = delta / cps
+         , payoffInput = i'
          }
      | (act, cost, f) <- buyBuilding ++ buyUpgrades
                       ++ buyGrandmas ++ buyUpgradeRequirements
                       ++ buyAchievements
-     , let delta = effect f
+     , let i' = f inp
+     , let delta = computeCps i' (computeGameState i') - cps
      , delta > 0
      ]
 
@@ -220,7 +224,6 @@ payoff inp st =
   costs = buildingCosts inp st
   cps   = computeCps inp st
 
-  effect f = computeCps (f inp) (computeGameState (f inp)) - cps
 
   buyUpgradeRequirements =
      [ finish count b up
@@ -1053,3 +1056,17 @@ sacrificeCost :: Int -> GameInput -> GameState -> Double
 sacrificeCost n i st = sum (buyMore n <$> buildingCosts i' st)
   where
   i' = over (buildingsOwned . mapped) (subtract n) i
+
+bigStep :: GameInput -> [String]
+bigStep i
+  | payoffCost best <= view cookiesBanked i = payoffName best
+                                            : bigStep (payoffInput best & cookiesBanked -~ payoffCost best)
+  | otherwise = []
+  where
+  best = minimumBy (comparing metric)
+       $ filter isBuyOne
+       $ payoff i (computeGameState i)
+
+  metric x = payoffCost x * payoffDelta x
+
+  isBuyOne x = "+1 " `isPrefixOf` payoffName x
