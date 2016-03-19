@@ -11,12 +11,14 @@ author:              Eric Mertens
 maintainer:          emertens@gmail.com
 copyright:           2016 Eric Mertens
 category:            Game
-build-type:          Simple
+build-type:          Custom
 cabal-version:       >=1.10
 
 library
+  install-includes:    CApi_stub.h
   hs-source-dirs:      src
   exposed-modules:     CookieClicker, SaveFormat, Building, GameInput, SourceData, AesonTH
+  other-modules:       CApi
   build-depends:       base              >=4.8 && <4.9,
                        aeson             >=0.9  && <0.12,
                        base64-bytestring >=1.0  && <1.1,
