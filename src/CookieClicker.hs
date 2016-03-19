@@ -11,6 +11,7 @@ import SourceData
 
 import Control.Monad (guard)
 import Data.Text (Text)
+import Debug.Trace
 import Data.Map (Map)
 import qualified Data.Map.Strict as Map
 import Data.Set (Set)
@@ -92,7 +93,7 @@ upgradeEffect = views upgradeName effectByName
 effectByName :: Text -> Effect
 effectByName n =
   Map.findWithDefault
-    (error ("Unknown effect: " ++ Text.unpack n))
+    (trace ("Unknown effect: " ++ Text.unpack n) noEffect)
     n
     upgradeEffects
 
@@ -830,6 +831,8 @@ upgradeEffects = Map.fromList $
    , ("Dominions"                  , noEffect)
    , ("Cherubim"                   , noEffect)
    , ("Asmodeus"                   , noEffect)
+   , ("Seraphim"                   , noEffect)
+   , ("Beelzebub"                  , noEffect)
    , ("Halo gloves"                , \_ -> mouseMultiplier *~ 1.1)
    , ("Unholy bait"                , noEffect)
    , ("Twin Gates of Transcendence", noEffect)
