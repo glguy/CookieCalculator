@@ -830,6 +830,8 @@ upgradeEffects = Map.fromList $
    , ("Dominions"                  , noEffect)
    , ("Cherubim"                   , noEffect)
    , ("Asmodeus"                   , noEffect)
+   , ("Seraphim"                   , noEffect)
+   , ("Beelzebub"                  , noEffect)
    , ("Halo gloves"                , \_ -> mouseMultiplier *~ 1.1)
    , ("Unholy bait"                , noEffect)
    , ("Twin Gates of Transcendence", noEffect)

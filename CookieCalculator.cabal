@@ -15,7 +15,6 @@ build-type:          Custom
 cabal-version:       >=1.10
 
 library
-  install-includes:    CApi_stub.h
   hs-source-dirs:      src
   exposed-modules:     CookieClicker, SaveFormat, Building, GameInput, SourceData, AesonTH
   other-modules:       CApi

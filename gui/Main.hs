@@ -84,7 +84,7 @@ main =
      mainGUI
 
 computeMetric :: PayoffRow -> Double
-computeMetric PayoffRow{..} = logBase 2 (payoffCost * payoffDelta)
+computeMetric PayoffRow{..} = logBase 2 (payoffCost / payoffDelta)
 
 installColumns :: MyGtkApp -> IO ()
 installColumns app =
