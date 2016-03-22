@@ -136,18 +136,18 @@ addCostColumn MyGtkApp{payoffTable, payoffModel, bankRef} =
 installLoadButtonClickHandler :: MyGtkApp -> IO ()
 installLoadButtonClickHandler app =
   do clipboard <- clipboardGet selectionClipboard
-     on (loadButton app) buttonActivated (loadFormFromClipboard app clipboard)
+     on (loadButton app) buttonActivated (loadFromFromClipboard app clipboard)
      return ()
 
-loadFormFromClipboard :: MyGtkApp -> Clipboard -> IO ()
-loadFormFromClipboard app clipboard =
+loadFromFromClipboard :: MyGtkApp -> Clipboard -> IO ()
+loadFromFromClipboard app clipboard =
   clipboardRequestText clipboard $ \mb ->
     for_ mb             $ \txt ->
     for_ (loadSave txt) $ \sav ->
-    loadFormFromSave app sav
+    loadFromFromSave app sav
 
-loadFormFromSave :: MyGtkApp -> SaveFile -> IO ()
-loadFormFromSave MyGtkApp{..} sav =
+loadFromFromSave :: MyGtkApp -> SaveFile -> IO ()
+loadFromFromSave MyGtkApp{..} sav =
   do now <- getCurrentTime
 
      let i    = saveFileToGameInput now sav

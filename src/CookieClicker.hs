@@ -38,6 +38,7 @@ initialGameState :: GameState
 initialGameState = GameState
   { _buildingStats           = initialBuildingStat <$> baseCps
   , _multiplier              = 1
+  , _lateMultiplier          = 1
   , _eggMultiplier           = 1
   , _mouseBonus              = 0
   , _mouseMultiplier         = 1
@@ -281,6 +282,7 @@ buyMore count nextPrice
 computeMultiplier :: GameInput -> GameState -> Double
 computeMultiplier inp st
   = view multiplier st
+  * view lateMultiplier st
   * milkFactor
   * view eggMultiplier st
   * prestigeFactor
@@ -331,12 +333,6 @@ countUpgrades = length . filter (views upgradePool validPool) . view upgradesBou
 
 computeMunched :: GameInput -> GameState -> Double
 computeMunched input st = view wrinklerMultiplier st * view cookiesMunched input
-
-computeWrinklerEffect :: GameInput -> GameState -> Double
-computeWrinklerEffect input st = (1 - wither) + wither * view wrinklerMultiplier st * n
-  where
-  n = views wrinklers fromIntegral input
-  wither = n * 0.05
 
 data SuffixLength = LongSuffix | ShortSuffix
 
@@ -859,7 +855,7 @@ upgradeEffects = Map.fromList $
    , ("Ghostly biscuit"        , noEffect)
    , ("Lovesick biscuit"       , noEffect)
    , ("Fool's biscuit"         , noEffect)
-   , ("Golden switch [off]"    , cookieBonus 50)
+   , ("Golden switch [off]"    , \_ -> lateMultiplier *~ 1.5)
    , ("Golden switch [on]"     , noEffect)
    , ("Milk selector"          , noEffect)
    , ("Golden goose egg"       , noEffect)
@@ -1073,3 +1069,11 @@ bigStep i
   metric x = payoffCost x * payoffDelta x
 
   isBuyOne x = "+1 " `isPrefixOf` payoffName x
+
+computeWrinklerEffect :: GameInput -> GameState -> Double
+computeWrinklerEffect input st =
+  (1 - wither) + wither * view wrinklerMultiplier st * n
+               / view lateMultiplier st
+  where
+  n = views wrinklers fromIntegral input
+  wither = n * 0.05

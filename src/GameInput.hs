@@ -56,6 +56,7 @@ data Achievement = Achievement
 data GameState = GameState
   { _buildingStats   :: !(Map Building BuildingStat)
   , _multiplier      :: !Double
+  , _lateMultiplier  :: !Double -- applies after munch
   , _eggMultiplier   :: !Double
   , _prestigeMultiplier :: !Double
   , _mouseBonus      :: !Double
