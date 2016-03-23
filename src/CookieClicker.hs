@@ -834,6 +834,7 @@ upgradeEffects = Map.fromList $
    , ("Twin Gates of Transcendence", noEffect)
    , ("Heavenly luck"              , noEffect)
    , ("Lasting fortune"            , \_ -> goldTimeMultiplier *~ 1.1)
+   -- , ("Residual luck"              , _) XXX: +10% golden switch bonus per each ['Get lucky','Lucky day','Serendipity','Heavenly luck','Lasting fortune','Decisive fate'];
 
    , ("Starter kit"    , \_ -> buildingFree Cursor  +~ 10)
    , ("Starter kitchen", \_ -> buildingFree Grandma +~  5)
@@ -855,7 +856,7 @@ upgradeEffects = Map.fromList $
    , ("Ghostly biscuit"        , noEffect)
    , ("Lovesick biscuit"       , noEffect)
    , ("Fool's biscuit"         , noEffect)
-   , ("Golden switch [off]"    , \_ -> lateMultiplier *~ 1.5)
+   , ("Golden switch [off]"    , \_ -> lateMultiplier *~ 2.1)
    , ("Golden switch [on]"     , noEffect)
    , ("Milk selector"          , noEffect)
    , ("Golden goose egg"       , noEffect)
@@ -872,6 +873,17 @@ upgradeEffects = Map.fromList $
 
    , ("Divine discount", \_ -> buildingCostMultiplier *~ 0.99)
    , ("Divine sales", \_ -> upgradeCostMultiplier *~ 0.99)
+
+   , ("Elder spice", noEffect)
+   , ("Sacrilegious corruption", \_ -> wrinklerMultiplier *~ 1.05)
+
+   , ("Starterror", noEffect)
+   , ("Starspawn", noEffect)
+   , ("Starsnow", noEffect)
+   , ("Starlove", noEffect) -- XXX: affects heart cookies
+   , ("Startrade", noEffect)
+
+   , ("Golden cookie alert sound", noEffect)
    ]
 
 -- XXX: Implement "Starlove"

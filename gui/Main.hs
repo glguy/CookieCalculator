@@ -167,7 +167,7 @@ loadFromFromSave MyGtkApp{..} sav =
      writeIORef bankRef (banked + munched)
 
      setOut cpsOutput      cps
-     setOut wcpsOutput     (ecps-cps)
+     setOut wcpsOutput     (cps * (1-L.views wrinklers fromIntegral i * 0.05))
      setOut tcpsOutput     ecps
 
      setOut bankOutput     banked
