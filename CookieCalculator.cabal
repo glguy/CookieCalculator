@@ -16,6 +16,8 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
+  include-dirs:        include
+  install-includes:    cookies.h
   exposed-modules:     CookieClicker, SaveFormat, Building, GameInput, SourceData, AesonTH
   other-modules:       CApi
   build-depends:       base              >=4.8 && <4.9,

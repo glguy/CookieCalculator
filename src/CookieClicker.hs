@@ -38,6 +38,7 @@ initialGameState :: GameState
 initialGameState = GameState
   { _buildingStats           = initialBuildingStat <$> baseCps
   , _multiplier              = 1
+  , _lateMultiplier          = 1
   , _eggMultiplier           = 1
   , _mouseBonus              = 0
   , _mouseMultiplier         = 1
@@ -281,6 +282,7 @@ buyMore count nextPrice
 computeMultiplier :: GameInput -> GameState -> Double
 computeMultiplier inp st
   = view multiplier st
+  * view lateMultiplier st
   * milkFactor
   * view eggMultiplier st
   * prestigeFactor
@@ -331,12 +333,6 @@ countUpgrades = length . filter (views upgradePool validPool) . view upgradesBou
 
 computeMunched :: GameInput -> GameState -> Double
 computeMunched input st = view wrinklerMultiplier st * view cookiesMunched input
-
-computeWrinklerEffect :: GameInput -> GameState -> Double
-computeWrinklerEffect input st = (1 - wither) + wither * view wrinklerMultiplier st * n
-  where
-  n = views wrinklers fromIntegral input
-  wither = n * 0.05
 
 data SuffixLength = LongSuffix | ShortSuffix
 
@@ -838,6 +834,7 @@ upgradeEffects = Map.fromList $
    , ("Twin Gates of Transcendence", noEffect)
    , ("Heavenly luck"              , noEffect)
    , ("Lasting fortune"            , \_ -> goldTimeMultiplier *~ 1.1)
+   -- , ("Residual luck"              , _) XXX: +10% golden switch bonus per each ['Get lucky','Lucky day','Serendipity','Heavenly luck','Lasting fortune','Decisive fate'];
 
    , ("Starter kit"    , \_ -> buildingFree Cursor  +~ 10)
    , ("Starter kitchen", \_ -> buildingFree Grandma +~  5)
@@ -859,7 +856,7 @@ upgradeEffects = Map.fromList $
    , ("Ghostly biscuit"        , noEffect)
    , ("Lovesick biscuit"       , noEffect)
    , ("Fool's biscuit"         , noEffect)
-   , ("Golden switch [off]"    , cookieBonus 50)
+   , ("Golden switch [off]"    , \_ -> lateMultiplier *~ 2.1)
    , ("Golden switch [on]"     , noEffect)
    , ("Milk selector"          , noEffect)
    , ("Golden goose egg"       , noEffect)
@@ -876,6 +873,17 @@ upgradeEffects = Map.fromList $
 
    , ("Divine discount", \_ -> buildingCostMultiplier *~ 0.99)
    , ("Divine sales", \_ -> upgradeCostMultiplier *~ 0.99)
+
+   , ("Elder spice", noEffect)
+   , ("Sacrilegious corruption", \_ -> wrinklerMultiplier *~ 1.05)
+
+   , ("Starterror", noEffect)
+   , ("Starspawn", noEffect)
+   , ("Starsnow", noEffect)
+   , ("Starlove", noEffect) -- XXX: affects heart cookies
+   , ("Startrade", noEffect)
+
+   , ("Golden cookie alert sound", noEffect)
    ]
 
 -- XXX: Implement "Starlove"
@@ -1073,3 +1081,11 @@ bigStep i
   metric x = payoffCost x * payoffDelta x
 
   isBuyOne x = "+1 " `isPrefixOf` payoffName x
+
+computeWrinklerEffect :: GameInput -> GameState -> Double
+computeWrinklerEffect input st =
+  (1 - wither) + wither * view wrinklerMultiplier st * n
+               / view lateMultiplier st
+  where
+  n = views wrinklers fromIntegral input
+  wither = n * 0.05
