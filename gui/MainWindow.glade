@@ -62,6 +62,9 @@
             <property name="column_spacing">10</property>
             <property name="row_spacing">10</property>
             <child>
+              <placeholder/>
+            </child>
+            <child>
               <object class="GtkLabel" id="cpsLabel">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -246,12 +249,6 @@
               </packing>
             </child>
             <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
               <object class="GtkLabel" id="jackpotEOutput">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -296,12 +293,28 @@
               <object class="GtkLabel" id="effHChipsOutput">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Heavenly chips after reset</property>
                 <property name="xalign">1</property>
                 <property name="label" translatable="yes">-</property>
               </object>
               <packing>
                 <property name="left_attach">3</property>
                 <property name="right_attach">4</property>
+                <property name="top_attach">4</property>
+                <property name="bottom_attach">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="hchipsOutput">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">New prestige levels on reset</property>
+                <property name="xalign">1</property>
+                <property name="label" translatable="yes">-</property>
+              </object>
+              <packing>
+                <property name="left_attach">2</property>
+                <property name="right_attach">3</property>
                 <property name="top_attach">4</property>
                 <property name="bottom_attach">5</property>
               </packing>

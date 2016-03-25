@@ -50,6 +50,8 @@ initialGameState = GameState
   , _milkFactors             = []
   , _wrinklerMultiplier      = 1.1
   , _goldTimeMultiplier      = 1
+  , _heartCookies            = 0
+  , _heartCookieMultiplier   = 2
   }
 
 baseCps :: Map Building Double
@@ -286,6 +288,7 @@ computeMultiplier inp st
   * milkFactor
   * view eggMultiplier st
   * prestigeFactor
+  * heartFactor
 
   where
   milkFactor = product [ 1 + milk * x | x <- view milkFactors st ]
@@ -293,6 +296,9 @@ computeMultiplier inp st
 
   prestigeFactor = 1 + view prestigeMultiplier st
                      * view prestigeLevel inp / 100
+  heartFactor = 1
+              + (view heartCookieMultiplier st / 100)
+              ^ view heartCookies st
 
 computeMilk :: GameInput -> Double
 computeMilk input = fromIntegral n / 25
@@ -668,7 +674,8 @@ buildingAchievements = Map.fromList
 upgradeEffects :: Map Text Effect
 upgradeEffects = Map.fromList $
    [ (name, doubler b) | b <- [Grandma .. ], name <- buildingTieredUpgrades b ] ++
-   [ (name, cookieBonus n) | (name, n) <- specialCookies ++ cookies ] ++
+   [ (name, cookieBonus n) | (name, n) <- cookies ] ++
+   [ (name, \_ -> heartCookies +~ 1) | name <- heartCookieNames ] ++
    [ ("Reinforced index finger"        , doubler Cursor)
    , ("Carpal tunnel prevention cream" , doubler Cursor)
    , ("Ambidextrous"                   , doubler Cursor)
@@ -819,7 +826,7 @@ upgradeEffects = Map.fromList $
    , ("Permanent upgrade slot I"   , noEffect)
    , ("Permanent upgrade slot II"  , noEffect)
    , ("Permanent upgrade slot III" , noEffect)
-   , ("Permanent upgrade slot IIIV", noEffect)
+   , ("Permanent upgrade slot IV"  , noEffect)
    , ("Permanent upgrade slot V"   , noEffect)
    , ("Angels"                     , noEffect)
    , ("Archangels"                 , noEffect)
@@ -880,22 +887,21 @@ upgradeEffects = Map.fromList $
    , ("Starterror", noEffect)
    , ("Starspawn", noEffect)
    , ("Starsnow", noEffect)
-   , ("Starlove", noEffect) -- XXX: affects heart cookies
+   , ("Starlove", \_ -> heartCookieMultiplier *~ 1.5) -- XXX: affects heart cookies
    , ("Startrade", noEffect)
 
    , ("Golden cookie alert sound", noEffect)
+   , ("Golden cookie sound selector", noEffect)
    ]
 
--- XXX: Implement "Starlove"
--- if (Game.Has('Starlove')) return 3; else return ",2;
-specialCookies :: [(Text, Int)]
-specialCookies =
-   [ ("Pure heart biscuits",    2)
-   , ("Ardent heart biscuits",  2)
-   , ("Sour heart biscuits",    2)
-   , ("Weeping heart biscuits", 2)
-   , ("Golden heart biscuits",  2)
-   , ("Eternal heart biscuits", 2)
+heartCookieNames :: [Text]
+heartCookieNames =
+   [ "Pure heart biscuits"
+   , "Ardent heart biscuits"
+   , "Sour heart biscuits"
+   , "Weeping heart biscuits"
+   , "Golden heart biscuits"
+   , "Eternal heart biscuits"
    ]
 
 
