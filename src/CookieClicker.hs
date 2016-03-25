@@ -231,14 +231,14 @@ payoff inp st =
 
   buyUpgradeRequirements =
      [ finish count b up
-     | (b, Just (count, up)) <- Map.toList $
+     | (b, (count, up) : _) <- Map.toList $
         Map.intersectionWith nextUpgrade (view buildingsOwned inp) upgradeRequirements
      ]
 
   nextAchievements = Map.mapMaybe candidate $
      Map.intersectionWith nextUpgrade (view buildingsOwned inp) buildingAchievements
     where
-    candidate m = do
+    candidate m = listToMaybe $ do
       (count, aName) <- m
       guard (aName `Set.notMember` achievements)
       let a = Map.findWithDefault (error ("Unknown achievement: " ++ Text.unpack aName))
@@ -248,7 +248,7 @@ payoff inp st =
 
   buyAchievements = [ finishA count b a | (b, (count, a)) <- Map.toList nextAchievements ]
 
-  nextUpgrade now options = listToMaybe
+  nextUpgrade now options =
      [ (target, up)
          | (target, up) <- options
          , target > now
