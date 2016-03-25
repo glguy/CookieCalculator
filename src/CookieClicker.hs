@@ -296,8 +296,7 @@ computeMultiplier inp st
 
   prestigeFactor = 1 + view prestigeMultiplier st
                      * view prestigeLevel inp / 100
-  heartFactor = 1
-              + (view heartCookieMultiplier st / 100)
+  heartFactor = (1 + view heartCookieMultiplier st / 100)
               ^ view heartCookies st
 
 computeMilk :: GameInput -> Double
