@@ -18,6 +18,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Maybe
 import Control.Lens hiding (ReifiedPrism(..), prism)
+import Numeric.Lens
 import Data.List
 import Data.Ord
 import Data.Time
@@ -52,6 +53,7 @@ initialGameState = GameState
   , _goldTimeMultiplier      = 1
   , _heartCookies            = 0
   , _heartCookieMultiplier   = 2
+  , _cookieCostMultiplier   = 1
   }
 
 baseCps :: Map Building Double
@@ -757,7 +759,8 @@ upgradeEffects = Map.fromList $
    , ("Cookie egg"   , \_ -> mouseMultiplier *~ 1.1)
    , ("Wrinklerspawn", \_ -> wrinklerMultiplier *~ 1.05)
 
-   , ("Faberge egg", \_ -> buildingCostMultiplier *~ 0.99)
+   , ("Faberge egg", \_ -> (buildingCostMultiplier *~ 0.99)
+                         . (upgradeCostMultiplier  *~ 0.99) )
    , ("\"egg\"", \_ -> bonusCps +~ 9)
    , ("Omelette", noEffect)
 
@@ -879,6 +882,9 @@ upgradeEffects = Map.fromList $
 
    , ("Divine discount", \_ -> buildingCostMultiplier *~ 0.99)
    , ("Divine sales", \_ -> upgradeCostMultiplier *~ 0.99)
+   , ("Divine bakeries", \_ -> cookieCostMultiplier /~ 5)
+
+   , ("Five-finger discount", fiveFingers)
 
    , ("Elder spice", noEffect)
    , ("Sacrilegious corruption", \_ -> wrinklerMultiplier *~ 1.05)
@@ -1060,13 +1066,11 @@ cpsToChainReserve6 cps = 4 * floor6 (m*cps)
   m = 6 * 60 * 60
 
 floor6 :: Double -> Double
-floor6 x = last (6 : zs)
-  where
-  zs = takeWhile (<= x) $ map (2/3*) $ iterate (*10) 100
+floor6 = under (powering 10 . multiplying (2/3)) (max 1 . floor')
 --var maxPayout=Math.min(Game.cookiesPs*60*60*6,Game.cookies*0.25)*mult;
 
 cookiesToPrestige :: Double -> Double
-cookiesToPrestige c = (c / 1e12) ** (1/3)
+cookiesToPrestige c = c**(1/3) / 1e4
 
 sacrificeCost :: Int -> GameInput -> GameState -> Double
 sacrificeCost n i st = sum (buyMore n <$> buildingCosts i' st)
@@ -1094,3 +1098,13 @@ computeWrinklerEffect input st =
   where
   n = views wrinklers fromIntegral input
   wither = n * 0.05
+
+fiveFingers inp =
+  upgradeCostMultiplier *~ 0.99**(fromIntegral cursors/ 100)
+  where
+  cursors = view (buildingOwned Cursor) inp
+
+l /~ x = over l (/ x)
+
+powering :: Floating a => a -> Iso' a a
+powering base = iso (base **) (logBase base)
