@@ -39,7 +39,6 @@ initialGameState :: GameState
 initialGameState = GameState
   { _buildingStats           = initialBuildingStat <$> baseCps
   , _multiplier              = 1
-  , _lateMultiplier          = 1
   , _eggMultiplier           = 1
   , _mouseBonus              = 0
   , _mouseMultiplier         = 1
@@ -54,6 +53,10 @@ initialGameState = GameState
   , _heartCookies            = 0
   , _heartCookieMultiplier   = 2
   , _cookieCostMultiplier    = 1
+
+  , _goldenSwitchActive      = False
+  , _goldenSwitchResidual    = False
+  , _goldenSwitchBonus       = 0
   }
 
 baseCps :: Map Building Double
@@ -197,7 +200,7 @@ payoff inp st =
 
   buyUpgrades =
      [ ( views upgradeName Text.unpack u
-       , computeUpgradeCost st u
+       , computeUpgradeCost inp st u
        , upgradesBought %~ cons u
        )
      | u <- view upgradesAvailable inp
@@ -270,23 +273,25 @@ payoff inp st =
     f = (achievementsEarned %~ cons a)
       . (buildingOwned b .~ n)
 
-computeUpgradeCost :: GameState -> Upgrade -> Double
-computeUpgradeCost st u
-  | view upgradePool u == "cookie" = view cookieCostMultiplier st * c
-  | otherwise                      = c
-  where
-  c = view upgradeCost u
-    * view upgradeCostMultiplier st
-
 buyMore :: Int -> Double -> Double
 buyMore count nextPrice
   | count < 0 = error "buyMore: negative count"
   | otherwise = nextPrice * (1 - 1.15 ^ count) / (1 - 1.15)
 
+computeGoldenSwitchMultiplier :: GameState -> Double
+computeGoldenSwitchMultiplier st
+  | not active = 1
+  | bonused    = 1.5 + bonus
+  | otherwise  = 1.5
+  where
+  active  = view goldenSwitchActive st
+  bonused = view goldenSwitchResidual st
+  bonus   = view goldenSwitchBonus st
+
 computeMultiplier :: GameInput -> GameState -> Double
 computeMultiplier inp st
   = view multiplier st
-  * view lateMultiplier st
+  * computeGoldenSwitchMultiplier st
   * milkFactor
   * view eggMultiplier st
   * prestigeFactor
@@ -707,9 +712,6 @@ upgradeEffects = Map.fromList $
 
    --    -- COOKIES
 
-   , ("Lucky day"  , noEffect)
-   , ("Serendipity", noEffect)
-   , ("Get lucky"  , \_ -> goldTimeMultiplier *~ 2)
 
    , ("Bingo center/Research facility", \_ -> buildingMult Grandma *~ 4)
    , ("Specialized chocolate chips"   , cookieBonus 1)
@@ -809,9 +811,15 @@ upgradeEffects = Map.fromList $
    , ("Halo gloves"                , \_ -> mouseMultiplier *~ 1.1)
    , ("Unholy bait"                , noEffect)
    , ("Twin Gates of Transcendence", noEffect)
-   , ("Heavenly luck"              , noEffect)
-   , ("Lasting fortune"            , \_ -> goldTimeMultiplier *~ 1.1)
-   -- , ("Residual luck"              , _) XXX: +10% golden switch bonus per each ['Get lucky','Lucky day','Serendipity','Heavenly luck','Lasting fortune','Decisive fate'];
+
+   , ("Get lucky"      , \inp -> (goldTimeMultiplier *~ 2) . residualBonus inp)
+   , ("Lucky day"      , residualBonus)
+   , ("Serendipity"    , residualBonus)
+   , ("Heavenly luck"  , residualBonus)
+   , ("Lasting fortune", \inp -> (goldTimeMultiplier *~ 1.1) . residualBonus inp)
+   , ("Decisive fate"  , residualBonus)
+
+   , ("Residual luck"              , \_ -> goldenSwitchResidual .~ True)
 
    , ("Starter kit"    , \_ -> buildingFree Cursor  +~ 10)
    , ("Starter kitchen", \_ -> buildingFree Grandma +~  5)
@@ -833,17 +841,17 @@ upgradeEffects = Map.fromList $
    , ("Ghostly biscuit"        , noEffect)
    , ("Lovesick biscuit"       , noEffect)
    , ("Fool's biscuit"         , noEffect)
-   , ("Golden switch [off]"    , \_ -> lateMultiplier *~ 2.1)
+   , ("Golden switch [off]"    , \_ -> goldenSwitchActive .~ True)
    , ("Golden switch [on]"     , noEffect)
    , ("Milk selector"          , noEffect)
    , ("Golden goose egg"       , noEffect)
    , ("Chocolate egg"          , noEffect)
-   , ("Decisive fate"          , noEffect)
 
    -- Dragon Auras
    , ("No aura"         , noEffect)
    , ("Breath of Milk", \_ -> milkMultiplier *~ 1.05 )
    , ("Radiant Appetite", cookieBonus 100)
+   , ("Epoch Manipulator", \_ -> goldTimeMultiplier *~ 1.05)
    , ("Earth Shatterer",  noEffect)
    , ("Dragonflight"    , noEffect) -- effect not modeled
    , ("Mind Over Matter", noEffect) -- 0.75 multiplier to random drops
@@ -867,6 +875,21 @@ upgradeEffects = Map.fromList $
    , ("Golden cookie sound selector", noEffect)
    ]
 
+computeUpgradeCost :: GameInput -> GameState -> Upgrade -> Double
+computeUpgradeCost inp st u
+  | view upgradePool u == "cookie" = view cookieCostMultiplier st * c
+  | otherwise                      = c
+  where
+  c = baseUpgradeCost inp st u
+    * view upgradeCostMultiplier st
+
+baseUpgradeCost :: GameInput -> GameState -> Upgrade -> Double
+baseUpgradeCost inp st u =
+  case view upgradeName u of
+    "Golden switch [off]" -> 60 * 60 * computeCps inp st
+    n | n `elem` santaUpgrades -> 2525 * 3 ^ view santaLevel inp
+    _ -> view upgradeCost u
+
 synergyGrandmas :: [(Building, Text)]
 synergyGrandmas =
   [ (Farm       , "Farmer grandmas")
@@ -882,6 +905,14 @@ synergyGrandmas =
   , (Antimatter , "Antigrandmas")
   , (Prism      , "Rainbow grandmas")
   ]
+
+santaUpgrades :: [Text]
+santaUpgrades =
+  ["Increased merriness", "Improved jolliness", "A lump of coal",
+   "An itchy sweater", "Reindeer baking grounds", "Weighted sleighs",
+   "Ho ho ho-flavored frosting", "Season savings", "Toy workshop",
+   "Naughty list", "Santa's bottomless bag", "Santa's helpers",
+   "Santa's legacy", "Santa's milk and cookies"]
 
 mouseUpgrades :: [Text]
 mouseUpgrades =
@@ -978,6 +1009,9 @@ buildingTieredUpgrades b =
 noEffect :: Effect
 noEffect _ st = st
 
+residualBonus :: Effect
+residualBonus _ = goldenSwitchBonus +~ 0.1
+
 prestigeBonus :: Double -> Effect
 prestigeBonus n _ = prestigeMultiplier +~ n / 100
 
@@ -1031,6 +1065,7 @@ saveFileToGameInput now sav = GameInput
   , _cookiesBanked      = savCookies (savMain sav)
   , _dragonAura1        = dragonAuras !! savDragonAura (savMain sav)
   , _dragonAura2        = dragonAuras !! savDragonAura2 (savMain sav)
+  , _santaLevel         = savSantaLevel (savMain sav)
 
   , _cookiesForfeit     = savCookiesReset  (savMain sav)
   , _cookiesEarned      = savCookiesEarned (savMain sav)
@@ -1112,7 +1147,7 @@ bigStep i
 computeWrinklerEffect :: GameInput -> GameState -> Double
 computeWrinklerEffect input st =
   (1 - wither) + wither * view wrinklerMultiplier st * n
-               / view lateMultiplier st
+               / computeGoldenSwitchMultiplier st
   where
   n = views wrinklers fromIntegral input
   wither = n * 0.05
