@@ -186,7 +186,7 @@ loadFromFromSave MyGtkApp{..} sav =
 
      listStoreClear payoffModel
      traverse_ (listStoreAppend payoffModel) rows
-     set payoffTable [ widgetHeightRequest := 100 ]
+     treeViewColumnsAutosize payoffTable
 
      let cps     = computeCps i st
          ecps    = computeWrinklerEffect i st * cps
