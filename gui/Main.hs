@@ -13,15 +13,15 @@ import           Building
 import           EmbedStringTH
 
 import qualified Control.Lens as L
-import           Data.Foldable
+import           Data.Foldable (for_, traverse_)
 import           Data.Function ((&))
-import           Data.List
-import           Data.Ord
-import           Data.Time
-import           Data.IORef
+import           Data.IORef (IORef, newIORef, readIORef, writeIORef)
+import           Data.List (sortBy)
+import           Data.Ord (comparing)
+import           Data.Time (getCurrentTime)
+import           Foreign (Ptr)
 import           Graphics.UI.Gtk
-import           Graphics.UI.Gtk.Builder
-import           Foreign
+import           Numeric (showFFloat)
 
 data MyGtkApp = MyGtkApp
   { cpsOutput, wcpsOutput, tcpsOutput
@@ -93,15 +93,15 @@ main =
      mainGUI
 
 computeMetric :: PayoffRow -> Double
-computeMetric PayoffRow{..} = logBase 2 (payoffCost / payoffDelta)
+computeMetric PayoffRow{..} = logBase 10 (payoffCost / payoffDelta)
 
 installColumns :: MyGtkApp -> IO ()
 installColumns app =
 
   do addNameColumn app
-     addColumn app "Metric" (prettyNumber ShortSuffix . computeMetric)
+     addColumn app "Metric" (\x -> showFFloat (Just 1) (computeMetric x) "")
      addCostColumn app
-     addColumn app "∆%"  (prettyNumber ShortSuffix . (*100) . payoffDelta)
+     addColumn app "Benefit"  (prettyFractionalNumber . payoffDelta)
 
 
 addColumn :: MyGtkApp -> String -> (PayoffRow -> String) -> IO ()
@@ -116,7 +116,7 @@ addColumn MyGtkApp{payoffTable, payoffModel} name render =
 
      treeViewColumnPackStart col cell True
      cellLayoutSetAttributes col cell payoffModel $ \row ->
-       [ cellText := render row ]
+       [ cellTextMarkup := Just (render row) ]
 
      return ()
 
@@ -246,3 +246,23 @@ loadIcons =
      w <- pixbufGetWidth pixbuf
      h <- pixbufGetHeight pixbuf
      pixbufScaleSimple pixbuf (w`quot`2) (h`quot`2) InterpBilinear
+
+prettyFractionalNumber :: Double -> String
+prettyFractionalNumber x
+  | x < 0      = '-':prettyFractionalNumber' (negate x)
+  | otherwise  = prettyFractionalNumber' x
+
+-- Helper to 'prettyFractionalNumber' that handles positive values
+prettyFractionalNumber' :: Double -> String
+prettyFractionalNumber' x = showFFloat (Just 1) x2 suffix
+  where
+  x1 = fixPrecision 2 x
+  e = floor (logBase 10 x1) :: Int
+  x2 = x1 * 10^^negate e
+  suffix = " <sub>10</sub> " ++ show e
+
+fixPrecision :: Int -> Double -> Double
+fixPrecision p x = round' (x * m) / m
+  where
+  m = 10^^(p-e-1)
+  e = floor (logBase 10 x)

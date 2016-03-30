@@ -283,7 +283,7 @@ payoff inp st =
 buyMore :: Int -> Double -> Double
 buyMore count nextPrice
   | count < 0 = error "buyMore: negative count"
-  | otherwise = nextPrice * (1 - 1.15 ^ count) / (1 - 1.15)
+  | otherwise = ceil' (nextPrice * (1 - 1.15 ^ count) / (1 - 1.15))
 
 computeGoldenSwitchMultiplier :: GameState -> Double
 computeGoldenSwitchMultiplier st
@@ -357,7 +357,7 @@ data SuffixLength = LongSuffix | ShortSuffix
 
 prettyNumber :: SuffixLength -> Double -> String
 prettyNumber s n
-  | n < 1e6   = numberWithSeparators (showFFloat (Just 1) n "")
+  | n < 1e6   = numberWithSeparators (trimZero (showFFloat (Just 1) n ""))
   | n < 1e9   = showFFloat (Just 3) (n / 1e6 ) (suffix " M" " million")
   | n < 1e12  = showFFloat (Just 3) (n / 1e9 ) (suffix " B" " billion")
   | n < 1e15  = showFFloat (Just 3) (n / 1e12) (suffix " T" " trillion")
@@ -375,6 +375,9 @@ prettyNumber s n
   | otherwise = numberWithSeparators
               $ showFFloat (Just 3) (n / 1e48) (suffix " QiD" " quindecillion")
   where
+  trimZero x | ['.','0'] `isSuffixOf` x = dropLast 2 x
+             | otherwise = x
+  dropLast n xs = zipWith const xs (drop n xs)
   suffix short long =
     case s of
       ShortSuffix -> short
@@ -1045,11 +1048,15 @@ eggTimeBonus s = (1 - (1 - cappedDays/100)**3) / 10
 floor' :: Double -> Double
 floor' = realToFrac . c_floor . realToFrac
 
+round' :: Double -> Double
+round' = realToFrac . c_round . realToFrac
+
 ceil' :: Double -> Double
 ceil' = realToFrac . c_ceil . realToFrac
 
 foreign import ccall "math.h floor" c_floor :: CDouble -> CDouble
-foreign import ccall "math.h ceil" c_ceil :: CDouble -> CDouble
+foreign import ccall "math.h ceil"  c_ceil  :: CDouble -> CDouble
+foreign import ccall "math.h round" c_round :: CDouble -> CDouble
 
 synergy :: Building -> Building -> Effect
 synergy major minor inp
