@@ -2,11 +2,6 @@
 <interface>
   <requires lib="gtk+" version="2.24"/>
   <!-- interface-naming-policy project-wide -->
-  <object class="GtkAdjustment" id="payoffTableVScroll">
-    <property name="upper">100</property>
-    <property name="step_increment">1</property>
-    <property name="page_increment">10</property>
-  </object>
   <object class="GtkWindow" id="mainWindow">
     <property name="can_focus">False</property>
     <property name="border_width">10</property>
@@ -17,34 +12,18 @@
         <property name="can_focus">False</property>
         <property name="spacing">10</property>
         <child>
-          <object class="GtkHBox" id="payoffTableContainer">
+          <object class="GtkScrolledWindow" id="payoffTableScrolledWindow">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can_focus">True</property>
+            <property name="hscrollbar_policy">automatic</property>
             <child>
               <object class="GtkTreeView" id="payoffTable">
                 <property name="height_request">100</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="border_width">1</property>
-                <property name="vadjustment">payoffTableVScroll</property>
+                <property name="fixed_height_mode">True</property>
               </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkVScrollbar" id="payoffTableScrollbar">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="adjustment">payoffTableVScroll</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
             </child>
           </object>
           <packing>
@@ -61,9 +40,6 @@
             <property name="n_columns">4</property>
             <property name="column_spacing">10</property>
             <property name="row_spacing">10</property>
-            <child>
-              <placeholder/>
-            </child>
             <child>
               <object class="GtkLabel" id="cpsLabel">
                 <property name="visible">True</property>
@@ -300,6 +276,21 @@
               <packing>
                 <property name="left_attach">3</property>
                 <property name="right_attach">4</property>
+                <property name="top_attach">4</property>
+                <property name="bottom_attach">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="chocolateEggOutput">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Heavenly chips on reset with sell-off and chocolate egg</property>
+                <property name="xalign">1</property>
+                <property name="label" translatable="yes">-</property>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="right_attach">2</property>
                 <property name="top_attach">4</property>
                 <property name="bottom_attach">5</property>
               </packing>

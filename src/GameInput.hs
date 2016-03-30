@@ -71,6 +71,7 @@ data GameState = GameState
   , _goldTimeMultiplier :: !Double
   , _heartCookies :: !Int
   , _heartCookieMultiplier :: !Double
+  , _cookieCostMultiplier :: !Double
   }
   deriving (Read, Show)
 

@@ -18,6 +18,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Maybe
 import Control.Lens hiding (ReifiedPrism(..), prism)
+import Numeric.Lens
 import Data.List
 import Data.Ord
 import Data.Time
@@ -52,6 +53,7 @@ initialGameState = GameState
   , _goldTimeMultiplier      = 1
   , _heartCookies            = 0
   , _heartCookieMultiplier   = 2
+  , _cookieCostMultiplier    = 1
   }
 
 baseCps :: Map Building Double
@@ -110,9 +112,6 @@ computeGameState input
       (view upgradesBought input)
 
 type Effect = GameInput -> GameState -> GameState
-
-mouseAdd :: Effect
-mouseAdd = \_ -> mouseBonus +~ 0.01
 
 kittenBonus :: Double -> Effect
 kittenBonus pct = \_ -> milkFactors %~ (pct/100:)
@@ -197,12 +196,12 @@ payoff inp st =
     | (x, cost) <- Map.toList costs
     , let new = view (buildingOwned x) inp + 1
     -- only offer this if we aren't also 1 buy from an achievement
-    , new /= maybe 0 fst (Map.lookup x nextAchievements)
+    , Just new /= fmap fst (Map.lookup x nextAchievements)
     ]
 
   buyUpgrades =
      [ ( views upgradeName Text.unpack u
-       , view upgradeCost u * view upgradeCostMultiplier st
+       , computeUpgradeCost st u
        , upgradesBought %~ cons u
        , view upgradeIcon u
        )
@@ -212,20 +211,7 @@ payoff inp st =
   buyGrandmas =
      [ finish 15 b up
      | view (buildingOwned Grandma) inp >= 1
-     , (b, up) <-
-        [ (Farm, "Farmer grandmas")
-        , (Mine, "Miner grandmas")
-        , (Factory, "Worker grandmas")
-        , (Bank, "Banker grandmas")
-        , (Temple, "Priestess grandmas")
-        , (WizardTower, "Witch grandmas")
-        , (Shipment, "Cosmic grandmas")
-        , (AlchemyLab, "Transmuted grandmas")
-        , (Portal, "Altered grandmas")
-        , (TimeMachine, "Grandmas' grandmas")
-        , (Antimatter, "Antigrandmas")
-        , (Prism, "Rainbow grandmas")
-        ]
+     , (b, up) <- synergyGrandmas
      , view (buildingOwned b) inp < 15
      ]
 
@@ -236,28 +222,36 @@ payoff inp st =
 
   buyUpgradeRequirements =
      [ finish count b up
-     | (b, Just (count, up)) <- Map.toList $
+     | (b, (count, up) : _) <- Map.toList $
         Map.intersectionWith nextUpgrade (view buildingsOwned inp) upgradeRequirements
      ]
 
-  nextAchievements = Map.mapMaybe candidate $
-     Map.intersectionWith nextUpgrade (view buildingsOwned inp) buildingAchievements
+  nextAchievements
+    = Map.mapMaybe candidate
+    $ Map.intersectionWith
+        nextUpgrade
+        (view buildingsOwned inp)
+        buildingAchievements
     where
-    candidate m = do
-      (count, aName) <- m
-      guard (aName `Set.notMember` achievements)
-      let a = Map.findWithDefault (error ("Unknown achievement: " ++ Text.unpack aName))
-               aName
-               achievementByName
-      return (count, a)
+    candidate m
+      = listToMaybe
+      $ do (count, aName) <- m
+           guard (aName `Set.notMember` achievements)
+           let a = Map.findWithDefault
+                     (error ("Unknown achievement: " ++ Text.unpack aName))
+                     aName
+                     achievementByName
+           return (count, a)
 
-  buyAchievements = [ finishA count b a | (b, (count, a)) <- Map.toList nextAchievements ]
+  buyAchievements =
+    [ finishA count b a | (b, (count, a)) <- Map.toList nextAchievements ]
 
-  nextUpgrade now options = listToMaybe
+  nextUpgrade now options =
      [ (target, up)
          | (target, up) <- options
          , target > now
-         , notElemOf (upgradesBought . folded . upgradeName) up inp ]
+         , notElemOf (upgradesBought . folded . upgradeName) up inp
+         ]
 
   finish :: Int -> Building -> Text -> (String, Double, GameInput -> GameInput, (Int,Int))
   finish n b up =
@@ -283,6 +277,14 @@ payoff inp st =
     f = (achievementsEarned %~ cons a)
       . (buildingOwned b .~ n)
 
+computeUpgradeCost :: GameState -> Upgrade -> Double
+computeUpgradeCost st u
+  | view upgradePool u == "cookie" = view cookieCostMultiplier st * c
+  | otherwise                      = c
+  where
+  c = view upgradeCost u
+    * view upgradeCostMultiplier st
+
 buyMore :: Int -> Double -> Double
 buyMore count nextPrice
   | count < 0 = error "buyMore: negative count"
@@ -303,8 +305,7 @@ computeMultiplier inp st
 
   prestigeFactor = 1 + view prestigeMultiplier st
                      * view prestigeLevel inp / 100
-  heartFactor = 1
-              + (view heartCookieMultiplier st / 100)
+  heartFactor = (1 + view heartCookieMultiplier st / 100)
               ^ view heartCookies st
 
 computeMilk :: GameInput -> Double
@@ -683,6 +684,10 @@ upgradeEffects = Map.fromList $
    [ (name, doubler b) | b <- [Grandma .. ], name <- buildingTieredUpgrades b ] ++
    [ (name, cookieBonus n) | (name, n) <- cookies ] ++
    [ (name, \_ -> heartCookies +~ 1) | name <- heartCookieNames ] ++
+   [ (name, grandmaType b n) | (n,(b,name)) <- zip [1..] synergyGrandmas ] ++
+   [ (name, \_ -> eggMultiplier +~ 0.01) | name <- regularEasterEggs ] ++
+   [ (name, \_ -> mouseBonus +~ 0.01) | name <- mouseUpgrades ] ++
+
    [ ("Reinforced index finger"        , doubler Cursor)
    , ("Carpal tunnel prevention cream" , doubler Cursor)
    , ("Ambidextrous"                   , doubler Cursor)
@@ -695,30 +700,6 @@ upgradeEffects = Map.fromList $
    , ("Sextillion fingers"             , cursorAdd 5.0e+4)
    , ("Septillion fingers"             , cursorAdd 5.0e+5)
    , ("Octillion fingers"              , cursorAdd 5.0e+6)
-
-       ---- MICE
-   , ("Plastic mouse"    , mouseAdd)
-   , ("Iron mouse"       , mouseAdd)
-   , ("Titanium mouse"   , mouseAdd)
-   , ("Adamantium mouse" , mouseAdd)
-   , ("Unobtainium mouse", mouseAdd)
-   , ("Eludium mouse"    , mouseAdd)
-   , ("Wishalloy mouse"  , mouseAdd)
-   , ("Fantasteel mouse" , mouseAdd)
-   , ("Nevercrack mouse" , mouseAdd)
-
-   , ("Farmer grandmas"    , grandmaType Farm         1)
-   , ("Miner grandmas"     , grandmaType Mine         2)
-   , ("Worker grandmas"    , grandmaType Factory      3)
-   , ("Banker grandmas"    , grandmaType Bank         4)
-   , ("Priestess grandmas" , grandmaType Temple       5)
-   , ("Witch grandmas"     , grandmaType WizardTower  6)
-   , ("Cosmic grandmas"    , grandmaType Shipment     7)
-   , ("Transmuted grandmas", grandmaType AlchemyLab   8)
-   , ("Altered grandmas"   , grandmaType Portal       9)
-   , ("Grandmas' grandmas" , grandmaType TimeMachine 10)
-   , ("Antigrandmas"       , grandmaType Antimatter  11)
-   , ("Rainbow grandmas"   , grandmaType Prism       12)
 
    --    -- KITTENS
    , ("Kitten helpers"    , kittenBonus 10)
@@ -749,23 +730,12 @@ upgradeEffects = Map.fromList $
    , ("Elder Pact"                    , gpoc Portal 0.05)
    , ("Sacrificial rolling pins"      , noEffect)
 
-   , ("Salmon roe"   , eggBonus)
-   , ("Ant larva"    , eggBonus)
-   , ("Cassowary egg", eggBonus)
-   , ("Duck egg"     , eggBonus)
-   , ("Turkey egg"   , eggBonus)
-   , ("Turtle egg"   , eggBonus)
-   , ("Quail egg"    , eggBonus)
-   , ("Robin egg"    , eggBonus)
-   , ("Ostrich egg"  , eggBonus)
-   , ("Shark egg"    , eggBonus)
-   , ("Chicken egg"  , eggBonus)
-   , ("Frogspawn"    , eggBonus)
    , ("Century egg"  , addEggTimeBonus)
    , ("Cookie egg"   , \_ -> mouseMultiplier *~ 1.1)
    , ("Wrinklerspawn", \_ -> wrinklerMultiplier *~ 1.05)
 
-   , ("Faberge egg", \_ -> buildingCostMultiplier *~ 0.99)
+   , ("Faberge egg", \_ -> (buildingCostMultiplier *~ 0.99)
+                         . (upgradeCostMultiplier  *~ 0.99) )
    , ("\"egg\"", \_ -> bonusCps +~ 9)
    , ("Omelette", noEffect)
 
@@ -790,7 +760,7 @@ upgradeEffects = Map.fromList $
    , ("Naughty list"              , doubler Grandma)
    , ("Santa's bottomless bag"    , noEffect) -- drops
    , ("Santa's helpers"           , \_ -> mouseMultiplier *~ 1.1)
-   , ("Santa's legacy"            , cookieBonus (15*3))
+   , ("Santa's legacy"            , cookieBonus (15*3)) -- assumes max level 15
    , ("Santa's milk and cookies"  , \_ -> milkMultiplier *~ 1.05)
    , ("Santa's dominion"          , \inp -> cookieBonus 20 inp
                                          . (buildingCostMultiplier *~ 0.99)
@@ -887,6 +857,9 @@ upgradeEffects = Map.fromList $
 
    , ("Divine discount", \_ -> buildingCostMultiplier *~ 0.99)
    , ("Divine sales", \_ -> upgradeCostMultiplier *~ 0.99)
+   , ("Divine bakeries", \_ -> cookieCostMultiplier /~ 5)
+
+   , ("Five-finger discount", fiveFingers)
 
    , ("Elder spice", noEffect)
    , ("Sacrilegious corruption", \_ -> wrinklerMultiplier *~ 1.05)
@@ -901,6 +874,29 @@ upgradeEffects = Map.fromList $
    , ("Golden cookie sound selector", noEffect)
    ]
 
+synergyGrandmas :: [(Building, Text)]
+synergyGrandmas =
+  [ (Farm       , "Farmer grandmas")
+  , (Mine       , "Miner grandmas")
+  , (Factory    , "Worker grandmas")
+  , (Bank       , "Banker grandmas")
+  , (Temple     , "Priestess grandmas")
+  , (WizardTower, "Witch grandmas")
+  , (Shipment   , "Cosmic grandmas")
+  , (AlchemyLab , "Transmuted grandmas")
+  , (Portal     , "Altered grandmas")
+  , (TimeMachine, "Grandmas' grandmas")
+  , (Antimatter , "Antigrandmas")
+  , (Prism      , "Rainbow grandmas")
+  ]
+
+mouseUpgrades :: [Text]
+mouseUpgrades =
+  ["Plastic mouse", "Iron mouse", "Titanium mouse", "Adamantium mouse",
+   "Unobtainium mouse", "Eludium mouse", "Wishalloy mouse", "Fantasteel mouse",
+   "Nevercrack mouse"]
+
+
 heartCookieNames :: [Text]
 heartCookieNames =
    [ "Pure heart biscuits"
@@ -911,7 +907,13 @@ heartCookieNames =
    , "Eternal heart biscuits"
    ]
 
+regularEasterEggs :: [Text]
+regularEasterEggs =
+  ["Salmon roe" ,"Ant larva" ,"Cassowary egg", "Duck egg",
+   "Turkey egg" ,"Turtle egg", "Quail egg", "Robin egg",
+   "Ostrich egg", "Shark egg", "Chicken egg", "Frogspawn"]
 
+-- | Cookies with a constant power effect
 cookies :: [(Text, Int)]
 cookies =
    [ (view upgradeName u, n)
@@ -983,20 +985,26 @@ buildingTieredUpgrades b =
 noEffect :: Effect
 noEffect _ st = st
 
-eggBonus :: Effect
-eggBonus _ = eggMultiplier +~ 0.01
-
 prestigeBonus :: Double -> Effect
 prestigeBonus n _ = prestigeMultiplier +~ n / 100
 
 addEggTimeBonus :: Effect
 addEggTimeBonus inp = eggMultiplier +~ views sessionLength eggTimeBonus inp
 
-eggTimeBonus :: Double -> Double
-eggTimeBonus s = (1 - (1 - day/100)**3) / 10
+eggTimeBonus ::
+  Double {- ^ current session duration in seconds -} ->
+  Double {- ^ cookie production multiplier        -}
+eggTimeBonus s = (1 - (1 - cappedDays/100)**3) / 10
   where
-  day = min 100
-      $ floor' (s / 10) * 10 / (60 * 60 * 24)
+  secPerDay = 60 * 60 * 24
+
+  -- this bonus increases in units of 10 seconds
+  steppedSeconds = under (multiplying 10) floor' s
+
+  days = steppedSeconds / secPerDay
+
+  -- The benefit maxes out at 100 days
+  cappedDays = min 100 days
 
 floor' :: Double -> Double
 floor' = realToFrac . c_floor . realToFrac
@@ -1010,7 +1018,7 @@ foreign import ccall "math.h ceil" c_ceil :: CDouble -> CDouble
 synergy :: Building -> Building -> Effect
 synergy major minor inp
   = assert (major < minor)
-  $ (buildingMult major *~ (1 + 0.05 * fromIntegral minorCount))
+  $ (buildingMult major *~ (1 + 0.050 * fromIntegral minorCount))
   . (buildingMult minor *~ (1 + 0.001 * fromIntegral majorCount))
   where
   majorCount = view (buildingOwned major) inp
@@ -1024,7 +1032,7 @@ saveFileToGameInput now sav = GameInput
   , _upgradesBought     = upgradeList snd
   , _upgradesAvailable  = upgradeList inShop
   , _prestigeLevel      = savPrestige (savMain sav)
-  , _sessionLength      = realToFrac (diffUTCTime now (savSessionStart (savStats sav)))
+  , _sessionLength      = duration
   , _cookiesMunched     = savMunched (savMain sav)
   , _wrinklers          = savWrinklers (savMain sav)
   , _cookiesBanked      = savCookies (savMain sav)
@@ -1036,6 +1044,8 @@ saveFileToGameInput now sav = GameInput
   , _heavenlyChips      = savHeavenlyChips (savMain sav)
   }
   where
+  duration = realToFrac (diffUTCTime now (savSessionStart (savStats sav)))
+
   inShop (unlocked,bought) = unlocked && not bought
 
   upgradeList f
@@ -1062,20 +1072,31 @@ sellOff input st = view buildingCostMultiplier st * sums
 computeElderFrenzyTime :: GameState -> Double
 computeElderFrenzyTime st = ceil' (6 * view goldTimeMultiplier st)
 
-cpsToChainReserve6 :: Double -> Double
-cpsToChainReserve6 cps = 4 * floor6 (m*cps)
+-- | Compute cookies needed in bank to maximize the wrath-cookie chain
+-- payout based on current cookies per second.
+cpsToChainReserve6 ::
+  Double {- ^ cookies per second -} ->
+  Double {- ^ cookies to bank    -}
+cpsToChainReserve6 cps = 4 * floor6 (6 * hours * cps)
   where
-  m = 6 * 60 * 60
+  hours = 60 * 60
 
 floor6 :: Double -> Double
-floor6 x = last (6 : zs)
-  where
-  zs = takeWhile (<= x) $ map (2/3*) $ iterate (*10) 100
+floor6 = under (powering 10 . multiplying (2/3)) (max 1 . floor')
 --var maxPayout=Math.min(Game.cookiesPs*60*60*6,Game.cookies*0.25)*mult;
 
-cookiesToPrestige :: Double -> Double
-cookiesToPrestige c = (c / 1e12) ** (1/3)
+-- | Isomorphism between prestige level and cookies baked.
+--
+-- @
+-- prestigeLevel = cookies**3 * 1e12
+-- prestigeLevel = _Prestige # cookies
+-- @
+_Prestige :: Iso' Double Double
+_Prestige = multiplying 1e4 . exponentiating 3
 
+
+-- | Compute the cost to buy back the given number of buildings
+-- after sacrificing that many for Krumblor, the cookie dragon.
 sacrificeCost :: Int -> GameInput -> GameState -> Double
 sacrificeCost n i st = sum (buyMore n <$> buildingCosts i' st)
   where
@@ -1118,3 +1139,27 @@ buildingIcons Prism = (14,0)
 buildingIcons Bank = (15,0)
 buildingIcons Temple = (16,0)
 buildingIcons WizardTower = (17,0)
+
+fiveFingers :: Effect
+fiveFingers inp =
+  upgradeCostMultiplier *~ 0.99**(fromIntegral cursors/ 100)
+  where
+  cursors = view (buildingOwned Cursor) inp
+
+------------------------------------------------------------------------
+-- Missing functions from lens
+------------------------------------------------------------------------
+
+-- | Divide a number identified by a setter by a divisor.
+(/~) :: Fractional a => ASetter' s a -> a -> s -> s
+l /~ x = over l (/ x)
+{-# INLINE (/~) #-}
+
+-- | The isomorphism between the power function and the log function
+-- at a given base.
+--
+-- @
+-- powering base = iso (base **) (logBase base)
+-- @
+powering :: Floating a => a -> Iso' a a
+powering base = iso (base **) (logBase base)

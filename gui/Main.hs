@@ -8,12 +8,13 @@ module Main (main) where
 import           CookieClicker
 import           SaveFormat
 import           GameInput
+import           Building
 
 import           EmbedStringTH
-import           Scrollable
 
 import qualified Control.Lens as L
 import           Data.Foldable
+import           Data.Function ((&))
 import           Data.List
 import           Data.Ord
 import           Data.Time
@@ -27,7 +28,7 @@ data MyGtkApp = MyGtkApp
   , bankOutput, munchOutput, totalOutput
   , reserveOutput, reserve7Output, reserveCOutput
   , jackpot7Output, jackpotEOutput, jackpotDOutput
-  , hchipsOutput, effHChipsOutput :: Label
+  , chocolateEggOutput, hchipsOutput, effHChipsOutput :: Label
 
   , payoffModel :: ListStore PayoffRow
   , payoffTable :: TreeView
@@ -62,6 +63,7 @@ getMyGtkApp =
      jackpotEOutput <- load "jackpotEOutput"
      jackpotDOutput <- load "jackpotDOutput"
 
+     chocolateEggOutput <- load "chocolateEggOutput"
      hchipsOutput    <- load "hchipsOutput"
      effHChipsOutput <- load "effHChipsOutput"
 
@@ -191,8 +193,19 @@ loadFromFromSave MyGtkApp{..} sav =
          munched = L.view cookiesMunched i * L.view wrinklerMultiplier st
          banked  = L.view cookiesBanked i
 
-         newChips = cookiesToPrestige (L.view cookiesEarned i + L.view cookiesForfeit i + munched)
-                  - L.view prestigeLevel i
+         newChips
+           = L.review _Prestige
+               (L.view cookiesEarned i + L.view cookiesForfeit i + munched)
+           - L.view prestigeLevel i
+
+         chocolateChips
+           = L.review _Prestige
+               ( L.view cookiesEarned i
+               + L.view cookiesForfeit i
+               + munched
+               + sellOff (i & buildingOwned Prism L.-~ 1) st * 0.85 * 0.05
+               )
+           - L.view prestigeLevel i
 
          setOut l n = set l [labelText := prettyNumber ShortSuffix n]
 
@@ -214,8 +227,9 @@ loadFromFromSave MyGtkApp{..} sav =
      setOut jackpotEOutput (ecps * 666 * ceil' (6 * 2 * 1.1)) -- XXX: generalize
      setOut jackpotDOutput (ecps * 666 * ceil' (6 * 2 * 1.1) + 666 * 60 * cps)
 
+     setOut chocolateEggOutput chocolateChips
      setOut hchipsOutput newChips
-     setOut effHChipsOutput (newChips + L.view heavenlyChips i)
+     setOut effHChipsOutput (chocolateChips + L.view heavenlyChips i)
 
 class GObjectClass a => GObjectCast a where cast :: GObject -> a
 instance GObjectCast Window   where cast = castToWindow
