@@ -174,7 +174,7 @@ payoff inp st =
      [ PayoffRow
          { payoffName  = act
          , payoffCost  = cost
-         , payoffDelta = delta / cps
+         , payoffDelta = delta
          , payoffInput = i'
          , payoffIcon = icon
          }

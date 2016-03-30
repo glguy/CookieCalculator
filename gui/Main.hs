@@ -36,6 +36,7 @@ data MyGtkApp = MyGtkApp
   , mainWindow :: Window
   , iconsPixbuf :: Pixbuf
   , bankRef    :: {-# UNPACK #-} !(IORef Double)
+  , cpsRef     :: {-# UNPACK #-} !(IORef Double)
   }
 
 getMyGtkApp :: IO MyGtkApp
@@ -74,6 +75,7 @@ getMyGtkApp =
      set payoffTable [ treeViewModel := payoffModel ]
 
      bankRef <- newIORef 0
+     cpsRef <- newIORef 0
 
      iconsPixbuf <- loadIcons
 
@@ -93,18 +95,23 @@ main =
      mainGUI
 
 computeMetric :: PayoffRow -> Double
-computeMetric PayoffRow{..} = logBase 10 (payoffCost / payoffDelta)
+computeMetric PayoffRow{..} = logBase 1.15 (payoffCost / payoffDelta)
 
 installColumns :: MyGtkApp -> IO ()
 installColumns app =
 
   do addNameColumn app
-     addColumn app "Metric" (\x -> showFFloat (Just 1) (computeMetric x) "")
+     addColumn app "Metric" $ \x ->
+       return (showFFloat (Just 1) (computeMetric x) "")
+
      addCostColumn app
-     addColumn app "Benefit"  (prettyPercentage . payoffDelta)
+
+     addColumn app "Benefit" $ \row ->
+        do cps <- readIORef (cpsRef app)
+           return (prettyPercentage (payoffDelta row / cps))
 
 
-addColumn :: MyGtkApp -> String -> (PayoffRow -> String) -> IO ()
+addColumn :: MyGtkApp -> String -> (PayoffRow -> IO String) -> IO ()
 addColumn MyGtkApp{payoffTable, payoffModel} name render =
 
   do col <- treeViewColumnNew
@@ -115,8 +122,10 @@ addColumn MyGtkApp{payoffTable, payoffModel} name render =
      set cell [ cellXAlign := 1 ]
 
      treeViewColumnPackStart col cell True
-     cellLayoutSetAttributes col cell payoffModel $ \row ->
-       [ cellTextMarkup := Just (render row) ]
+     cellLayoutSetAttributeFunc col cell payoffModel $ \iter ->
+       do row <- treeModelGetRow payoffModel iter
+          txt <- render row
+          set cell [ cellText := txt ]
 
      return ()
 
@@ -211,6 +220,7 @@ loadFromFromSave MyGtkApp{..} sav =
          setOut l n = set l [labelText := prettyNumber ShortSuffix n]
 
      writeIORef bankRef (banked + munched)
+     writeIORef cpsRef cps
 
      setOut cpsOutput      cps
      setOut wcpsOutput     (cps * (1-L.views wrinklers fromIntegral i * 0.05))
@@ -248,18 +258,19 @@ loadIcons =
      pixbufScaleSimple pixbuf (w`quot`2) (h`quot`2) InterpBilinear
 
 prettyPercentage :: Double -> String
-prettyPercentage x = prefix ++ prettyPercentage' x'
+prettyPercentage x = prefix ++ prettyPercentage' (abs x)
   where
   prefix | x < 0 = "-"
          | otherwise = ""
-  x' = fixPrecision 3 (abs x)
 
 -- Helper to 'prettyFractionalNumber' that handles positive values
 prettyPercentage' :: Double -> String
 prettyPercentage' x
   | x >= 1 = showFFloat (Just 1) x ""
-  | x >= 0.01 = showFFloat (Just 1) (x*100) " %"
-  | otherwise = showFFloat (Just 1) (x*10000) " ‱"
+  | x >= 0.01 = showFFloat (Just 1) (x'*100) " %"
+  | otherwise = showFFloat (Just 1) (x'*10000) " ‱"
+  where
+  x' = fixPrecision 3 x
 
 fixPrecision :: Int -> Double -> Double
 fixPrecision p x = round' (x * m) / m
