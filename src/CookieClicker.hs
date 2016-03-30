@@ -164,6 +164,7 @@ data PayoffRow = PayoffRow
   , payoffCost :: !Double
   , payoffDelta :: !Double
   , payoffInput :: !GameInput
+  , payoffIcon :: (Int,Int)
   }
 
 payoff :: GameInput -> GameState -> [PayoffRow]
@@ -173,10 +174,12 @@ payoff inp st =
          , payoffCost  = cost
          , payoffDelta = delta / cps
          , payoffInput = i'
+         , payoffIcon = icon
          }
-     | (act, cost, f) <- buyBuilding ++ buyUpgrades
-                      ++ buyGrandmas ++ buyUpgradeRequirements
-                      ++ buyAchievements
+     | (act, cost, f, icon)
+            <- buyBuilding ++ buyUpgrades
+            ++ buyGrandmas ++ buyUpgradeRequirements
+            ++ buyAchievements
      , let i' = f inp
      , let delta = computeCps i' (computeGameState i') - cps
      , delta > 0
@@ -189,6 +192,7 @@ payoff inp st =
     [( "+1 " ++ show x
      , cost
      , buildingOwned x .~ new
+     , buildingIcons x
      )
     | (x, cost) <- Map.toList costs
     , let new = view (buildingOwned x) inp + 1
@@ -200,6 +204,7 @@ payoff inp st =
      [ ( views upgradeName Text.unpack u
        , view upgradeCost u * view upgradeCostMultiplier st
        , upgradesBought %~ cons u
+       , view upgradeIcon u
        )
      | u <- view upgradesAvailable inp
      ]
@@ -254,8 +259,10 @@ payoff inp st =
          , target > now
          , notElemOf (upgradesBought . folded . upgradeName) up inp ]
 
-  finish :: Int -> Building -> Text -> (String, Double, GameInput -> GameInput)
-  finish n b up = ("+" ++ show n' ++ " " ++ show b ++ " + " ++ Text.unpack up, cost, f)
+  finish :: Int -> Building -> Text -> (String, Double, GameInput -> GameInput, (Int,Int))
+  finish n b up =
+    ("+" ++ show n' ++ " " ++ show b ++ " + " ++ Text.unpack up, cost, f
+    , view upgradeIcon u)
     where
     fa = case Map.lookup b nextAchievements of
       Just (count, a) | count <= n -> achievementsEarned %~ cons a
@@ -269,7 +276,7 @@ payoff inp st =
       . fa
       . (buildingOwned b .~ n)
 
-  finishA n b a = ("+" ++ show n' ++ " " ++ show b, cost, f)
+  finishA n b a = ("+" ++ show n' ++ " " ++ show b, cost, f, buildingIcons b)
     where
     n' = n - view (buildingOwned b) inp
     cost = buyMore n' (costs ^?! ix b)
@@ -1095,3 +1102,19 @@ computeWrinklerEffect input st =
   where
   n = views wrinklers fromIntegral input
   wither = n * 0.05
+
+buildingIcons :: Building -> (Int,Int)
+buildingIcons Cursor = (0,0)
+buildingIcons Grandma = (1,0)
+buildingIcons Farm = (2,0)
+buildingIcons Mine = (3,0)
+buildingIcons Factory = (4,0)
+buildingIcons Shipment = (5,0)
+buildingIcons AlchemyLab = (6,0)
+buildingIcons Portal = (7,0)
+buildingIcons TimeMachine = (8,0)
+buildingIcons Antimatter = (13,0)
+buildingIcons Prism = (14,0)
+buildingIcons Bank = (15,0)
+buildingIcons Temple = (16,0)
+buildingIcons WizardTower = (17,0)

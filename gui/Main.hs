@@ -1,6 +1,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# Language TemplateHaskell #-}
+{-# Language ForeignFunctionInterface #-}
 
 module Main (main) where
 
@@ -9,6 +10,7 @@ import           SaveFormat
 import           GameInput
 
 import           EmbedStringTH
+import           Scrollable
 
 import qualified Control.Lens as L
 import           Data.Foldable
@@ -18,6 +20,7 @@ import           Data.Time
 import           Data.IORef
 import           Graphics.UI.Gtk
 import           Graphics.UI.Gtk.Builder
+import           Foreign
 
 data MyGtkApp = MyGtkApp
   { cpsOutput, wcpsOutput, tcpsOutput
@@ -30,6 +33,7 @@ data MyGtkApp = MyGtkApp
   , payoffTable :: TreeView
   , loadButton :: Button
   , mainWindow :: Window
+  , iconsPixbuf :: Pixbuf
   , bankRef    :: {-# UNPACK #-} !(IORef Double)
   }
 
@@ -69,6 +73,8 @@ getMyGtkApp =
 
      bankRef <- newIORef 0
 
+     iconsPixbuf <- loadIcons
+
      return MyGtkApp{..}
 
 main :: IO ()
@@ -90,7 +96,7 @@ computeMetric PayoffRow{..} = logBase 2 (payoffCost / payoffDelta)
 installColumns :: MyGtkApp -> IO ()
 installColumns app =
 
-  do addColumn app "Name" payoffName
+  do addNameColumn app
      metricCell <- addColumn app "Metric" (prettyNumber ShortSuffix . computeMetric)
      addCostColumn app
      deltaCell <- addColumn app "Delta"  (prettyNumber ShortSuffix . (*100) . payoffDelta)
@@ -111,6 +117,27 @@ addColumn MyGtkApp{payoffTable, payoffModel} name render =
 
      return cell
 
+addNameColumn :: MyGtkApp -> IO ()
+addNameColumn MyGtkApp{payoffTable, payoffModel, iconsPixbuf} =
+
+  do col <- treeViewColumnNew
+     treeViewAppendColumn payoffTable col
+
+     pixcell <- cellRendererPixbufNew
+     textcell <- cellRendererTextNew
+
+     treeViewColumnPackStart col pixcell False
+     treeViewColumnPackStart col textcell True
+
+     cellLayoutSetAttributeFunc col pixcell payoffModel $ \iter ->
+        do row <- treeModelGetRow payoffModel iter
+           let (c,r) = payoffIcon row
+           icon <- pixbufNewSubpixbuf iconsPixbuf (24*c) (24*r) 24 24
+           set pixcell [ cellPixbuf := icon ]
+
+     cellLayoutSetAttributeFunc col textcell payoffModel $ \iter ->
+        do row <- treeModelGetRow payoffModel iter
+           set textcell [ cellText := payoffName row ]
 
 addCostColumn :: MyGtkApp -> IO CellRendererProgress
 addCostColumn MyGtkApp{payoffTable, payoffModel, bankRef} =
@@ -157,6 +184,7 @@ loadFromFromSave MyGtkApp{..} sav =
 
      listStoreClear payoffModel
      traverse_ (listStoreAppend payoffModel) rows
+     set payoffTable [ widgetHeightRequest := 100 ]
 
      let cps     = computeCps i st
          ecps    = computeWrinklerEffect i st * cps
@@ -194,3 +222,12 @@ instance GObjectCast Window   where cast = castToWindow
 instance GObjectCast Label    where cast = castToLabel
 instance GObjectCast Button   where cast = castToButton
 instance GObjectCast TreeView where cast = castToTreeView
+
+foreign import ccall "&" cookie_clicker_icons :: Ptr InlineImage
+
+loadIcons :: IO Pixbuf
+loadIcons =
+  do pixbuf <- pixbufNewFromInline cookie_clicker_icons
+     w <- pixbufGetWidth pixbuf
+     h <- pixbufGetHeight pixbuf
+     pixbufScaleSimple pixbuf (w`quot`2) (h`quot`2) InterpBilinear

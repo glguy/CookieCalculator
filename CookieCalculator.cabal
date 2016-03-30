@@ -57,4 +57,5 @@ executable CookieClickerGtk
                        CookieCalculator,
                        gtk3              >=0.14 && <0.15
 
+  c-sources:           gui-cbits/icons.c
   default-language:    Haskell2010

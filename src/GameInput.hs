@@ -43,7 +43,8 @@ data Upgrade = Upgrade
   , _upgradePool   :: !Text
   , _upgradeBuildingTie :: !(Maybe Text)
   , _upgradePower :: !(Maybe Int)
-  , _upgradeCost   :: !Double
+  , _upgradeCost  :: !Double
+  , _upgradeIcon  :: {-# UNPACK #-}!(Int,Int)
   }
   deriving (Read, Show)
 
@@ -109,6 +110,7 @@ myDeriveJSON ''Upgrade
   , ("_upgradePower", "power")
   , ("_upgradeBuildingTie", "buildingTie")
   , ("_upgradeCost","price")
+  , ("_upgradeIcon","icon")
   ]
 
 myDeriveJSON ''Achievement
@@ -122,7 +124,7 @@ instance Lift Text where
     str = Text.unpack txt
 
 instance Lift Upgrade where
-  lift (Upgrade v w x y z) = [| Upgrade v w x y z |]
+  lift (Upgrade u v w x y z) = [| Upgrade u v w x y z |]
 
 instance Lift Achievement where
   lift (Achievement x y) = [| Achievement x y |]
