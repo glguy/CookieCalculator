@@ -99,13 +99,12 @@ installColumns :: MyGtkApp -> IO ()
 installColumns app =
 
   do addNameColumn app
-     metricCell <- addColumn app "Metric" (prettyNumber ShortSuffix . computeMetric)
+     addColumn app "Metric" (prettyNumber ShortSuffix . computeMetric)
      addCostColumn app
-     deltaCell <- addColumn app "Delta"  (prettyNumber ShortSuffix . (*100) . payoffDelta)
+     addColumn app "∆%"  (prettyNumber ShortSuffix . (*100) . payoffDelta)
 
-     traverse_ (`set` [ cellXAlign := 1 ]) [ metricCell, deltaCell ]
 
-addColumn :: MyGtkApp -> String -> (PayoffRow -> String) -> IO CellRendererText
+addColumn :: MyGtkApp -> String -> (PayoffRow -> String) -> IO ()
 addColumn MyGtkApp{payoffTable, payoffModel} name render =
 
   do col <- treeViewColumnNew
@@ -113,11 +112,13 @@ addColumn MyGtkApp{payoffTable, payoffModel} name render =
      treeViewAppendColumn payoffTable col
 
      cell <- cellRendererTextNew
+     set cell [ cellXAlign := 1 ]
+
      treeViewColumnPackStart col cell True
      cellLayoutSetAttributes col cell payoffModel $ \row ->
        [ cellText := render row ]
 
-     return cell
+     return ()
 
 addNameColumn :: MyGtkApp -> IO ()
 addNameColumn MyGtkApp{payoffTable, payoffModel, iconsPixbuf} =

@@ -42,7 +42,6 @@ data BuildingStat = BuildingStat
 data Upgrade = Upgrade
   { _upgradeName   :: !Text
   , _upgradePool   :: !Text
-  , _upgradeBuildingTie :: !(Maybe Text)
   , _upgradePower :: !(Maybe Int)
   , _upgradeCost  :: !Double
   , _upgradeIcon  :: {-# UNPACK #-}!(Int,Int)
@@ -113,7 +112,6 @@ myDeriveJSON ''Upgrade
   [ ("_upgradeName", "name")
   , ("_upgradePool", "pool")
   , ("_upgradePower", "power")
-  , ("_upgradeBuildingTie", "buildingTie")
   , ("_upgradeCost","price")
   , ("_upgradeIcon","icon")
   ]
@@ -129,7 +127,7 @@ instance Lift Text where
     str = Text.unpack txt
 
 instance Lift Upgrade where
-  lift (Upgrade u v w x y z) = [| Upgrade u v w x y z |]
+  lift (Upgrade v w x y z) = [| Upgrade v w x y z |]
 
 instance Lift Achievement where
   lift (Achievement x y) = [| Achievement x y |]
