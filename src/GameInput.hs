@@ -25,6 +25,7 @@ data GameInput = GameInput
   , _cookiesBanked      :: !Double
   , _dragonAura1        :: !Text
   , _dragonAura2        :: !Text
+  , _santaLevel         :: !Int
 
   , _cookiesForfeit     :: !Double
   , _cookiesEarned      :: !Double
@@ -56,7 +57,6 @@ data Achievement = Achievement
 data GameState = GameState
   { _buildingStats   :: !(Map Building BuildingStat)
   , _multiplier      :: !Double
-  , _lateMultiplier  :: !Double -- applies after munch
   , _eggMultiplier   :: !Double
   , _prestigeMultiplier :: !Double
   , _mouseBonus      :: !Double
@@ -71,6 +71,10 @@ data GameState = GameState
   , _heartCookies :: !Int
   , _heartCookieMultiplier :: !Double
   , _cookieCostMultiplier :: !Double
+
+  , _goldenSwitchActive   :: !Bool
+  , _goldenSwitchResidual :: !Bool
+  , _goldenSwitchBonus    :: !Double
   }
   deriving (Read, Show)
 
