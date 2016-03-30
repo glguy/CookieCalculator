@@ -266,7 +266,7 @@ prettyPercentage x = prefix ++ prettyPercentage' (abs x)
 -- Helper to 'prettyFractionalNumber' that handles positive values
 prettyPercentage' :: Double -> String
 prettyPercentage' x
-  | x >= 1 = showFFloat (Just 1) x ""
+  | x >= 1    = prettyNumber ShortSuffix x
   | x >= 0.01 = showFFloat (Just 1) (x'*100) " %"
   | otherwise = showFFloat (Just 1) (x'*10000) " ‱"
   where
