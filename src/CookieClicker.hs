@@ -148,7 +148,7 @@ leftJoinWith' f = Map.mergeWithKey (\_ x y -> Just $! f x y) id (\_ -> Map.empty
 
 buildingCosts :: GameInput -> GameState -> Map Building Double
 buildingCosts inp st
-  = fmap (* view buildingCostMultiplier st)
+  = fmap (\x -> ceil' (x * view buildingCostMultiplier st))
   $ leftJoinWith'
       (\base n -> base * 1.15 ^ max 0 n)
       initialCosts
@@ -191,7 +191,7 @@ payoff inp st =
   reserve = 6000 * cps
 
   buyBuilding =
-    [( "+1 " ++ show x
+    [( buildingName x
      , cost
      , buildingOwned x .~ new
      , buildingIcons x
@@ -258,7 +258,7 @@ payoff inp st =
 
   finish :: Int -> Building -> Text -> (String, Double, GameInput -> GameInput, (Int,Int))
   finish n b up =
-    ("+" ++ show n' ++ " " ++ show b ++ " + " ++ Text.unpack up, cost, f
+    ("+" ++ show n' ++ " " ++ buildingName b ++ " + " ++ Text.unpack up, cost, f
     , view upgradeIcon u)
     where
     fa = case Map.lookup b nextAchievements of
@@ -273,7 +273,7 @@ payoff inp st =
       . fa
       . (buildingOwned b .~ n)
 
-  finishA n b a = ("+" ++ show n' ++ " " ++ show b, cost, f, buildingIcons b)
+  finishA n b a = ("+" ++ show n' ++ " " ++ buildingName b, cost, f, buildingIcons b)
     where
     n' = n - view (buildingOwned b) inp
     cost = buyMore n' (costs ^?! ix b)
@@ -883,12 +883,14 @@ upgradeEffects = Map.fromList $
    ]
 
 computeUpgradeCost :: GameInput -> GameState -> Upgrade -> Double
-computeUpgradeCost inp st u
-  | view upgradePool u == "cookie" = view cookieCostMultiplier st * c
-  | otherwise                      = c
+computeUpgradeCost inp st u = ceil' (poolMultiplier * c)
   where
   c = baseUpgradeCost inp st u
     * view upgradeCostMultiplier st
+
+  poolMultiplier
+    | view upgradePool u == "cookie" = view cookieCostMultiplier st
+    | otherwise                      = 1
 
 baseUpgradeCost :: GameInput -> GameState -> Upgrade -> Double
 baseUpgradeCost inp st u =
