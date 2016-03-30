@@ -101,7 +101,7 @@ installColumns app =
   do addNameColumn app
      addColumn app "Metric" (\x -> showFFloat (Just 1) (computeMetric x) "")
      addCostColumn app
-     addColumn app "Benefit"  (prettyFractionalNumber . payoffDelta)
+     addColumn app "Benefit"  (prettyPercentage . payoffDelta)
 
 
 addColumn :: MyGtkApp -> String -> (PayoffRow -> String) -> IO ()
@@ -247,19 +247,19 @@ loadIcons =
      h <- pixbufGetHeight pixbuf
      pixbufScaleSimple pixbuf (w`quot`2) (h`quot`2) InterpBilinear
 
-prettyFractionalNumber :: Double -> String
-prettyFractionalNumber x
-  | x < 0      = '-':prettyFractionalNumber' (negate x)
-  | otherwise  = prettyFractionalNumber' x
+prettyPercentage :: Double -> String
+prettyPercentage x = prefix ++ prettyPercentage' x'
+  where
+  prefix | x < 0 = "-"
+         | otherwise = ""
+  x' = fixPrecision 3 (abs x)
 
 -- Helper to 'prettyFractionalNumber' that handles positive values
-prettyFractionalNumber' :: Double -> String
-prettyFractionalNumber' x = showFFloat (Just 1) x2 suffix
-  where
-  x1 = fixPrecision 2 x
-  e = floor (logBase 10 x1) :: Int
-  x2 = x1 * 10^^negate e
-  suffix = " <sub>10</sub> " ++ show e
+prettyPercentage' :: Double -> String
+prettyPercentage' x
+  | x >= 1 = showFFloat (Just 1) x ""
+  | x >= 0.01 = showFFloat (Just 1) (x*100) " %"
+  | otherwise = showFFloat (Just 1) (x*10000) " ‱"
 
 fixPrecision :: Int -> Double -> Double
 fixPrecision p x = round' (x * m) / m
