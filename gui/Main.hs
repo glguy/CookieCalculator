@@ -94,9 +94,13 @@ main =
 
      mainGUI
 
+-- | Metric based on minimizing: @time/benefit + time@
 computeMetric :: PayoffRow -> Double
 computeMetric PayoffRow{..}
-  = logBase 1.15 (payoffCost / (1 - recip (1 + payoffDelta)))
+  = (log payoffCost + log1p (recip payoffDelta))
+  / log 1.15
+
+-- $ payoffCost/payoffDelta + payoffCost
 
 installColumns :: MyGtkApp -> IO ()
 installColumns app =
