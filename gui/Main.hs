@@ -95,7 +95,8 @@ main =
      mainGUI
 
 computeMetric :: PayoffRow -> Double
-computeMetric PayoffRow{..} = logBase 1.15 (payoffCost / payoffDelta)
+computeMetric PayoffRow{..}
+  = logBase 1.15 (payoffCost / (1 - recip (1 + payoffDelta)))
 
 installColumns :: MyGtkApp -> IO ()
 installColumns app =
@@ -108,7 +109,7 @@ installColumns app =
 
      addColumn app "Benefit" $ \row ->
         do cps <- readIORef (cpsRef app)
-           return (prettyPercentage (payoffDelta row / cps))
+           return (prettyPercentage (payoffDelta row))
 
 
 addColumn :: MyGtkApp -> String -> (PayoffRow -> IO String) -> IO ()
