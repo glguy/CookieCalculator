@@ -71,6 +71,7 @@ data GameState = GameState
   , _heartCookies :: !Int
   , _heartCookieMultiplier :: !Double
   , _cookieCostMultiplier :: !Double
+  , _synergyCostMultiplier :: !Double
 
   , _goldenSwitchActive   :: !Bool
   , _goldenSwitchResidual :: !Bool
