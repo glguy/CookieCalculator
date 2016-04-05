@@ -1156,17 +1156,15 @@ sacrificeCost n i st = sum (buyMore n <$> buildingCosts i' st)
 
 bigStep :: GameInput -> [String]
 bigStep i
-  | payoffCost best <= view cookiesBanked i = payoffName best
-                                            : bigStep (payoffInput best & cookiesBanked -~ payoffCost best)
+  | payoffCost best <= view cookiesBanked i
+       = payoffName best
+       : bigStep (payoffInput best & cookiesBanked -~ payoffCost best)
   | otherwise = []
   where
   best = minimumBy (comparing metric)
-       $ filter isBuyOne
        $ payoff i (computeGameState i)
 
-  metric x = payoffCost x * payoffDelta x
-
-  isBuyOne x = "+1 " `isPrefixOf` payoffName x
+  metric x = payoffCost x / payoffDelta x + payoffCost x
 
 computeWrinklerEffect :: GameInput -> GameState -> Double
 computeWrinklerEffect input st =

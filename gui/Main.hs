@@ -95,6 +95,25 @@ main =
      mainGUI
 
 -- | Metric based on minimizing: @time/benefit + time@
+--
+-- Given two possible actions we characterize when it is
+-- faster to perform the first action before the second
+--
+-- t: Time required to perform the first action
+-- u: Time required to perform the second action
+-- m: Incremental multiplicative benefit derived from first action
+-- n: Incremental multiplicative benefit derived from second action
+--
+-- Assumptions: 0 < t,u,m,n
+--
+-- time for first then second < time for second then first
+-- t + u/(1+m)                < u + t/(1+n)
+-- t - t/(1+n)                < u - u/(1+m)
+-- t*(1+m)(1+n) - t*(1+m)     < u*(1+m)(1+n) - u*(1+n)
+-- t*(1+m)*(1+n-1)            < u*(1+n)*(1+m - 1)
+-- t*(1+m)*n                  < u*(1+n)*m
+-- t*(1+m)/m                  < u*(1+n)/n
+-- t*(1+1/m)                  < u*(1+1/n)
 computeMetric :: PayoffRow -> Double
 computeMetric PayoffRow{..}
   = (log payoffCost + log1p (recip payoffDelta))
