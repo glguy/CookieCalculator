@@ -11,7 +11,7 @@ author:              Eric Mertens
 maintainer:          emertens@gmail.com
 copyright:           2016 Eric Mertens
 category:            Game
-build-type:          Custom
+build-type:          Simple
 cabal-version:       >=1.10
 
 library
@@ -20,15 +20,15 @@ library
   install-includes:    cookies.h
   exposed-modules:     CookieClicker, SaveFormat, Building, GameInput, SourceData, AesonTH
   other-modules:       CApi
-  build-depends:       base              >=4.8 && <4.9,
-                       aeson             >=0.9  && <0.12,
+  build-depends:       base              >=4.8 && <4.10,
+                       aeson             >=0.9  && <1.1,
                        base64-bytestring >=1.0  && <1.1,
                        bytestring        >=0.10 && <0.11,
                        containers        >=0.5  && <0.6,
-                       lens              >=4.13 && <4.14,
-                       template-haskell  >=2.10 && <2.11,
+                       lens              >=4.13 && <4.16,
+                       template-haskell  >=2.10 && <2.12,
                        text              >=1.2  && <1.3,
-                       time              >=1.5  && <1.6
+                       time              >=1.5  && <1.7
 
   default-language:    Haskell2010
 
@@ -37,11 +37,11 @@ executable CookieClickerGtk
   main-is:             Main.hs
   other-modules:       EmbedStringTH
 
-  build-depends:       base >=4.8 && <4.9,
-                       lens              >=4.13 && <4.14,
-                       time              >=1.5  && <1.6,
+  build-depends:       base              >=4.8 && <4.10,
+                       lens              >=4.13 && <4.16,
+                       time              >=1.5  && <1.7,
                        containers        >=0.5  && <0.6,
-                       template-haskell  >=2.10 && <2.11,
+                       template-haskell  >=2.10 && <2.12,
                        CookieCalculator,
                        gtk3              >=0.14 && <0.15
 
