@@ -2,3 +2,4 @@
 .stack-work
 /stack.yaml
 .*.swp
+.swp

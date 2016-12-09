@@ -39,7 +39,6 @@ initialGameState :: GameState
 initialGameState = GameState
   { _buildingStats           = initialBuildingStat <$> baseCps
   , _multiplier              = 1
-  , _eggMultiplier           = 1
   , _mouseBonus              = 0
   , _mouseMultiplier         = 1
   , _prestigeMultiplier      = 0
@@ -265,7 +264,6 @@ computeMultiplier inp st
   = view multiplier st
   * computeGoldenSwitchMultiplier st
   * milkFactor
-  * view eggMultiplier st
   * prestigeFactor
   * heartFactor
 
@@ -387,8 +385,8 @@ upgradeEffects = Map.fromList $
    [ (name, doubler b) | b <- [Grandma .. ], name <- buildingTieredUpgrades b ] ++
    [ (name, cookieBonus n) | (name, n) <- cookies ] ++
    [ (name, \_ -> heartCookies +~ 1) | name <- heartCookieNames ] ++
+   [ (name, cookieBonus 1) | name <- regularEasterEggs ] ++
    [ (name, grandmaType b n) | (n,(b,name)) <- zip [1..] synergyGrandmas ] ++
-   [ (name, \_ -> eggMultiplier +~ 0.01) | name <- regularEasterEggs ] ++
    [ (name, \_ -> mouseBonus +~ 0.01) | name <- mouseUpgrades ] ++
    [ (name, synergy minor major) | (name, minor, major) <- synergies ] ++
 
@@ -561,6 +559,7 @@ upgradeEffects = Map.fromList $
 
    , ("Golden cookie alert sound", noEffect)
    , ("Golden cookie sound selector", noEffect)
+   , ("Heavenly cookies", cookieBonus 10)
    ]
 
 elderBatallion :: Effect
@@ -607,7 +606,7 @@ prestigeBonus :: Double -> Effect
 prestigeBonus n _ = prestigeMultiplier +~ n / 100
 
 addEggTimeBonus :: Effect
-addEggTimeBonus inp = eggMultiplier +~ views sessionLength eggTimeBonus inp
+addEggTimeBonus inp = multiplier *~ (1 + views sessionLength eggTimeBonus inp)
 
 eggTimeBonus ::
   Double {- ^ current session duration in seconds -} ->
@@ -654,6 +653,11 @@ synergy major minor inp
   majorCount = view (buildingOwned major) inp
   minorCount = view (buildingOwned minor) inp
 
+safeIndex :: String -> [a] -> Int -> a
+safeIndex label xs i =
+  case drop i xs of
+    x:_ -> x
+    []  -> error ("index error: " ++ label ++ "[" ++ show i ++ "]")
 
 saveFileToGameInput :: UTCTime -> SaveFile -> GameInput
 saveFileToGameInput now sav = GameInput
@@ -666,8 +670,8 @@ saveFileToGameInput now sav = GameInput
   , _cookiesMunched     = savMunched (savMain sav)
   , _wrinklers          = savWrinklers (savMain sav)
   , _cookiesBanked      = savCookies (savMain sav)
-  , _dragonAura1        = dragonAuras !! savDragonAura (savMain sav)
-  , _dragonAura2        = dragonAuras !! savDragonAura2 (savMain sav)
+  , _dragonAura1        = safeIndex "dragonAuras" dragonAuras (savDragonAura (savMain sav))
+  , _dragonAura2        = safeIndex "dragonAuras" dragonAuras (savDragonAura2 (savMain sav))
   , _santaLevel         = savSantaLevel (savMain sav)
 
   , _cookiesForfeit     = savCookiesReset  (savMain sav)
@@ -680,12 +684,12 @@ saveFileToGameInput now sav = GameInput
   inShop (unlocked,bought) = unlocked && not bought
 
   upgradeList f
-     = fmap (upgradeById !!)
+     = fmap (safeIndex "upgradeById" upgradeById)
      $ findIndices f
      $ savUpgrades sav
 
   achievements
-    = fmap (achievementById !!)
+    = fmap (safeIndex "achievementById" achievementById)
     $ findIndices id
     $ savAchievements sav
 

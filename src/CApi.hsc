@@ -60,5 +60,7 @@ data Summary
 
 foreign import ccall "dynamic" runCallback :: FunPtr Callback -> Callback
 
+#ifdef C_EXPORTS
 foreign export ccall "analyze_cookie_save"
   analyzeCookieSave :: CString -> Ptr () -> Ptr Summary -> FunPtr Callback -> IO CInt
+#endif

@@ -57,7 +57,6 @@ data Achievement = Achievement
 data GameState = GameState
   { _buildingStats   :: !(Map Building BuildingStat)
   , _multiplier      :: !Double
-  , _eggMultiplier   :: !Double
   , _prestigeMultiplier :: !Double
   , _mouseBonus      :: !Double
   , _mouseMultiplier :: !Double

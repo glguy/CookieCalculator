@@ -3,8 +3,6 @@
 
 name:                CookieCalculator
 version:             0.1.0.0
--- synopsis:            
--- description:         
 license:             ISC
 license-file:        LICENSE
 author:              Eric Mertens
