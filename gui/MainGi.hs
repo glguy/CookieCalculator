@@ -1,4 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -23,13 +25,13 @@ import           Data.List (sortBy)
 import           Data.Ord (comparing)
 import           Data.Time (getCurrentTime)
 import           Foreign (Ptr)
-import           Foreign.ForeignPtr (newForeignPtr_, withForeignPtr)
+import           Foreign.ForeignPtr (ForeignPtr, newForeignPtr_, withForeignPtr)
 import           Numeric (showFFloat)
 import           Data.Int
 import qualified Data.Text as Text
 import           Data.Text (Text)
 
-import           GI.Gtk (set, AttrOp(..))
+import           GI.Gtk (get, set, AttrOp(..))
 import qualified GI.Gtk as Gtk
 import qualified GI.GdkPixbuf as Gdk
 import qualified GI.Gdk as Gdk
@@ -37,9 +39,9 @@ import AutoBuilder
 import GHC.Generics
 import Data.Int (Int32)
 import Data.Word (Word8)
-import qualified GI.Pango as Pango
 import qualified Data.ByteString.Internal as BI
 import qualified Data.GI.Base.GValue as GValue
+import Data.Coerce
 
 data MyGtkApp = MyGtkApp
   { mainWindow :: Gtk.Window
@@ -153,16 +155,17 @@ addNameColumn :: AppState -> IO ()
 addNameColumn app =
 
   do col <- Gtk.treeViewColumnNew
-     set col [ #title := ("Name" :: Text) ]
+     set col [ #title := "Name" ]
      #appendColumn (payoffTable (gtkApp app)) col
 
      pixcell  <- Gtk.cellRendererPixbufNew
-     textcell <- Gtk.cellRendererTextNew
-
-     #packStart col pixcell False
-     #packStart col textcell True
-     #addAttribute col textcell "text" 0
+     #packStart    col pixcell False
      #addAttribute col pixcell "pixbuf" 5
+
+     textcell <- Gtk.cellRendererTextNew
+     #packStart    col textcell True
+     #addAttribute col textcell "text" 0
+
      return ()
 
 
@@ -176,7 +179,7 @@ addCostColumn app =
      #appendColumn (payoffTable (gtkApp app)) col
 
      cell <- Gtk.cellRendererProgressNew
-     #packStart col cell True
+     #packStart    col cell True
      #addAttribute col cell "text" 2
      #addAttribute col cell "value" 4
 
@@ -187,12 +190,8 @@ appendRow app bank row =
      iter <- #append store
 
      let (c,r) = payoffIcon row
-     Gdk.Pixbuf icon <- Gdk.pixbufNewSubpixbuf (iconsPixbuf app)
+     icon <- #newSubpixbuf (iconsPixbuf app)
                 (24*fromIntegral c) (24*fromIntegral r) 24 24
-
-
-     gv <- GValue.newGValue =<< Gdk.gobjectType (Gdk.Pixbuf icon)
-     withForeignPtr (Pango.managedForeignPtr icon) (GValue.set_object gv)
 
      vals <- sequence
         [Gdk.toGValue (Just (payoffName row))
@@ -200,7 +199,7 @@ appendRow app bank row =
         ,Gdk.toGValue (Just (prettyNumber ShortSuffix (payoffCost row)))
         ,Gdk.toGValue (Just (prettyPercentage (payoffDelta row)))
         ,Gdk.toGValue (truncate (min 100 (max 0 (bank / payoffCost row * 100))) :: Int32)
-        ,return gv
+        ,gobjectToGValue icon
         ]
      #set store iter [0..5] vals
 
@@ -288,6 +287,13 @@ loadIcons =
      pixbuf <- Gdk.pixbufNewFromInline
                 (BI.fromForeignPtr fp 0 (7188480+24))
                 False
-     w <- Gdk.pixbufGetWidth pixbuf
-     h <- Gdk.pixbufGetHeight pixbuf
+     w <- get pixbuf #width
+     h <- get pixbuf #height
      Gdk.pixbufScaleSimple pixbuf (w`quot`2) (h`quot`2) Gdk.InterpTypeBilinear
+
+gobjectToGValue ::
+  forall o. (Gdk.ManagedPtrNewtype o, Gdk.GObject o) => o -> IO Gdk.GValue
+gobjectToGValue o =
+  do ty <- Gdk.gobjectType o
+     withForeignPtr (Gdk.managedForeignPtr (coerce o :: Gdk.ManagedPtr o))
+       (GValue.buildGValue ty GValue.set_object)

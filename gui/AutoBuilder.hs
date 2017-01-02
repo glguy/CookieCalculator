@@ -4,16 +4,7 @@ module AutoBuilder (autoloadFromBuilder) where
 import qualified GI.Gtk as Gtk
 import qualified Data.Text as Text
 import           GHC.Generics
-
-class Gtk.GObject o => GtkThing o where gtkThing :: Gtk.ManagedPtr o -> o
-instance GtkThing Gtk.Label  where gtkThing = Gtk.Label
-instance GtkThing Gtk.Button where gtkThing = Gtk.Button
-instance GtkThing Gtk.Window where gtkThing = Gtk.Window
-instance GtkThing Gtk.TreeView where gtkThing = Gtk.TreeView
-instance GtkThing Gtk.ListStore where gtkThing = Gtk.ListStore
-
-cast :: (Gtk.GObject o, GtkThing o') => o -> IO (Maybe o')
-cast = Gtk.castTo gtkThing
+import           Data.Coerce
 
 autoloadFromBuilder ::
   (GLoadBuilder (Rep a), Generic a) => Gtk.Builder -> IO a
@@ -31,11 +22,11 @@ instance GLoadBuilder f => GLoadBuilder (C1 c f) where
 instance (GLoadBuilder f, GLoadBuilder g) => GLoadBuilder (f :*: g) where
   gloadFromBuilder b = (:*:) <$> gloadFromBuilder b <*> gloadFromBuilder b
 
-instance (GtkThing o, Selector s) => GLoadBuilder (S1 s (K1 i o)) where
+instance (Gtk.ManagedPtrNewtype o, Gtk.GObject o, Selector s) => GLoadBuilder (S1 s (K1 i o)) where
   gloadFromBuilder builder =
      do let name   = selName (M1 Nothing :: S1 s Maybe ())
             mb err = maybe (fail err) return
         o <- mb ("Couldn't find " ++ name)
              =<< Gtk.builderGetObject builder (Text.pack name)
-        p <- mb ("Couldn't cast " ++ name) =<< cast o
+        p <- mb ("Couldn't cast " ++ name) =<< Gtk.castTo coerce o
         return (M1 (K1 p))
