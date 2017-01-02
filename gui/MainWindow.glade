@@ -2,6 +2,22 @@
 <!-- Generated with glade 3.20.0 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
+  <object class="GtkListStore" id="payoffModel">
+    <columns>
+      <!-- column-name Name -->
+      <column type="gchararray"/>
+      <!-- column-name Metric -->
+      <column type="gchararray"/>
+      <!-- column-name Cost -->
+      <column type="gchararray"/>
+      <!-- column-name Benefit -->
+      <column type="gchararray"/>
+      <!-- column-name CostPct -->
+      <column type="gint"/>
+      <!-- column-name GObject1 -->
+      <column type="GObject"/>
+    </columns>
+  </object>
   <object class="GtkWindow" id="mainWindow">
     <property name="can_focus">False</property>
     <property name="border_width">10</property>
@@ -302,6 +318,9 @@
                 <property name="vexpand">True</property>
                 <property name="border_width">1</property>
                 <property name="model">payoffModel</property>
+                <property name="headers_clickable">False</property>
+                <property name="rules_hint">True</property>
+                <property name="enable_search">False</property>
                 <property name="search_column">0</property>
                 <property name="enable_grid_lines">horizontal</property>
                 <child internal-child="selection">
@@ -317,21 +336,5 @@
         </child>
       </object>
     </child>
-  </object>
-  <object class="GtkListStore" id="payoffModel">
-    <columns>
-      <!-- column-name Name -->
-      <column type="gchararray"/>
-      <!-- column-name Metric -->
-      <column type="gchararray"/>
-      <!-- column-name Cost -->
-      <column type="gchararray"/>
-      <!-- column-name Benefit -->
-      <column type="gchararray"/>
-      <!-- column-name CostPct -->
-      <column type="gint"/>
-      <!-- column-name GObject1 -->
-      <column type="GObject"/>
-    </columns>
   </object>
 </interface>

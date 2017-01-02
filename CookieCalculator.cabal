@@ -33,32 +33,17 @@ library
 executable CookieClickerGtk
   hs-source-dirs:      gui
   main-is:             Main.hs
-  other-modules:       EmbedStringTH
-
-  build-depends:       base              >=4.8 && <4.10,
-                       lens              >=4.13 && <4.16,
-                       time              >=1.5  && <1.7,
-                       containers        >=0.5  && <0.6,
-                       template-haskell  >=2.10 && <2.12,
-                       CookieCalculator,
-                       gtk3              >=0.14 && <0.15
-
-  c-sources:           gui-cbits/icons.c
-  default-language:    Haskell2010
-
-executable CookieClickerGiGtk
-  hs-source-dirs:      gui
-  main-is:             MainGi.hs
   other-modules:       EmbedStringTH, AutoBuilder
 
-  build-depends:       base              >=4.8 && <4.10,
+  build-depends:       base              >=4.8  && <4.10,
                        lens              >=4.13 && <4.16,
                        time              >=1.5  && <1.7,
                        containers        >=0.5  && <0.6,
                        template-haskell  >=2.10 && <2.12,
-                       CookieCalculator,
-                       bytestring,
-                       haskell-gi-base, gi-pango, gi-gdk, gi-gtk, text, gi-gdkpixbuf
+                       text              >=1.2  && <1.3,
+                       bytestring        >=0.10 && <0.11,
+                       haskell-gi-base, gi-gdk, gi-gtk, gi-gdkpixbuf,
+                       CookieCalculator
 
   c-sources:           gui-cbits/icons.c
   default-language:    Haskell2010

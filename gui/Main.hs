@@ -1,5 +1,10 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedLabels #-}
 {-# Language TemplateHaskell #-}
 {-# Language ForeignFunctionInterface #-}
 
@@ -20,79 +25,80 @@ import           Data.List (sortBy)
 import           Data.Ord (comparing)
 import           Data.Time (getCurrentTime)
 import           Foreign (Ptr)
-import           Graphics.UI.Gtk
+import           Foreign.ForeignPtr (ForeignPtr, newForeignPtr_, withForeignPtr)
 import           Numeric (showFFloat)
+import           Data.Int
+import qualified Data.Text as Text
+import           Data.Text (Text)
+
+import           GI.Gtk (get, set, AttrOp(..))
+import qualified GI.Gtk as Gtk
+import qualified GI.GdkPixbuf as Gdk
+import qualified GI.Gdk as Gdk
+import AutoBuilder
+import GHC.Generics
+import Data.Int (Int32)
+import Data.Word (Word8)
+import qualified Data.ByteString.Internal as BI
+import qualified Data.GI.Base.GValue as GValue
+import Data.Coerce
 
 data MyGtkApp = MyGtkApp
-  { cpsOutput, wcpsOutput, tcpsOutput
-  , bankOutput, munchOutput, totalOutput
+  { mainWindow :: Gtk.Window
+  , cpsOutput, wcpsOutput, tcpsOutput
+  , bankOutput, munchOutput, bankMunchOutput
   , reserveOutput, reserve7Output, reserveCOutput
   , jackpot7Output, jackpotEOutput, jackpotDOutput
-  , chocolateEggOutput, hchipsOutput, effHChipsOutput :: Label
+  , chocolateEggOutput, hchipsOutput, effHChipsOutput :: Gtk.Label
+  , loadButton :: Gtk.Button
+  , payoffModel :: Gtk.ListStore
+  , payoffTable :: Gtk.TreeView
+  }
+  deriving Generic
 
-  , payoffModel :: ListStore PayoffRow
-  , payoffTable :: TreeView
-  , loadButton :: Button
-  , mainWindow :: Window
-  , iconsPixbuf :: Pixbuf
-  , bankRef    :: {-# UNPACK #-} !(IORef Double)
-  , cpsRef     :: {-# UNPACK #-} !(IORef Double)
+data AppState = AppState
+  { gtkApp :: MyGtkApp
+  , iconsPixbuf :: Gdk.Pixbuf
   }
 
-getMyGtkApp :: IO MyGtkApp
-getMyGtkApp =
-  do builder <- builderNew
-     builderAddFromString builder $$(embedString "gui/MainWindow.glade")
-
-     let load name = builderGetObject builder cast name
-
-     payoffTable    <- load "payoffTable"
-
-     cpsOutput      <- load "cpsOutput"
-     wcpsOutput     <- load "wcpsOutput"
-     tcpsOutput     <- load "tcpsOutput"
-
-     bankOutput     <- load "bankOutput"
-     munchOutput    <- load "munchOutput"
-     totalOutput    <- load "bankMunchOutput"
-
-     reserveOutput  <- load "reserveOutput"
-     reserve7Output <- load "reserve7Output"
-     reserveCOutput <- load "reserveCOutput"
-
-     jackpot7Output <- load "jackpot7Output"
-     jackpotEOutput <- load "jackpotEOutput"
-     jackpotDOutput <- load "jackpotDOutput"
-
-     chocolateEggOutput <- load "chocolateEggOutput"
-     hchipsOutput    <- load "hchipsOutput"
-     effHChipsOutput <- load "effHChipsOutput"
-
-     loadButton     <- load "loadButton"
-     mainWindow     <- load "mainWindow"
-
-     payoffModel    <- listStoreNew []
-     set payoffTable [ treeViewModel := payoffModel ]
-
-     bankRef <- newIORef 0
-     cpsRef <- newIORef 0
-
+getAppState :: IO AppState
+getAppState =
+  do let txt = $(embedString "gui/MainWindow.glade")
+     builder     <- Gtk.builderNewFromString txt (fromIntegral (Text.length txt))
+     gtkApp      <- autoloadFromBuilder builder
      iconsPixbuf <- loadIcons
 
-     return MyGtkApp{..}
+     return AppState{..}
 
 main :: IO ()
 main =
-  do initGUI
-     app <- getMyGtkApp
+  do Gtk.init Nothing
+
+     app <- getAppState
 
      installColumns app
      installLoadButtonClickHandler app
 
-     on (mainWindow app) objectDestroy mainQuit
-     widgetShowAll (mainWindow app)
+     Gtk.on (mainWindow (gtkApp app)) #destroy Gtk.mainQuit
+     #showAll (mainWindow (gtkApp app))
 
-     mainGUI
+     Gtk.main
+
+installLoadButtonClickHandler :: AppState -> IO ()
+installLoadButtonClickHandler app =
+  do selectionClipboard <- Gdk.atomIntern "CLIPBOARD" False
+     clipboard <- Gtk.clipboardGet selectionClipboard
+     Gtk.on (loadButton (gtkApp app))
+        #clicked
+        (loadFromFromClipboard app clipboard)
+     return ()
+
+loadFromFromClipboard :: AppState -> Gtk.Clipboard -> IO ()
+loadFromFromClipboard app clipboard =
+  do mb <- #waitForText clipboard
+     for_ mb             $ \txt ->
+       for_ (loadSave (Text.unpack txt)) $ \sav ->
+       loadFromFromSave app sav
 
 -- | Metric based on minimizing: @time/benefit + time@
 --
@@ -120,107 +126,89 @@ computeMetric PayoffRow{..}
   / log 1.15
 
 -- $ payoffCost/payoffDelta + payoffCost
-
-installColumns :: MyGtkApp -> IO ()
+installColumns :: AppState -> IO ()
 installColumns app =
 
   do addNameColumn app
-     addColumn app "Metric" $ \x ->
-       return (showFFloat (Just 1) (computeMetric x) "")
-
+     addColumn app 1 "Metric"
      addCostColumn app
-
-     addColumn app "Benefit" $ \row ->
-        do cps <- readIORef (cpsRef app)
-           return (prettyPercentage (payoffDelta row))
+     addColumn app 3 "Benefit"
 
 
-addColumn :: MyGtkApp -> String -> (PayoffRow -> IO String) -> IO ()
-addColumn MyGtkApp{payoffTable, payoffModel} name render =
+addColumn :: AppState -> Int32 -> Text -> IO ()
+addColumn app n name =
 
-  do col <- treeViewColumnNew
-     set col [ treeViewColumnTitle := name ]
-     treeViewAppendColumn payoffTable col
+  do col <- Gtk.treeViewColumnNew
+     set col [ #title := name ]
+     #appendColumn (payoffTable (gtkApp app)) col
 
-     cell <- cellRendererTextNew
-     set cell [ cellXAlign := 1 ]
+     cell <- Gtk.cellRendererTextNew
+     set cell [ #xalign := 1 ]
 
-     treeViewColumnPackStart col cell True
-     cellLayoutSetAttributeFunc col cell payoffModel $ \iter ->
-       do row <- treeModelGetRow payoffModel iter
-          txt <- render row
-          set cell [ cellText := txt ]
+     #packStart col cell True
+     #addAttribute col cell "text" n
 
      return ()
 
-addNameColumn :: MyGtkApp -> IO ()
-addNameColumn MyGtkApp{payoffTable, payoffModel, iconsPixbuf} =
+addNameColumn :: AppState -> IO ()
+addNameColumn app =
 
-  do col <- treeViewColumnNew
-     treeViewAppendColumn payoffTable col
+  do col <- Gtk.treeViewColumnNew
+     set col [ #title := "Name" ]
+     #appendColumn (payoffTable (gtkApp app)) col
 
-     pixcell <- cellRendererPixbufNew
-     textcell <- cellRendererTextNew
+     pixcell  <- Gtk.cellRendererPixbufNew
+     #packStart    col pixcell False
+     #addAttribute col pixcell "pixbuf" 5
 
-     treeViewColumnPackStart col pixcell False
-     treeViewColumnPackStart col textcell True
+     textcell <- Gtk.cellRendererTextNew
+     #packStart    col textcell True
+     #addAttribute col textcell "text" 0
 
-     cellLayoutSetAttributeFunc col pixcell payoffModel $ \iter ->
-        do row <- treeModelGetRow payoffModel iter
-           let (c,r) = payoffIcon row
-           icon <- pixbufNewSubpixbuf iconsPixbuf (24*c) (24*r) 24 24
-           set pixcell [ cellPixbuf := icon ]
-
-     cellLayoutSetAttributeFunc col textcell payoffModel $ \iter ->
-        do row <- treeModelGetRow payoffModel iter
-           set textcell [ cellText := payoffName row ]
-
-addCostColumn :: MyGtkApp -> IO CellRendererProgress
-addCostColumn MyGtkApp{payoffTable, payoffModel, bankRef} =
-
-  do col <- treeViewColumnNew
-     set col [ treeViewColumnTitle := "Cost"
-             , treeViewColumnMinWidth := 150
-             ]
-     treeViewAppendColumn payoffTable col
-
-     cell <- cellRendererProgressNew
-     treeViewColumnPackStart col cell True
-
-     cellLayoutSetAttributeFunc col cell payoffModel $ \iter ->
-        do row <- treeModelGetRow payoffModel iter
-           bank <- readIORef bankRef
-           set cell
-             [ cellProgressText  := Just (prettyNumber ShortSuffix (payoffCost row))
-             , cellProgressValue := truncate (min 100 (max 0 (bank / payoffCost row * 100)))
-             ]
-
-     return cell
-
-installLoadButtonClickHandler :: MyGtkApp -> IO ()
-installLoadButtonClickHandler app =
-  do clipboard <- clipboardGet selectionClipboard
-     on (loadButton app) buttonActivated (loadFromFromClipboard app clipboard)
      return ()
 
-loadFromFromClipboard :: MyGtkApp -> Clipboard -> IO ()
-loadFromFromClipboard app clipboard =
-  clipboardRequestText clipboard $ \mb ->
-    for_ mb             $ \txt ->
-    for_ (loadSave txt) $ \sav ->
-    loadFromFromSave app sav
 
-loadFromFromSave :: MyGtkApp -> SaveFile -> IO ()
-loadFromFromSave MyGtkApp{..} sav =
+addCostColumn :: AppState -> IO ()
+addCostColumn app =
+
+  do col <- Gtk.treeViewColumnNew
+     set col [ #title    := "Cost"
+             , #minWidth := 150
+             ]
+     #appendColumn (payoffTable (gtkApp app)) col
+
+     cell <- Gtk.cellRendererProgressNew
+     #packStart    col cell True
+     #addAttribute col cell "text" 2
+     #addAttribute col cell "value" 4
+
+
+appendRow :: AppState -> Double -> PayoffRow -> IO ()
+appendRow app bank row =
+  do let store = payoffModel (gtkApp app)
+     iter <- #append store
+
+     let (c,r) = payoffIcon row
+     icon <- #newSubpixbuf (iconsPixbuf app)
+                (24*fromIntegral c) (24*fromIntegral r) 24 24
+
+     vals <- sequence
+        [Gdk.toGValue (Just (payoffName row))
+        ,Gdk.toGValue (Just (showFFloat (Just 1) (computeMetric row) ""))
+        ,Gdk.toGValue (Just (prettyNumber ShortSuffix (payoffCost row)))
+        ,Gdk.toGValue (Just (prettyPercentage (payoffDelta row)))
+        ,Gdk.toGValue (truncate (min 100 (max 0 (bank / payoffCost row * 100))) :: Int32)
+        ,gobjectToGValue icon
+        ]
+     #set store iter [0..5] vals
+
+loadFromFromSave :: AppState -> SaveFile -> IO ()
+loadFromFromSave app@AppState{gtkApp=MyGtkApp{..},..} sav =
   do now <- getCurrentTime
 
      let i    = saveFileToGameInput now sav
          st   = computeGameState i
          rows = sortBy (comparing computeMetric) (payoff i st)
-
-     listStoreClear payoffModel
-     traverse_ (listStoreAppend payoffModel) rows
-     treeViewColumnsAutosize payoffTable
 
      let cps     = computeCps i st
          ecps    = computeWrinklerEffect i st * cps
@@ -241,10 +229,12 @@ loadFromFromSave MyGtkApp{..} sav =
                )
            - L.view prestigeLevel i
 
-         setOut l n = set l [labelText := prettyNumber ShortSuffix n]
+         setOut :: Gtk.Label -> Double -> IO ()
+         setOut l n = set l [#label := Text.pack (prettyNumber ShortSuffix n)]
 
-     writeIORef bankRef (banked + munched)
-     writeIORef cpsRef cps
+     #clear payoffModel
+     traverse_ (appendRow app (banked + munched)) rows
+     #columnsAutosize payoffTable
 
      setOut cpsOutput      cps
      setOut wcpsOutput     (cps * (1-L.views wrinklers fromIntegral i * 0.05))
@@ -252,7 +242,7 @@ loadFromFromSave MyGtkApp{..} sav =
 
      setOut bankOutput     banked
      setOut munchOutput    munched
-     setOut totalOutput    (banked + munched)
+     setOut bankMunchOutput (banked + munched)
 
      setOut reserveOutput  (6000 * cps)
      setOut reserve7Output (7 * 6000 * cps)
@@ -265,21 +255,6 @@ loadFromFromSave MyGtkApp{..} sav =
      setOut chocolateEggOutput chocolateChips
      setOut hchipsOutput newChips
      setOut effHChipsOutput (chocolateChips + L.view heavenlyChips i)
-
-class GObjectClass a => GObjectCast a where cast :: GObject -> a
-instance GObjectCast Window   where cast = castToWindow
-instance GObjectCast Label    where cast = castToLabel
-instance GObjectCast Button   where cast = castToButton
-instance GObjectCast TreeView where cast = castToTreeView
-
-foreign import ccall "&" cookie_clicker_icons :: Ptr InlineImage
-
-loadIcons :: IO Pixbuf
-loadIcons =
-  do pixbuf <- pixbufNewFromInline cookie_clicker_icons
-     w <- pixbufGetWidth pixbuf
-     h <- pixbufGetHeight pixbuf
-     pixbufScaleSimple pixbuf (w`quot`2) (h`quot`2) InterpBilinear
 
 prettyPercentage :: Double -> String
 prettyPercentage x = prefix ++ prettyPercentage' (abs x)
@@ -301,3 +276,23 @@ fixPrecision p x = round' (x * m) / m
   where
   m = 10^^(p-e-1)
   e = floor (logBase 10 x)
+
+
+foreign import ccall "&" cookie_clicker_icons :: Ptr Word8
+
+loadIcons :: IO Gdk.Pixbuf
+loadIcons =
+  do fp <- newForeignPtr_ cookie_clicker_icons
+     pixbuf <- Gdk.pixbufNewFromInline
+                (BI.fromForeignPtr fp 0 (7188480+24))
+                False
+     w <- get pixbuf #width
+     h <- get pixbuf #height
+     Gdk.pixbufScaleSimple pixbuf (w`quot`2) (h`quot`2) Gdk.InterpTypeBilinear
+
+gobjectToGValue ::
+  forall o. (Gdk.ManagedPtrNewtype o, Gdk.GObject o) => o -> IO Gdk.GValue
+gobjectToGValue o =
+  do ty <- Gdk.gobjectType o
+     withForeignPtr (Gdk.managedForeignPtr (coerce o :: Gdk.ManagedPtr o))
+       (GValue.buildGValue ty GValue.set_object)
