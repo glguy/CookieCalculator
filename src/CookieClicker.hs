@@ -14,7 +14,6 @@ import Data.Text (Text)
 import Debug.Trace
 import Data.Map (Map)
 import qualified Data.Map.Strict as Map
-import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Maybe
 import Control.Lens hiding (ReifiedPrism(..), prism)
@@ -28,8 +27,8 @@ import Control.Exception
 import qualified Data.Text as Text
 
 initialBuildingStat :: Double -> BuildingStat
-initialBuildingStat base = BuildingStat
-  { _bldgBase  = base
+initialBuildingStat b = BuildingStat
+  { _bldgBase  = b
   , _bldgMult  = 1
   , _bldgBonus = 0
   , _bldgFree  = 0
@@ -114,7 +113,7 @@ buildingCosts :: GameInput -> GameState -> Map Building Double
 buildingCosts inp st
   = fmap (\x -> ceil' (x * view buildingCostMultiplier st))
   $ leftJoinWith'
-      (\base n -> base * 1.15 ^ max 0 n)
+      (\b n -> b * 1.15 ^ max 0 n)
       initialCosts
       owned'
   where
@@ -152,8 +151,6 @@ payoff inp st =
      ]
 
   where
-  reserve = 6000 * cps
-
   buyBuilding =
     [( buildingName x
      , cost
@@ -340,7 +337,7 @@ prettyNumber s n
   where
   trimZero x | ['.','0'] `isSuffixOf` x = dropLast 2 x
              | otherwise = x
-  dropLast n xs = zipWith const xs (drop n xs)
+  dropLast i xs = zipWith const xs (drop i xs)
   suffix short long =
     case s of
       ShortSuffix -> short
@@ -779,4 +776,4 @@ l /~ x = over l (/ x)
 -- powering base = iso (base **) (logBase base)
 -- @
 powering :: Floating a => a -> Iso' a a
-powering base = iso (base **) (logBase base)
+powering b = iso (b **) (logBase b)

@@ -6,8 +6,6 @@ import           Data.Aeson.TH
 import qualified Data.ByteString as B
 import           Language.Haskell.TH
 import           Language.Haskell.TH.Syntax
-import           Data.Text (Text)
-import qualified Data.Text as Text
 
 loadAeson :: FromJSON a => FilePath -> Q a
 loadAeson path =

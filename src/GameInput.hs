@@ -7,7 +7,6 @@ import Building
 import AesonTH
 
 import Data.Text (Text)
-import Data.Aeson (Value)
 import qualified Data.Text as Text
 import Data.Map (Map)
 import Control.Lens

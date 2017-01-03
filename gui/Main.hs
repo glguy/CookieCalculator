@@ -13,31 +13,30 @@ import           SaveFormat
 import           GameInput
 import           Building
 
+import           AutoBuilder
+
 import qualified Control.Lens as L
+import           Data.Coerce
 import           Data.Foldable (for_, traverse_)
 import           Data.Function ((&))
 import           Data.IORef (IORef, newIORef, readIORef, writeIORef)
+import           Data.Int
+import           Data.Int (Int32)
 import           Data.List (sortBy)
 import           Data.Ord (comparing)
+import           Data.Text (Text)
+import qualified Data.Text as Text
 import           Data.Time (getCurrentTime)
 import           Foreign (Ptr)
 import           Foreign.ForeignPtr (ForeignPtr, newForeignPtr_, withForeignPtr)
+import           GHC.Generics
 import           Numeric (showFFloat)
-import           Data.Int
-import qualified Data.Text as Text
-import           Data.Text (Text)
 
+import qualified Data.GI.Base.GValue as GValue
 import           GI.Gtk (new, get, set, AttrOp(..))
 import qualified GI.Gtk as Gtk
 import qualified GI.GdkPixbuf as Gdk
 import qualified GI.Gdk as Gdk
-import AutoBuilder
-import GHC.Generics
-import Data.Int (Int32)
-import Data.Word (Word8)
-import qualified Data.ByteString.Internal as BI
-import qualified Data.GI.Base.GValue as GValue
-import Data.Coerce
 
 data MyGtkApp = MyGtkApp
   { mainWindow :: Gtk.Window

@@ -8,7 +8,6 @@ import           GameInput
 import           Building
 
 import           Control.Lens hiding (Prism)
-import           Language.Haskell.TH
 import           Language.Haskell.TH.Syntax
 import           Data.Map (Map)
 import           Data.Text (Text)
