@@ -39,10 +39,8 @@ executable CookieClickerGtk
                        lens              >=4.13 && <4.16,
                        time              >=1.5  && <1.7,
                        containers        >=0.5  && <0.6,
-                       template-haskell  >=2.10 && <2.12,
                        text              >=1.2  && <1.3,
-                       bytestring        >=0.10 && <0.11,
-                       haskell-gi-base, gi-gdk, gi-gtk, gi-gdkpixbuf,
+                       haskell-gi-base, gi-gdk, gi-gtk >= 3.0.11 && <3.1, gi-gdkpixbuf,
                        CookieCalculator
 
   c-sources:           gui-cbits/resources.c
