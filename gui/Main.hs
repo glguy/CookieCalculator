@@ -5,8 +5,6 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE OverloadedLabels #-}
-{-# Language TemplateHaskell #-}
-{-# Language ForeignFunctionInterface #-}
 
 module Main (main) where
 
@@ -14,8 +12,6 @@ import           CookieClicker
 import           SaveFormat
 import           GameInput
 import           Building
-
-import           EmbedStringTH
 
 import qualified Control.Lens as L
 import           Data.Foldable (for_, traverse_)
@@ -63,8 +59,7 @@ data AppState = AppState
 
 getAppState :: IO AppState
 getAppState =
-  do let txt = $(embedString "gui/MainWindow.glade")
-     builder     <- Gtk.builderNewFromString txt (fromIntegral (Text.length txt))
+  do builder     <- Gtk.builderNewFromResource "/glguy/cookieclicker/MainWindow.ui"
      gtkApp      <- autoloadFromBuilder builder
      iconsPixbuf <- loadIcons
 
@@ -280,16 +275,11 @@ fixPrecision p x = round' (x * m) / m
   e = floor (logBase 10 x)
 
 
-foreign import ccall "&" cookie_clicker_icons :: Ptr Word8
-
 loadIcons :: IO Gdk.Pixbuf
 loadIcons =
-  do fp <- newForeignPtr_ cookie_clicker_icons
-     pixbuf <- Gdk.pixbufNewFromInline
-                (BI.fromForeignPtr fp 0 (7188480+24))
-                False
-     w <- get pixbuf #width
-     h <- get pixbuf #height
+  do pixbuf <- Gdk.pixbufNewFromResource "/glguy/cookieclicker/icons.png"
+     w      <- get pixbuf #width
+     h      <- get pixbuf #height
      Gdk.pixbufScaleSimple pixbuf (w`quot`2) (h`quot`2) Gdk.InterpTypeBilinear
 
 gobjectToGValue ::
