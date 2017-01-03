@@ -27,7 +27,7 @@ instance GLoadBuilder f => GLoadBuilder (D1 c f) where
 instance GLoadBuilder f => GLoadBuilder (C1 c f) where
   gloadFromBuilder b = M1 <$> gloadFromBuilder b
 
-instance GLoadBuilder f => GLoadBuilder U1 where
+instance GLoadBuilder U1 where
   gloadFromBuilder _ = return U1
 
 instance (GLoadBuilder f, GLoadBuilder g) => GLoadBuilder (f :*: g) where

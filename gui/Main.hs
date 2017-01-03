@@ -31,7 +31,7 @@ import           Data.Int
 import qualified Data.Text as Text
 import           Data.Text (Text)
 
-import           GI.Gtk (get, set, AttrOp(..))
+import           GI.Gtk (new, get, set, AttrOp(..))
 import qualified GI.Gtk as Gtk
 import qualified GI.GdkPixbuf as Gdk
 import qualified GI.Gdk as Gdk
@@ -138,12 +138,10 @@ installColumns app =
 addColumn :: AppState -> Int32 -> Text -> IO ()
 addColumn app n name =
 
-  do col <- Gtk.treeViewColumnNew
-     set col [ #title := name ]
+  do col <- new Gtk.TreeViewColumn [ #title := name ]
      #appendColumn (payoffTable (gtkApp app)) col
 
-     cell <- Gtk.cellRendererTextNew
-     set cell [ #xalign := 1 ]
+     cell <- new Gtk.CellRendererText [ #xalign := 1 ]
 
      #packStart col cell True
      #addAttribute col cell "text" n
@@ -153,15 +151,14 @@ addColumn app n name =
 addNameColumn :: AppState -> IO ()
 addNameColumn app =
 
-  do col <- Gtk.treeViewColumnNew
-     set col [ #title := "Name" ]
+  do col <- new Gtk.TreeViewColumn [ #title := "Name" ]
      #appendColumn (payoffTable (gtkApp app)) col
 
-     pixcell  <- Gtk.cellRendererPixbufNew
+     pixcell  <- new Gtk.CellRendererPixbuf []
      #packStart    col pixcell False
      #addAttribute col pixcell "pixbuf" 5
 
-     textcell <- Gtk.cellRendererTextNew
+     textcell <- new Gtk.CellRendererText []
      #packStart    col textcell True
      #addAttribute col textcell "text" 0
 
@@ -171,35 +168,40 @@ addNameColumn app =
 addCostColumn :: AppState -> IO ()
 addCostColumn app =
 
-  do col <- Gtk.treeViewColumnNew
-     set col [ #title    := "Cost"
+  do col <- new Gtk.TreeViewColumn
+             [ #title    := "Cost"
              , #minWidth := 150
              ]
      #appendColumn (payoffTable (gtkApp app)) col
 
-     cell <- Gtk.cellRendererProgressNew
+     cell <- new Gtk.CellRendererProgress []
      #packStart    col cell True
      #addAttribute col cell "text" 2
      #addAttribute col cell "value" 4
 
+iconForRow :: AppState -> PayoffRow -> IO Gdk.Pixbuf
+iconForRow app row =
+  #newSubpixbuf (iconsPixbuf app)
+      (tileSz*fromIntegral c)
+      (tileSz*fromIntegral r)
+      tileSz tileSz
+  where
+    (c,r)  = payoffIcon row
+    tileSz = 24
 
 appendRow :: AppState -> Double -> PayoffRow -> IO ()
 appendRow app bank row =
-  do let store = payoffModel (gtkApp app)
-     iter <- #append store
-
-     let (c,r) = payoffIcon row
-     icon <- #newSubpixbuf (iconsPixbuf app)
-                (24*fromIntegral c) (24*fromIntegral r) 24 24
-
-     vals <- sequence
-        [Gdk.toGValue (Just (payoffName row))
-        ,Gdk.toGValue (Just (showFFloat (Just 1) (computeMetric row) ""))
-        ,Gdk.toGValue (Just (prettyNumber ShortSuffix (payoffCost row)))
-        ,Gdk.toGValue (Just (prettyPercentage (payoffDelta row)))
-        ,Gdk.toGValue (truncate (min 100 (max 0 (bank / payoffCost row * 100))) :: Int32)
-        ,gobjectToGValue icon
+  do vals <- sequence
+        [ Gdk.toGValue (Just (payoffName row))
+        , Gdk.toGValue (Just (showFFloat (Just 1) (computeMetric row) ""))
+        , Gdk.toGValue (Just (prettyNumber ShortSuffix (payoffCost row)))
+        , Gdk.toGValue (Just (prettyPercentage (payoffDelta row)))
+        , Gdk.toGValue (truncate (min 100 (max 0 (bank / payoffCost row * 100))) :: Int32)
+        , gobjectToGValue =<< iconForRow app row
         ]
+
+     let store = payoffModel (gtkApp app)
+     iter <- #append store
      #set store iter [0..5] vals
 
 loadFromFromSave :: AppState -> SaveFile -> IO ()
@@ -210,7 +212,7 @@ loadFromFromSave app@AppState{gtkApp=MyGtkApp{..},..} sav =
          st   = computeGameState i
          rows = sortBy (comparing computeMetric) (payoff i st)
 
-     let cps     = computeCps i st
+         cps     = computeCps i st
          ecps    = computeWrinklerEffect i st * cps
          munched = L.view cookiesMunched i * L.view wrinklerMultiplier st
          banked  = L.view cookiesBanked i
