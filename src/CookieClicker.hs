@@ -589,7 +589,7 @@ cookies :: [(Text, Int)]
 cookies =
    [ (view upgradeName u, n)
        | u <- upgradeById
-       , "cookie" == view upgradePool u
+       , "cookie" == view upgradePool u || "prestige" == view upgradePool u
        , Just n <- [view upgradePower u]
        ]
 

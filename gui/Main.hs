@@ -137,7 +137,7 @@ addColumn app n name =
 
      cell <- new Gtk.CellRendererText [ #xalign := 1 ]
 
-     #packStart col cell True
+     #packStart    col cell True
      #addAttribute col cell "text" n
 
      return ()
