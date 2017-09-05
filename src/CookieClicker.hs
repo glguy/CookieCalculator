@@ -8,6 +8,7 @@ import GameInput
 import Building
 import SaveFormat
 import SourceData
+import Math
 
 import Control.Monad (guard)
 import Data.Text (Text)
@@ -40,7 +41,8 @@ initialGameState = GameState
   , _multiplier              = 1
   , _mouseBonus              = 0
   , _mouseMultiplier         = 1
-  , _prestigeMultiplier      = 0
+  , _prestigeMultiplier1     = 0
+  , _prestigeMultiplier2     = 1
   , _bonusCps                = 0
   , _buildingCostMultiplier  = 1
   , _upgradeCostMultiplier   = 1
@@ -100,11 +102,15 @@ grandmaType building count = \inp ->
 doubler :: Building -> GameInput -> GameState -> GameState
 doubler k _ = buildingMult k *~ 2
 
-computeBuildingStatCps :: BuildingStat -> Double
-computeBuildingStatCps stat = stat^.bldgBonus + stat^.bldgMult * stat^.bldgBase
+computeBuildingStatCps :: Int -> BuildingStat -> Double
+computeBuildingStatCps lvl stat = stat^.bldgBonus + stat^.bldgMult * stat^.bldgBase * (1 + fromIntegral lvl/100)
 
-computeBuildingCps :: GameState -> Map Building Double
-computeBuildingCps st = computeBuildingStatCps <$> view buildingStats st
+computeBuildingCps :: GameInput -> GameState -> Map Building Double
+computeBuildingCps inp st =
+  Map.intersectionWith
+    computeBuildingStatCps
+    (view buildingLevels inp)
+    (view buildingStats st)
 
 leftJoinWith' :: Ord k => (a -> b -> a) -> Map k a -> Map k b -> Map k a
 leftJoinWith' f = Map.mergeWithKey (\_ x y -> Just $! f x y) id (\_ -> Map.empty)
@@ -268,7 +274,8 @@ computeMultiplier inp st
   milkFactor = product [ 1 + milk * x | x <- view milkFactors st ]
   milk = computeMilk inp * view milkMultiplier st
 
-  prestigeFactor = 1 + view prestigeMultiplier st
+  prestigeFactor = 1 + view prestigeMultiplier1 st
+                     * view prestigeMultiplier2 st
                      * view prestigeLevel inp / 100
   heartFactor = (1 + view heartCookieMultiplier st / 100)
               ^ view heartCookies st
@@ -286,7 +293,7 @@ computeCps inp st = computeMultiplier inp st * (view bonusCps st + buildingCps)
     $ Map.intersectionWith
         (\count cps -> fromIntegral count * cps)
         (view buildingsOwned inp)
-        (computeBuildingCps st)
+        (computeBuildingCps inp st)
 
 computeClickCookies :: GameInput -> GameState -> Double
 computeClickCookies inp st = view mouseMultiplier st * cpc
@@ -409,6 +416,8 @@ upgradeEffects = Map.fromList $
    , ("Kitten accountants", kittenBonus 20)
    , ("Kitten specialists", kittenBonus 20)
    , ("Kitten experts"    , kittenBonus 20)
+   , ("Kitten consultants", kittenBonus 20)
+   , ("Kitten assistants to the regional manager", kittenBonus 20)
    , ("Kitten angels"     , kittenBonus 10)
 
    , ("Bingo center/Research facility", \_ -> buildingMult Grandma *~ 4)
@@ -434,11 +443,15 @@ upgradeEffects = Map.fromList $
 
    , ("A crumbly egg", noEffect)
 
-   , ("Heavenly chip secret"  , prestigeBonus 5)
-   , ("Heavenly cookie stand" , prestigeBonus 20)
-   , ("Heavenly bakery"       , prestigeBonus 25)
-   , ("Heavenly confectionery", prestigeBonus 25)
-   , ("Heavenly key"          , prestigeBonus 25)
+   , ("Heavenly chip secret"  , prestigeBonus1 5)
+   , ("Heavenly cookie stand" , prestigeBonus1 20)
+   , ("Heavenly bakery"       , prestigeBonus1 25)
+   , ("Heavenly confectionery", prestigeBonus1 25)
+   , ("Heavenly key"          , prestigeBonus1 25)
+
+   , ("Lucky digit"           , \st -> prestigeBonus2 1 st . residualBonus st)
+   , ("Lucky number"          , \st -> prestigeBonus2 1 st . residualBonus st)
+   , ("Lucky payout"          , \st -> prestigeBonus2 1 st . residualBonus st)
 
    , ("A festive hat"             , noEffect)
    , ("Increased merriness"       , cookieBonus 15)
@@ -554,6 +567,8 @@ upgradeEffects = Map.fromList $
    , ("Starlove", \_ -> heartCookieMultiplier *~ 1.5) -- XXX: affects heart cookies
    , ("Startrade", noEffect)
 
+   , ("Dragon's Fortune", noEffect)
+   , ("Background selector", noEffect)
    , ("Golden cookie alert sound", noEffect)
    , ("Golden cookie sound selector", noEffect)
    , ("Heavenly cookies", cookieBonus 10)
@@ -599,8 +614,11 @@ noEffect _ st = st
 residualBonus :: Effect
 residualBonus _ = goldenSwitchBonus +~ 0.1
 
-prestigeBonus :: Double -> Effect
-prestigeBonus n _ = prestigeMultiplier +~ n / 100
+prestigeBonus1 :: Double -> Effect
+prestigeBonus1 n _ = prestigeMultiplier1 +~ n / 100
+
+prestigeBonus2 :: Double -> Effect
+prestigeBonus2 n _ = prestigeMultiplier2 *~ (1 + n / 100)
 
 addEggTimeBonus :: Effect
 addEggTimeBonus inp = multiplier *~ (1 + views sessionLength eggTimeBonus inp)
@@ -620,27 +638,6 @@ eggTimeBonus s = (1 - (1 - cappedDays/100)**3) / 10
   -- The benefit maxes out at 100 days
   cappedDays = min 100 days
 
-floor' :: Double -> Double
-floor' = realToFrac . c_floor . realToFrac
-{-# INLINE floor' #-}
-
-round' :: Double -> Double
-round' = realToFrac . c_round . realToFrac
-{-# INLINE round' #-}
-
-ceil' :: Double -> Double
-ceil' = realToFrac . c_ceil . realToFrac
-{-# INLINE ceil' #-}
-
-log1p :: Double -> Double
-log1p = realToFrac . c_log1p . realToFrac
-{-# INLINE log1p #-}
-
-foreign import ccall unsafe "math.h floor" c_floor :: CDouble -> CDouble
-foreign import ccall unsafe "math.h ceil"  c_ceil  :: CDouble -> CDouble
-foreign import ccall unsafe "math.h round" c_round :: CDouble -> CDouble
-foreign import ccall unsafe "math.h log1p" c_log1p :: CDouble -> CDouble
-
 synergy :: Building -> Building -> Effect
 synergy major minor inp
   = assert (major < minor)
@@ -659,6 +656,7 @@ safeIndex label xs i =
 saveFileToGameInput :: UTCTime -> SaveFile -> GameInput
 saveFileToGameInput now sav = GameInput
   { _buildingsOwned     = bldgCurrent <$> savBuildings sav
+  , _buildingLevels     = bldgSpecial <$> savBuildings sav
   , _achievementsEarned = achievements
   , _upgradesBought     = upgradeList snd
   , _upgradesAvailable  = upgradeList inShop

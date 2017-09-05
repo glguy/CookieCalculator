@@ -12,6 +12,7 @@ import           CookieClicker
 import           SaveFormat
 import           GameInput
 import           Building
+import           Math
 
 import           AutoBuilder
 
@@ -221,7 +222,7 @@ loadFromFromSave app@AppState{gtkApp=MyGtkApp{..},..} sav =
                ( L.view cookiesEarned i
                + L.view cookiesForfeit i
                + munched
-               + sellOff (i & buildingOwned Prism L.-~ 1) st * 0.85 * 0.05
+               + sellOff (i & buildingOwned Chancemaker L.-~ 1) st * 0.85 * 0.05
                )
            - L.view prestigeLevel i
 

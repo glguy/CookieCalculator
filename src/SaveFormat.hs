@@ -5,6 +5,7 @@
 module SaveFormat where
 
 import           Building
+import           Debug.Trace
 
 import           Data.ByteString (ByteString)
 import           Data.ByteString.Base64
@@ -40,7 +41,7 @@ data SavePrefs = SavePrefs
   , savMilk, savFancy, savWarn, savCursors
   , savFocus, savFormat, savNotifs, savWobbly
   , savMonospace, savFilters, savCookieSound
-  , savCrates :: Bool
+  , savCrates, savBackupWarning :: Bool
   } deriving (Show)
 
 data SaveMain = SaveMain
@@ -106,7 +107,8 @@ loadSave raw =
 
 parseBldg :: Text -> Either String BuildingSave
 parseBldg str =
-  do let [bldgCurrentStr, bldgTotalStr, bldgBakedStr, bldgSpecialStr] = Text.splitOn "," str
+  do let bldgCurrentStr : bldgTotalStr : bldgBakedStr : bldgSpecialStr : _bldgMinigames
+            = Text.splitOn "," str
      bldgCurrent <- fst <$> decimal bldgCurrentStr
      bldgTotal   <- fst <$> decimal bldgTotalStr
      bldgBaked   <- fst <$> rational bldgBakedStr
@@ -137,12 +139,12 @@ parsePrefs x = SavePrefs{..}
     , savMilk, savFancy, savWarn, savCursors
     , savFocus, savFormat, savNotifs, savWobbly
     , savMonospace, savFilters, savCookieSound
-    , savCrates ] = unpackBits x
+    , savCrates, savBackupWarning ] = unpackBits x
 
 parse :: Text -> Either String SaveFile
 parse str =
   do let [savVersionStr, savReserved,
-            region1, region2, region3, region4, region5, region6]
+            region1, region2, region3, region4, region5, region6, region7]
             = Text.splitOn "|" str
 
      savVersion <- parser savVersionStr

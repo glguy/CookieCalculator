@@ -15,6 +15,7 @@ data Building
   | TimeMachine
   | Antimatter
   | Prism
+  | Chancemaker
   deriving (Read, Show, Eq, Ord, Enum)
 
 buildingName :: Building -> String
@@ -34,3 +35,4 @@ buildingName b =
     TimeMachine -> "Time machine"
     Antimatter -> "Antimatter condenser"
     Prism -> "Prism"
+    Chancemaker -> "Chancemaker"

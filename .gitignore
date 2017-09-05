@@ -3,3 +3,5 @@
 /stack.yaml
 .*.swp
 .swp
+/dist-newstyle
+.ghc.environment.*

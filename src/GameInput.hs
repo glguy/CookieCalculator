@@ -14,6 +14,7 @@ import Language.Haskell.TH.Syntax
 
 data GameInput = GameInput
   { _buildingsOwned     :: !(Map Building Int)
+  , _buildingLevels     :: !(Map Building Int)
   , _achievementsEarned :: ![Achievement]
   , _upgradesBought     :: ![Upgrade]
   , _upgradesAvailable  :: ![Upgrade]
@@ -56,7 +57,8 @@ data Achievement = Achievement
 data GameState = GameState
   { _buildingStats   :: !(Map Building BuildingStat)
   , _multiplier      :: !Double
-  , _prestigeMultiplier :: !Double
+  , _prestigeMultiplier1 :: !Double
+  , _prestigeMultiplier2 :: !Double
   , _mouseBonus      :: !Double
   , _mouseMultiplier :: !Double
   , _bonusCps        :: !Double

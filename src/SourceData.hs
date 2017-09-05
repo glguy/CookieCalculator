@@ -6,6 +6,7 @@ module SourceData where
 import           AesonTH
 import           GameInput
 import           Building
+import           Math
 
 import           Control.Lens hiding (Prism)
 import           Language.Haskell.TH.Syntax
@@ -38,7 +39,7 @@ dragonAuras =
     "Reaper of Fields", "Earth Shatterer", "Master of the Armory",
     "Fierce Hoarder", "Dragon God", "Arcane Aura", "Dragonflight",
     "Ancestral Metamorphosis", "Unholy Dominion", "Epoch Manipulator",
-    "Mind Over Matter", "Radiant Appetite"]
+    "Mind Over Matter", "Radiant Appetite", "Dragon's Fortune"]
 
 baseCps :: Map Building Double
 baseCps = Map.fromList
@@ -56,6 +57,7 @@ baseCps = Map.fromList
   , (TimeMachine,        65.0e6)
   , (Antimatter,        430.0e6)
   , (Prism,              2.90e9)
+  , (Chancemaker,        21.0e9)
   ]
 
 initialCosts :: Map Building Double
@@ -74,7 +76,14 @@ initialCosts = Map.fromList
   , (TimeMachine,       14.0e12)
   , (Antimatter,       170.0e12)
   , (Prism,              2.1e15)
+  , (Chancemaker,       26.0e15)
   ]
+
+baseCpsForTier :: Int -> Double
+baseCpsForTier n = v1
+  where
+    n' = fromIntegral n
+    v1 = ceil' (n' ** (n'*0.5+2) * 10) / 10
 
 synergyGrandmas :: [(Building, Text)]
 synergyGrandmas =
@@ -90,6 +99,7 @@ synergyGrandmas =
   , (TimeMachine, "Grandmas' grandmas")
   , (Antimatter , "Antigrandmas")
   , (Prism      , "Rainbow grandmas")
+  , (Chancemaker, "Lucky grandmas")
   ]
 
 santaUpgrades :: [Text]
@@ -104,7 +114,7 @@ mouseUpgrades :: [Text]
 mouseUpgrades =
   ["Plastic mouse", "Iron mouse", "Titanium mouse", "Adamantium mouse",
    "Unobtainium mouse", "Eludium mouse", "Wishalloy mouse", "Fantasteel mouse",
-   "Nevercrack mouse"]
+   "Nevercrack mouse", "Armythril mouse"]
 
 
 heartCookieNames :: [Text]
@@ -130,58 +140,69 @@ buildingTieredUpgrades b =
 
     Grandma -> [ "Forwards from grandma", "Steel-plated rolling pins",
                  "Lubricated dentures", "Prune juice", "Double-thick glasses",
-                 "Aging agents", "Xtreme walkers", "The Unbridling"]
+                 "Aging agents", "Xtreme walkers", "The Unbridling",
+                 "Reverse dementia"]
 
     Farm -> [ "Cheap hoes", "Fertilizer", "Cookie trees",
               "Genetically-modified cookies", "Gingerbread scarecrows",
-              "Pulsar sprinklers", "Fudge fungus", "Wheat triffids"]
+              "Pulsar sprinklers", "Fudge fungus", "Wheat triffids",
+              "Humane pesticides"]
 
     Mine -> [ "Sugar gas", "Megadrill", "Ultradrill", "Ultimadrill",
               "H-bomb mining", "Coreforge", "Planetsplitters",
-              "Canola oil wells"]
+              "Canola oil wells", "Mole people"]
 
     Factory -> [ "Sturdier conveyor belts", "Child labor", "Sweatshop",
                  "Radium reactors", "Recombobulators", "Deep-bake process",
-                 "Cyborg workforce", "78-hour days" ]
+                 "Cyborg workforce", "78-hour days", "Machine learning" ]
 
     Bank -> [ "Taller tellers", "Scissor-resistant credit cards",
               "Acid-proof vaults", "Chocolate coins",
               "Exponential interest rates", "Financial zen",
-              "Way of the wallet", "The stuff rationale" ]
+              "Way of the wallet", "The stuff rationale", "Edible money" ]
 
     Temple -> [ "Golden idols", "Sacrifices", "Delicious blessing",
                 "Sun festival", "Enlarged pantheon", "Great Baker in the sky",
-                "Creation myth", "Theocracy" ]
+                "Creation myth", "Theocracy", "Sick rap prayers" ]
 
     WizardTower -> [ "Pointier hats", "Beardlier beards", "Ancient grimoires",
                      "Kitchen curses", "School of sorcery", "Dark formulas",
-                     "Cookiemancy", "Rabbit trick" ]
+                     "Cookiemancy", "Rabbit trick", "Deluxe tailored wands" ]
 
     Shipment -> [ "Vanilla nebulae", "Wormholes", "Frequent flyer",
                   "Warp drive", "Chocolate monoliths", "Generation ship",
-                  "Dyson sphere", "The final frontier" ]
+                  "Dyson sphere", "The final frontier", "Autopilot" ]
 
     AlchemyLab -> [ "Antimony", "Essence of dough", "True chocolate",
                     "Ambrosia", "Aqua crustulae", "Origin crucible",
-                    "Theory of atomic fluidity", "Beige goo" ]
+                    "Theory of atomic fluidity", "Beige goo", "The advent of chemistry" ]
 
     Portal -> [ "Ancient tablet", "Insane oatling workers", "Soul bond",
                 "Sanity dance", "Brane transplant", "Deity-sized portals",
-                "End of times back-up plan", "Maddening chants" ]
+                "End of times back-up plan", "Maddening chants", "The real world" ]
 
     TimeMachine -> [ "Flux capacitors", "Time paradox resolver",
                      "Quantum conundrum", "Causality enforcer",
                      "Yestermorrow comparators", "Far future enactment",
-                     "Great loop hypothesis", "Cookietopian moments of maybe" ]
+                     "Great loop hypothesis", "Cookietopian moments of maybe",
+                     "Second seconds" ]
 
     Antimatter -> [ "Sugar bosons", "String theory", "Large macaron collider",
                     "Big bang bake", "Reverse cyclotrons", "Nanocosmics",
                     "The Pulse",
-                    "Some other super-tiny fundamental particle? Probably?" ]
+                    "Some other super-tiny fundamental particle? Probably?",
+                    "Quantum comb" ]
 
     Prism -> [ "Gem polish", "9th color", "Chocolate light", "Grainbow",
                "Pure cosmic light", "Glow-in-the-dark", "Lux sanctorum" ,
-               "Reverse shadows" ]
+               "Reverse shadows", "Crystal mirrors" ]
+
+    Chancemaker -> [ "Your lucky cookie", "\"All Bets Are Off\" magic coin",
+                     "Winning lottery ticket", "Four-leaf clover field",
+                     "A recipe book about books", "Leprechaun village",
+                     "Improbability drive", "Antisuperstistronics", "Bunnypedes"]
+
+
 
 synergies :: [(Text, Building, Building)]
 synergies =
@@ -197,6 +218,7 @@ synergies =
    , ("Extra physics funding"       , Bank       , Antimatter )
    , ("Relativistic parsec-skipping", Shipment   , TimeMachine)
    , ("Light magic"                 , WizardTower, Prism      )
+   , ("Charm quarks"                , Antimatter , Chancemaker)
 
    , ("Rain prayer"                 , Farm       , Temple     )
    , ("Asteroid mining"             , Mine       , Shipment   )
@@ -210,6 +232,7 @@ synergies =
    , ("Primeval glow"               , TimeMachine, Prism      )
    , ("Chemical proficiency"        , AlchemyLab , Antimatter )
    , ("Mystical energies"           , Temple     , Prism      )
+   , ("Gemmed talismans"            , Mine       , Chancemaker)
    ]
 
 buildingIcons :: Building -> (Int,Int)
@@ -227,6 +250,9 @@ buildingIcons Prism = (14,0)
 buildingIcons Bank = (15,0)
 buildingIcons Temple = (16,0)
 buildingIcons WizardTower = (17,0)
+buildingIcons Chancemaker = (19,0)
+
+
 
 
 buildingAchievements :: Map Building [(Int, Text)]
@@ -259,6 +285,17 @@ buildingAchievements = Map.fromList
       , (200, "Homegrown")
       , (250, "Gardener extraordinaire")
       , (300, "Seedy business")
+      , (350, "You and the beanstalk")
+      ])
+   , (Mine,
+      [ (1, "You know the drill")
+      , (50, "Excavation site")
+      , (100, "Hollow the planet")
+      , (150, "Can you dig it")
+      , (200, "The center of the Earth")
+      , (250, "Tectonic ambassador")
+      , (300, "Freak fracking")
+      , (350, "Romancing the stone")
       ])
    , (Factory,
       [ (1, "Production chain")
@@ -268,6 +305,7 @@ buildingAchievements = Map.fromList
       , (200, "Technocracy")
       , (250, "Rise of the machines")
       , (300, "Modern times")
+      , (350, "Ex machina")
       ])
    , (Bank,
       [ (1, "Pretty penny")
@@ -277,6 +315,7 @@ buildingAchievements = Map.fromList
       , (200, "It's the economy, stupid")
       , (250, "Acquire currency")
       , (300, "The nerve of war")
+      , (350, "And I need it now")
       ])
    , (Temple,
       [ (1, "Your time to shrine")
@@ -286,6 +325,7 @@ buildingAchievements = Map.fromList
       , (200, "Fanaticism")
       , (250, "Zealotry")
       , (300, "Wololo")
+      , (350, "Pray on the weak")
       ])
    , (WizardTower,
       [ (1, "Bewitched")
@@ -295,6 +335,7 @@ buildingAchievements = Map.fromList
       , (200, "Magic kingdom")
       , (250, "The wizarding world")
       , (300, "And now for my next trick, I'll need a volunteer from the audience")
+      , (350, "It's a kind of magic")
       ])
    , (Shipment,
       [ (1, "Expedition")
@@ -304,6 +345,7 @@ buildingAchievements = Map.fromList
       , (200, "We come in peace")
       , (250, "Parsec-masher")
       , (300, "It's not delivery")
+      , (350, "Make it so")
       ])
    , (AlchemyLab,
       [ (1, "Transmutation")
@@ -313,6 +355,7 @@ buildingAchievements = Map.fromList
       , (200, "The secrets of the universe")
       , (250, "The work of a lifetime")
       , (300, "Gold, Jerry! Gold!")
+      , (350, "All that glitters is gold")
       ])
    , (Portal,
       [ (1, "A whole new world")
@@ -322,6 +365,7 @@ buildingAchievements = Map.fromList
       , (200, "Realm of the Mad God")
       , (250, "A place lost in time")
       , (300, "Forbidden zone")
+      , (350, "H̸̷͓̳̳̯̟͕̟͍͍̣͡ḛ̢̦̰̺̮̝͖͖̘̪͉͘͡ ̠̦͕̤̪̝̥̰̠̫̖̣͙̬͘ͅC̨̦̺̩̲̥͉̭͚̜̻̝̣̼͙̮̯̪o̴̡͇̘͎̞̲͇̦̲͞͡m̸̩̺̝̣̹̱͚̬̥̫̳̼̞̘̯͘ͅẹ͇̺̜́̕͢s̶̙̟̱̥̮̯̰̦͓͇͖͖̝͘͘͞")
       ])
    , (TimeMachine,
       [ (1, "Time warp")
@@ -331,6 +375,7 @@ buildingAchievements = Map.fromList
       , (200, "Forever and ever")
       , (250, "Heat death")
       , (300, "cookie clicker forever and forever a hundred years cookie clicker, all day long forever, forever a hundred times, over and over cookie clicker adventures dot com")
+      , (350, "Way back then")
       ])
    , (Antimatter,
       [ (1, "Antibatter")
@@ -340,6 +385,7 @@ buildingAchievements = Map.fromList
       , (200, "Walk the planck")
       , (250, "Microcosm")
       , (300, "Scientists baffled everywhere")
+      , (350, "Exotic matter")
       ])
    , (Prism,
       [ (1, "Lone photon")
@@ -349,6 +395,17 @@ buildingAchievements = Map.fromList
       , (200, "Rise and shine")
       , (250, "Bright future")
       , (300, "Harmony of the spheres")
+      , (350, "At the end of the tunnel")
+      ])
+   , (Chancemaker,
+      [ (1, "Lucked out")
+      , (50, "What are the odds")
+      , (100, "Grandma needs a new pair of shoes")
+      , (150, "Million to one shot, doc")
+      , (200, "As luck would have it")
+      , (250, "Ever in your favor")
+      , (300, "Be a lady")
+      , (350, "Dicey business")
       ])
    ]
 
