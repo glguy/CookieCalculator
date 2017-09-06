@@ -325,27 +325,28 @@ data SuffixLength = LongSuffix | ShortSuffix
 prettyNumber :: SuffixLength -> Double -> String
 prettyNumber s n
   | n < 1e6   = numberWithSeparators (trimZero (showFFloat (Just 1) n ""))
-  | n < 1e9   = showFFloat (Just 3) (n / 1e6 ) (suffix " M" " million")
-  | n < 1e12  = showFFloat (Just 3) (n / 1e9 ) (suffix " B" " billion")
-  | n < 1e15  = showFFloat (Just 3) (n / 1e12) (suffix " T" " trillion")
-  | n < 1e18  = showFFloat (Just 3) (n / 1e15) (suffix " Qa" " quadrillion")
-  | n < 1e21  = showFFloat (Just 3) (n / 1e18) (suffix " Qi" " quintillion")
-  | n < 1e24  = showFFloat (Just 3) (n / 1e21) (suffix " Sx" " sextillion")
-  | n < 1e27  = showFFloat (Just 3) (n / 1e24) (suffix " Sp" " septillion")
-  | n < 1e30  = showFFloat (Just 3) (n / 1e27) (suffix " Oc" " octillion")
-  | n < 1e33  = showFFloat (Just 3) (n / 1e30) (suffix " No" " nonillion")
-  | n < 1e36  = showFFloat (Just 3) (n / 1e33) (suffix " Dc" " decillion")
-  | n < 1e39  = showFFloat (Just 3) (n / 1e36) (suffix " UnD" " undecillion")
-  | n < 1e42  = showFFloat (Just 3) (n / 1e39) (suffix " DoD" " duodecillion")
-  | n < 1e45  = showFFloat (Just 3) (n / 1e42) (suffix " TrD" " tredecillion")
-  | n < 1e48  = showFFloat (Just 3) (n / 1e45) (suffix " QaD" " quattuordecillion")
+  | n < 1e9   = showFFloat (Just 3) (n / 1e6 ) (suffix "M" "million")
+  | n < 1e12  = showFFloat (Just 3) (n / 1e9 ) (suffix "B" "billion")
+  | n < 1e15  = showFFloat (Just 3) (n / 1e12) (suffix "T" "trillion")
+  | n < 1e18  = showFFloat (Just 3) (n / 1e15) (suffix "Qa" "quadrillion")
+  | n < 1e21  = showFFloat (Just 3) (n / 1e18) (suffix "Qi" "quintillion")
+  | n < 1e24  = showFFloat (Just 3) (n / 1e21) (suffix "Sx" "sextillion")
+  | n < 1e27  = showFFloat (Just 3) (n / 1e24) (suffix "Sp" "septillion")
+  | n < 1e30  = showFFloat (Just 3) (n / 1e27) (suffix "Oc" "octillion")
+  | n < 1e33  = showFFloat (Just 3) (n / 1e30) (suffix "No" "nonillion")
+  | n < 1e36  = showFFloat (Just 3) (n / 1e33) (suffix "Dc" "decillion")
+  | n < 1e39  = showFFloat (Just 3) (n / 1e36) (suffix "UnD" "undecillion")
+  | n < 1e42  = showFFloat (Just 3) (n / 1e39) (suffix "DoD" "duodecillion")
+  | n < 1e45  = showFFloat (Just 3) (n / 1e42) (suffix "TrD" "tredecillion")
+  | n < 1e48  = showFFloat (Just 3) (n / 1e45) (suffix "QaD" "quattuordecillion")
   | otherwise = numberWithSeparators
-              $ showFFloat (Just 3) (n / 1e48) (suffix " QiD" " quindecillion")
+              $ showFFloat (Just 3) (n / 1e48) (suffix "QiD" "quindecillion")
   where
   trimZero x | ['.','0'] `isSuffixOf` x = dropLast 2 x
              | otherwise = x
   dropLast i xs = zipWith const xs (drop i xs)
   suffix short long =
+    ' ':
     case s of
       ShortSuffix -> short
       LongSuffix  -> long

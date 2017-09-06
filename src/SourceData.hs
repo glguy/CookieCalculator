@@ -434,6 +434,7 @@ upgradeRequirements = Map.fromList
       , (150, "Aging agents")
       , (200, "Xtreme walkers")
       , (250, "The Unbridling")
+      , (300, "Reverse dementia")
       ])
    , (Farm,
       [ (1, "Cheap hoes")
@@ -444,6 +445,7 @@ upgradeRequirements = Map.fromList
       , (150, "Pulsar sprinklers")
       , (200, "Fudge fungus")
       , (250, "Wheat triffids")
+      , (300, "Humane pesticides")
       ])
    , (Mine,
       [ (1, "Sugar gas")
@@ -454,6 +456,7 @@ upgradeRequirements = Map.fromList
       , (150, "Coreforge")
       , (200, "Planetsplitters")
       , (250, "Canola oil wells")
+      , (300, "Mole people")
       ])
    , (Factory,
       [ (1, "Sturdier conveyor belts")
@@ -464,6 +467,7 @@ upgradeRequirements = Map.fromList
       , (150, "Deep-bake process")
       , (200, "Cyborg workforce")
       , (250, "78-hour days")
+      , (300, "Machine learning")
       ])
    , (Bank,
       [ (1, "Taller tellers")
@@ -474,6 +478,7 @@ upgradeRequirements = Map.fromList
       , (150, "Financial zen")
       , (200, "Way of the wallet")
       , (250, "The stuff rationale")
+      , (300, "Edible money")
       ])
    , (Temple,
       [ (1, "Golden idols")
@@ -484,6 +489,7 @@ upgradeRequirements = Map.fromList
       , (150, "Great Baker in the sky")
       , (200, "Creation myth")
       , (250, "Theocracy")
+      , (300, "Sick rap prayers")
       ])
    , (WizardTower,
       [ (1, "Pointier hats")
@@ -494,6 +500,7 @@ upgradeRequirements = Map.fromList
       , (150, "Dark formulas")
       , (200, "Cookiemancy")
       , (250, "Rabbit trick")
+      , (300, "Deluxe tailored wands")
       ])
    , (Shipment,
       [ (1, "Vanilla nebulae")
@@ -504,6 +511,7 @@ upgradeRequirements = Map.fromList
       , (150, "Generation ship")
       , (200, "Dyson sphere")
       , (250, "The final frontier")
+      , (300, "Autopilot")
       ])
    , (AlchemyLab,
       [ (1, "Antimony")
@@ -514,6 +522,7 @@ upgradeRequirements = Map.fromList
       , (150, "Origin crucible")
       , (200, "Theory of atomic fluidity")
       , (250, "Beige goo")
+      , (300, "The advent of chemistry")
       ])
    , (Portal,
       [ (1, "Ancient tablet")
@@ -524,6 +533,7 @@ upgradeRequirements = Map.fromList
       , (150, "Deity-sized portals")
       , (200, "End of times back-up plan")
       , (250, "Maddening chants")
+      , (300, "The real world")
       ])
    , (TimeMachine,
       [ (1, "Flux capacitors")
@@ -534,6 +544,7 @@ upgradeRequirements = Map.fromList
       , (150, "Far future enactment")
       , (200, "Great loop hypothesis")
       , (250, "Cookietopian moments of maybe")
+      , (300, "Second seconds")
       ])
    , (Antimatter,
       [ (1, "Sugar bosons")
@@ -544,6 +555,7 @@ upgradeRequirements = Map.fromList
       , (150, "Nanocosmics")
       , (200, "The Pulse")
       , (250, "Some other super-tiny fundamental particle? Probably?")
+      , (300, "Quantum comb")
       ])
    , (Prism,
       [ (1, "Gem polish")
@@ -554,5 +566,17 @@ upgradeRequirements = Map.fromList
       , (150, "Glow-in-the-dark")
       , (200, "Lux sanctorum")
       , (250, "Reverse shadows")
+      , (300, "Crystal mirrors")
+      ])
+   , (Chancemaker,
+      [ (1, "Your lucky cookie")
+      , (5, "\"All Bets Are Off\" magic coin")
+      , (25, "Winning lottery ticket")
+      , (50, "Four-leaf clover field")
+      , (100, "A recipe book about books")
+      , (150, "Leprechaun village")
+      , (200, "Improbability drive")
+      , (250, "Antisuperstistronics")
+      , (300, "Bunnypedes")
       ])
    ]
