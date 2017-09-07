@@ -550,6 +550,7 @@ upgradeEffects = Map.fromList $
    , ("Radiant Appetite", cookieBonus 100)
    , ("Epoch Manipulator", \_ -> goldTimeMultiplier *~ 1.05)
    , ("Earth Shatterer",  noEffect)
+   , ("Reaper of Fields",  noEffect)
    , ("Dragonflight"    , noEffect) -- effect not modeled
    , ("Mind Over Matter", noEffect) -- 0.75 multiplier to random drops
 
