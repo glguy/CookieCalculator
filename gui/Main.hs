@@ -280,7 +280,8 @@ loadIcons =
   do pixbuf <- Gdk.pixbufNewFromResource "/glguy/cookieclicker/icons.png"
      w      <- get pixbuf #width
      h      <- get pixbuf #height
-     Gdk.pixbufScaleSimple pixbuf (w`quot`2) (h`quot`2) Gdk.InterpTypeBilinear
+     Just buf <- Gdk.pixbufScaleSimple pixbuf (w`quot`2) (h`quot`2) Gdk.InterpTypeBilinear
+     return buf
 
 gobjectToGValue ::
   forall o. (Gdk.ManagedPtrNewtype o, Gdk.GObject o) => o -> IO Gdk.GValue

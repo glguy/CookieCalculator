@@ -23,7 +23,7 @@ library
                        base64-bytestring >=1.0  && <1.1,
                        bytestring        >=0.10 && <0.11,
                        containers        >=0.5  && <0.6,
-                       lens              >=4.13 && <4.16,
+                       lens              >=4.13 && <4.17,
                        template-haskell  >=2.10 && <2.13,
                        text              >=1.2  && <1.3,
                        time              >=1.5  && <1.7
@@ -36,11 +36,11 @@ executable CookieClickerGtk
   other-modules:       AutoBuilder
 
   build-depends:       base              >=4.8  && <4.11,
-                       lens              >=4.13 && <4.16,
+                       lens              >=4.13 && <4.17,
                        time              >=1.5  && <1.7,
                        containers        >=0.5  && <0.6,
                        text              >=1.2  && <1.3,
-                       haskell-gi-base, gi-gdk, gi-gtk >= 3.0.11 && <3.1, gi-gdkpixbuf,
+                       haskell-gi-base, gi-gdk, gi-gtk >= 3.0.11 && <3.1, gi-gdkpixbuf >= 2.0.15 && < 2.1,
                        CookieCalculator
 
   c-sources:           gui-cbits/resources.c
