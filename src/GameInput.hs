@@ -30,6 +30,7 @@ data GameInput = GameInput
   , _cookiesForfeit     :: !Double
   , _cookiesEarned      :: !Double
   , _heavenlyChips      :: !Double
+  , _sugarLumps         :: !Int
   }
   deriving (Read, Show)
 

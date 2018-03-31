@@ -674,6 +674,7 @@ saveFileToGameInput now sav = GameInput
   , _cookiesForfeit     = savCookiesReset  (savMain sav)
   , _cookiesEarned      = savCookiesEarned (savMain sav)
   , _heavenlyChips      = savHeavenlyChips (savMain sav)
+  , _sugarLumps         = savSugarLumps (savMain sav)
   }
   where
   duration = realToFrac (diffUTCTime now (savSessionStart (savStats sav)))

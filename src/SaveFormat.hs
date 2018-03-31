@@ -64,7 +64,10 @@ data SaveMain = SaveMain
   , savPermUpgrade1, savPermUpgrade2
   , savPermUpgrade3, savPermUpgrade4, savPermUpgrade5
   , savDragonLevel, savDragonAura, savDragonAura2
-  , savChimeType, savVolume :: Int
+  , savChimeType, savVolume, savShinyWrinklers :: Int
+  , savShinyCookiesSucked :: Double
+  , savSugarLumps, savTotalSugarLumps :: Int
+  , savSugarLumpTime :: Double
   } deriving (Show)
 
 
@@ -97,13 +100,16 @@ removeEnd bs =
 loadMySave :: IO SaveFile
 loadMySave = either fail return . loadSave =<< readFile "save.txt"
 
-loadSave :: String -> Either String SaveFile
-loadSave raw =
+decodeSaveString :: String -> Either String Text
+decodeSaveString raw =
   do let unesc = B8.pack (unescape raw)
      noend <- removeEnd unesc
      let utf8utf8 = Data.ByteString.Base64.decodeLenient noend
          txt = decodeUtf8 (B8.pack (Text.unpack (decodeUtf8 utf8utf8))) -- sorry, not my format
-     parse txt
+     return txt
+
+loadSave :: String -> Either String SaveFile
+loadSave raw = parse =<< decodeSaveString raw
 
 parseBldg :: Text -> Either String BuildingSave
 parseBldg str =
