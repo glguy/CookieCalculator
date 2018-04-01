@@ -574,6 +574,8 @@ upgradeEffects = Map.fromList $
    , ("Golden cookie alert sound", noEffect)
    , ("Golden cookie sound selector", noEffect)
    , ("Heavenly cookies", cookieBonus 10)
+
+   , ("Sugar baking", \inp -> cookieBonus (inp ^. sugarLumps) inp)
    ]
 
 elderBatallion :: Effect
