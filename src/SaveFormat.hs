@@ -66,7 +66,7 @@ data SaveMain = SaveMain
   , savPermUpgrade3, savPermUpgrade4, savPermUpgrade5
   , savDragonLevel, savDragonAura, savDragonAura2
   , savChimeType, savVolume, savShinyWrinklers :: Int
-  , savShinyCookiesSucked :: Double
+  , savShinyMunched :: Double
   , savSugarLumps, savTotalSugarLumps :: Int
   , savSugarLumpTime :: Double
   } deriving (Show)
