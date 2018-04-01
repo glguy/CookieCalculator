@@ -72,12 +72,24 @@ effectByName n =
 
 computeGameState :: GameInput -> GameState
 computeGameState input
-  = effectByName (view dragonAura1 input) input
+  = addPantheonEffects input
+  $ effectByName (view dragonAura1 input) input
   $ effectByName (view dragonAura2 input) input
   $ foldl'
       (\acc u -> upgradeEffect u input acc)
       initialGameState
       (view upgradesBought input)
+
+addPantheonEffects :: GameInput -> GameState -> GameState
+addPantheonEffects inp =
+  let PantheonSave slot1 slot2 slot3 = inp ^. pantheon
+  in addPantheonEffect slot1 3 inp
+   . addPantheonEffect slot2 2 inp
+   . addPantheonEffect slot3 1 inp
+
+addPantheonEffect :: Int {- ^ effect ID -} -> Int {- ^ level -} -> GameInput -> GameState -> GameState
+addPantheonEffect (-1) = \_ _ st -> st
+addPantheonEffect effectId = pantheonEffects !! effectId
 
 type Effect = GameInput -> GameState -> GameState
 
@@ -384,6 +396,63 @@ gpoc b bonus = \inp ->
   let gmas = views (buildingOwned b) fromIntegral inp
   in buildingBase Grandma +~ bonus * gmas
 
+pantheonEffects :: [Int -> Effect]
+pantheonEffects =
+  -- asceticism
+  [ \lvl -> cookieBonus (lvl * 5)
+
+  -- decadence
+  , \_ -> noEffect
+  -- if (godLvl==1) buildMult*=0.93;
+  -- else if (godLvl==2) buildMult*=0.95;
+  -- else if (godLvl==3) buildMult*=0.98;
+
+  -- ruin
+  , \_ -> noEffect
+  -- ages
+  , \_ -> noEffect
+     -- if (godLvl==1) mult*=1+0.15*Math.sin((Date.now()/1000/(60*60*3))*Math.PI*2);
+     -- else if (godLvl==2) mult*=1+0.15*Math.sin((Date.now()/1000/(60*60*12))*Math.PI*2);
+     -- else if (godLvl==3) mult*=1+0.15*Math.sin((Date.now()/1000/(60*60*24))*Math.PI*2);
+  -- seasons
+  , \lvl _input -> heartCookieMultiplier *~ (1 + fromIntegral lvl / 10)
+
+  -- creation
+  , \_ -> noEffect
+  -- if (godLvl==1) price*=0.93;
+  -- else if (godLvl==2) price*=0.95;
+  -- else if (godLvl==3) price*=0.98;
+
+  -- labor
+  , \_ -> noEffect
+  -- if (godLvl==1) buildMult*=0.97;
+  -- else if (godLvl==2) buildMult*=0.98;
+  -- else if (godLvl==3) buildMult*=0.99;
+  -- if (godLvl==1) mousemult*=1.15;
+  -- else if (godLvl==2) mousemult*=1.1;
+  -- else if (godLvl==3) mousemult*=1.05;
+
+  -- industry
+  , \_ -> noEffect
+  -- if (godLvl==1) buildMult*=1.1;
+  -- else if (godLvl==2) buildMult*=1.05;
+  -- else if (godLvl==3) buildMult*=1.03;
+
+  -- mother
+  , \_ -> noEffect
+  -- if (godLvl==1) milkMult*=1.1;
+  -- else if (godLvl==2) milkMult*=1.06;
+  -- else if (godLvl==3) milkMult*=1.03;
+
+  -- scorn
+  , \_ -> noEffect
+  -- if (godLvl==1) me.sucked*=1.15;
+  -- else if (godLvl==2) me.sucked*=1.1;
+  -- else if (godLvl==3) me.sucked*=1.05;
+
+  -- order
+  , \_ -> noEffect
+  ]
 
 upgradeEffects :: Map Text Effect
 upgradeEffects = Map.fromList $
@@ -566,7 +635,7 @@ upgradeEffects = Map.fromList $
    , ("Starterror", noEffect)
    , ("Starspawn", noEffect)
    , ("Starsnow", noEffect)
-   , ("Starlove", \_ -> heartCookieMultiplier *~ 1.5) -- XXX: affects heart cookies
+   , ("Starlove", \_ -> heartCookieMultiplier *~ 1.5)
    , ("Startrade", noEffect)
 
    , ("Dragon's Fortune", noEffect)
@@ -667,7 +736,7 @@ saveFileToGameInput now sav = GameInput
   , _prestigeLevel      = savPrestige (savMain sav)
   , _sessionLength      = duration
   , _cookiesMunched     = savMunched (savMain sav)
-  , _wrinklers          = savWrinklers (savMain sav)
+  , _wrinklers          = savWrinklers (savMain sav) + savShinyWrinklers (savMain sav)
   , _cookiesBanked      = savCookies (savMain sav)
   , _dragonAura1        = safeIndex "dragonAuras" dragonAuras (savDragonAura (savMain sav))
   , _dragonAura2        = safeIndex "dragonAuras" dragonAuras (savDragonAura2 (savMain sav))
@@ -677,6 +746,8 @@ saveFileToGameInput now sav = GameInput
   , _cookiesEarned      = savCookiesEarned (savMain sav)
   , _heavenlyChips      = savHeavenlyChips (savMain sav)
   , _sugarLumps         = savSugarLumps (savMain sav)
+
+  , _pantheon           = pantheonValue
   }
   where
   duration = realToFrac (diffUTCTime now (savSessionStart (savStats sav)))
@@ -692,6 +763,14 @@ saveFileToGameInput now sav = GameInput
     = fmap (safeIndex "achievementById" achievementById)
     $ findIndices id
     $ savAchievements sav
+
+  pantheonValue =
+    case Map.lookup Temple (savBuildings sav) of
+      Just BuildingSave { bldgMinigame = Just str } ->
+        case parsePantheon str of
+          Right x -> x
+          Left e -> error e
+      _ -> error "Pantheon missing"
 
 sellOff :: GameInput -> GameState -> Double
 sellOff input st = view buildingCostMultiplier st * sums

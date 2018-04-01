@@ -24,7 +24,8 @@ import qualified Data.Text as Text
 
 data BuildingSave = BuildingSave
   { bldgCurrent, bldgTotal, bldgSpecial :: Int
-  , bldgBaked :: Double }
+  , bldgBaked :: Double
+  , bldgMinigame :: Maybe Text }
   deriving (Show)
 
 -- NOTE: The order of the fields in SaveStats, SavePrefs, and SaveMain
@@ -113,12 +114,16 @@ loadSave raw = parse =<< decodeSaveString raw
 
 parseBldg :: Text -> Either String BuildingSave
 parseBldg str =
-  do let bldgCurrentStr : bldgTotalStr : bldgBakedStr : bldgSpecialStr : _bldgMinigames
+  do let bldgCurrentStr : bldgTotalStr : bldgBakedStr : bldgSpecialStr : bldgMinigameStrs
             = Text.splitOn "," str
      bldgCurrent <- fst <$> decimal bldgCurrentStr
      bldgTotal   <- fst <$> decimal bldgTotalStr
      bldgBaked   <- fst <$> rational bldgBakedStr
      bldgSpecial <- fst <$> decimal bldgSpecialStr
+     bldgMinigame <- case bldgMinigameStrs of
+                       []  -> pure Nothing
+                       [x] -> pure (Just x)
+                       _   -> Left "too many minigame strings"
      return BuildingSave{..}
 
 unpackBits :: Text -> [Bool]
@@ -166,6 +171,21 @@ parse str =
          savAchievements = unpackBits region6
 
      return SaveFile{..}
+
+data PantheonSave = PantheonSave
+  { savPantheon1, savPantheon2, savPantheon3 :: Int }
+  deriving (Read, Show)
+
+parsePantheon :: Text -> Either String PantheonSave
+parsePantheon str =
+  case Text.splitOn " " str of
+    [slotStrs, _swaps, _time] ->
+      do slots <- traverse parser (Text.splitOn "/" slotStrs)
+         case slots of
+           [slot1, slot2, slot3] -> pure (PantheonSave slot1 slot2 slot3)
+           _ -> Left "Wrong number of slots"
+    _ -> Left "Wrong number of entries"
+
 
 
 class    HasParser a       where parser :: Text -> Either String a

@@ -5,6 +5,7 @@ module GameInput where
 
 import Building
 import AesonTH
+import SaveFormat (PantheonSave(..))
 
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -31,6 +32,8 @@ data GameInput = GameInput
   , _cookiesEarned      :: !Double
   , _heavenlyChips      :: !Double
   , _sugarLumps         :: !Int
+
+  , _pantheon           :: !PantheonSave
   }
   deriving (Read, Show)
 
