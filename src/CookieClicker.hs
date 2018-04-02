@@ -83,9 +83,9 @@ computeGameState input
 addPantheonEffects :: GameInput -> GameState -> GameState
 addPantheonEffects inp =
   let PantheonSave slot1 slot2 slot3 = inp ^. pantheon
-  in addPantheonEffect slot1 3 inp
+  in addPantheonEffect slot1 1 inp
    . addPantheonEffect slot2 2 inp
-   . addPantheonEffect slot3 1 inp
+   . addPantheonEffect slot3 3 inp
 
 addPantheonEffect :: Int {- ^ effect ID -} -> Int {- ^ level -} -> GameInput -> GameState -> GameState
 addPantheonEffect (-1) = \_ _ st -> st
@@ -336,32 +336,39 @@ data SuffixLength = LongSuffix | ShortSuffix
 
 prettyNumber :: SuffixLength -> Double -> String
 prettyNumber s n
+  | isNaN n      = "NaN"
+  | isInfinite n = "Infinity"
   | n < 1e6   = numberWithSeparators (trimZero (showFFloat (Just 1) n ""))
-  | n < 1e9   = showFFloat (Just 3) (n / 1e6 ) (suffix "M" "million")
-  | n < 1e12  = showFFloat (Just 3) (n / 1e9 ) (suffix "B" "billion")
-  | n < 1e15  = showFFloat (Just 3) (n / 1e12) (suffix "T" "trillion")
-  | n < 1e18  = showFFloat (Just 3) (n / 1e15) (suffix "Qa" "quadrillion")
-  | n < 1e21  = showFFloat (Just 3) (n / 1e18) (suffix "Qi" "quintillion")
-  | n < 1e24  = showFFloat (Just 3) (n / 1e21) (suffix "Sx" "sextillion")
-  | n < 1e27  = showFFloat (Just 3) (n / 1e24) (suffix "Sp" "septillion")
-  | n < 1e30  = showFFloat (Just 3) (n / 1e27) (suffix "Oc" "octillion")
-  | n < 1e33  = showFFloat (Just 3) (n / 1e30) (suffix "No" "nonillion")
-  | n < 1e36  = showFFloat (Just 3) (n / 1e33) (suffix "Dc" "decillion")
-  | n < 1e39  = showFFloat (Just 3) (n / 1e36) (suffix "UnD" "undecillion")
-  | n < 1e42  = showFFloat (Just 3) (n / 1e39) (suffix "DoD" "duodecillion")
-  | n < 1e45  = showFFloat (Just 3) (n / 1e42) (suffix "TrD" "tredecillion")
-  | n < 1e48  = showFFloat (Just 3) (n / 1e45) (suffix "QaD" "quattuordecillion")
-  | otherwise = numberWithSeparators
-              $ showFFloat (Just 3) (n / 1e48) (suffix "QiD" "quindecillion")
+  | otherwise =
+        case [ showFFloat (Just 3) v (' ' : suffix)
+                | (scale, suffix) <- zip [0..] names
+                , let v = fromIntegral (round (n / 1000^scale)) / 1000 :: Double
+                , v < 1000 ] of
+          result : _ -> result
+          _ -> numberWithSeparators
+             $ showFFloat (Just 3) (n / 1000 ^ length names) (' ' : last names)
   where
   trimZero x | ['.','0'] `isSuffixOf` x = dropLast 2 x
              | otherwise = x
   dropLast i xs = zipWith const xs (drop i xs)
-  suffix short long =
-    ' ':
+
+  names =
     case s of
-      ShortSuffix -> short
-      LongSuffix  -> long
+      ShortSuffix -> shortNames
+      LongSuffix  -> longNames
+
+  shortPre  = ["","Un","Do","Tr","Qa","Qi","Sx","Sp","Oc","No"]
+  shortPost = ["D","V","T","Qa","Qi","Sx","Sp","O","N"]
+  shortNames = ["k","M","B","T","Qa","Qi","Sx","Sp","Oc","No"]
+            ++ [ pre++post | post <- shortPost, pre <- shortPre ]
+
+  longPost  = ["decillion","vigintillion","trigintillion",
+               "quadragintillion","quinquagintillion","sexagintillion",
+               "septuagintillion","octogintillion","nonagintillion"]
+  longPre   = ["","un","duo","tre","quattuor","quin","sex","septen","octo","novem"]
+  longNames = ["thousand","million","billion","trillion","quadrillion",
+               "quintillion","sextillion","septillion","octillion","nonillion"]
+           ++ [ pre++post | post <- longPost, pre <- longPre ]
 
 numberWithSeparators :: String -> String
 numberWithSeparators str
@@ -399,7 +406,10 @@ gpoc b bonus = \inp ->
 pantheonEffects :: [Int -> Effect]
 pantheonEffects =
   -- asceticism
-  [ \lvl -> cookieBonus (lvl * 5)
+  [ \lvl -> let mult 1 = 15
+                mult 2 = 10
+                mult 3 =  5
+            in cookieBonus (mult lvl)
 
   -- decadence
   , \_ -> noEffect
@@ -408,20 +418,31 @@ pantheonEffects =
   -- else if (godLvl==3) buildMult*=0.98;
 
   -- ruin
-  , \_ -> noEffect
+  , \_ -> noEffect -- Temporary click buff
+
   -- ages
   , \_ -> noEffect
      -- if (godLvl==1) mult*=1+0.15*Math.sin((Date.now()/1000/(60*60*3))*Math.PI*2);
      -- else if (godLvl==2) mult*=1+0.15*Math.sin((Date.now()/1000/(60*60*12))*Math.PI*2);
      -- else if (godLvl==3) mult*=1+0.15*Math.sin((Date.now()/1000/(60*60*24))*Math.PI*2);
+
   -- seasons
-  , \lvl _input -> heartCookieMultiplier *~ (1 + fromIntegral lvl / 10)
+  , \lvl _input ->
+            let mult 1 = 1.3
+                mult 2 = 1.2
+                mult 3 = 1.1
+            in heartCookieMultiplier *~ mult lvl
 
   -- creation
-  , \_ -> noEffect
-  -- if (godLvl==1) price*=0.93;
-  -- else if (godLvl==2) price*=0.95;
-  -- else if (godLvl==3) price*=0.98;
+  , \lvl input ->
+            let priceEffect 1 = 0.93
+                priceEffect 2 = 0.95
+                priceEffect 3 = 0.98
+                heavenlyEffect 1 = 0.7
+                heavenlyEffect 2 = 0.8
+                heavenlyEffect 3 = 0.9
+            in (buildingCostMultiplier *~ priceEffect lvl)
+             . prestigeBonus2 (heavenlyEffect lvl) input
 
   -- labor
   , \_ -> noEffect
@@ -439,10 +460,10 @@ pantheonEffects =
   -- else if (godLvl==3) buildMult*=1.03;
 
   -- mother
-  , \_ -> noEffect
-  -- if (godLvl==1) milkMult*=1.1;
-  -- else if (godLvl==2) milkMult*=1.06;
-  -- else if (godLvl==3) milkMult*=1.03;
+  , \lvl _ -> let mult 1 = 1.1
+                  mult 2 = 1.06
+                  mult 3 = 1.03
+              in milkMultiplier *~ mult lvl
 
   -- scorn
   , \_ -> noEffect
@@ -615,7 +636,7 @@ upgradeEffects = Map.fromList $
    , ("Master of the Armory" , \_ -> upgradeCostMultiplier *~ 0.98)
    , ("Fierce Hoarder" , \_ -> buildingCostMultiplier *~ 0.98)
    , ("Breath of Milk", \_ -> milkMultiplier *~ 1.05 )
-   , ("Dragon God", noEffect) -- prestige 5%
+   , ("Dragon God", prestigeBonus2 5)
    , ("Radiant Appetite", cookieBonus 100)
    , ("Epoch Manipulator", \_ -> goldTimeMultiplier *~ 1.05)
    , ("Earth Shatterer",  noEffect)
@@ -802,7 +823,7 @@ floor6 = under (powering 10 . multiplying (2/3)) (max 1 . floor')
 -- | Isomorphism between prestige level and cookies baked.
 --
 -- @
--- prestigeLevel = cookies**3 * 1e12
+-- prestigeLevel = cookies**(1/3)/1e4
 -- prestigeLevel = _Prestige # cookies
 -- @
 _Prestige :: Iso' Double Double
