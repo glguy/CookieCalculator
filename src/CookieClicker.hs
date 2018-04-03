@@ -340,13 +340,10 @@ prettyNumber s n
   | isInfinite n = "Infinity"
   | n < 1e6   = numberWithSeparators (trimZero (showFFloat (Just 1) n ""))
   | otherwise =
-        case [ showFFloat (Just 3) v (' ' : suffix)
-                | (scale, suffix) <- zip [0..] names
-                , let v = fromIntegral (round (n / 1000^scale)) / 1000 :: Double
-                , v < 1000 ] of
-          result : _ -> result
-          _ -> numberWithSeparators
-             $ showFFloat (Just 3) (n / 1000 ^ length names) (' ' : last names)
+        head [ showFFloat (Just 3) v (' ' : suffix)
+             | (scale, suffix) <- zip [0..] names
+             , let v = fromIntegral (round (n / 1000^scale)) / 1000 :: Double
+             , v < 1000 ]
   where
   trimZero x | ['.','0'] `isSuffixOf` x = dropLast 2 x
              | otherwise = x
@@ -358,14 +355,15 @@ prettyNumber s n
       LongSuffix  -> longNames
 
   shortPre  = ["","Un","Do","Tr","Qa","Qi","Sx","Sp","Oc","No"]
-  shortPost = ["D","V","T","Qa","Qi","Sx","Sp","O","N"]
+  shortPost = ["D","V","T","Qaa","Qia","Sxa","Spa","O","N","C"]
   shortNames = ["k","M","B","T","Qa","Qi","Sx","Sp","Oc","No"]
             ++ [ pre++post | post <- shortPost, pre <- shortPre ]
 
+  longPre   = ["","un","duo","tre","quattuor","quin","sex","septen","octo","novem"]
   longPost  = ["decillion","vigintillion","trigintillion",
                "quadragintillion","quinquagintillion","sexagintillion",
-               "septuagintillion","octogintillion","nonagintillion"]
-  longPre   = ["","un","duo","tre","quattuor","quin","sex","septen","octo","novem"]
+               "septuagintillion","octogintillion","nonagintillion",
+               "centillion"]
   longNames = ["thousand","million","billion","trillion","quadrillion",
                "quintillion","sextillion","septillion","octillion","nonillion"]
            ++ [ pre++post | post <- longPost, pre <- longPre ]
