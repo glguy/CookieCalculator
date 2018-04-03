@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist SYSTEM "file://localhost/System/Library/DTDs/PropertyList.dtd">
+<plist version="0.9">
+<dict>
+<key>CFBundleInfoDictionaryVersion</key>
+<string>6.0</string>
+<key>CFBundleIdentifier</key>
+<string>net.glguy.cookie-calculator</string>
+<key>CFBundleDevelopmentRegion</key>
+<string>en</string>
+<key>CFBundleExecutable</key>
+<string>CookieClickerGtk</string>
+<key>CFBundleIconFile</key>
+<string>perfectCookie.icns</string>
+<key>CFBundleName</key>
+<string>cookie-calculator</string>
+<key>CFBundlePackageType</key>
+<string>APPL</string>
+<key>CFBundleVersion</key>
+<string>1.0</string>
+<key>CFBundleShortVersionString</key>
+<string>1.0</string>
+<key>NSHumanReadableCopyright</key>
+<string>Eric Mertens 2018</string>
+<key>NSPrincipalClass</key>
+<string>NSApplication</string>
+</dict>
+</plist>

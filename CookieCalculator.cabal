@@ -9,8 +9,11 @@ author:              Eric Mertens
 maintainer:          emertens@gmail.com
 copyright:           2016 Eric Mertens
 category:            Game
-build-type:          Simple
+build-type:          Custom
 cabal-version:       >=1.10
+
+custom-setup
+  setup-depends: cabal-macosx, Cabal, base
 
 library
   hs-source-dirs:      src
