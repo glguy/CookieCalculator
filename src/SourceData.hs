@@ -277,6 +277,9 @@ buildingAchievements = Map.fromList
       , (250, "The old never bothered me anyway")
       , (300, "The agemaster")
       , (350, "To oldly go")
+      , (400, "Aged well")
+      , (450, "101st birthday")
+      , (500, "Defense of the ancients")
       ])
    , (Farm,
       [ (1, "My first farm")
@@ -287,6 +290,8 @@ buildingAchievements = Map.fromList
       , (250, "Gardener extraordinaire")
       , (300, "Seedy business")
       , (350, "You and the beanstalk")
+      , (400, "Harvest moon")
+      , (450, "Make like a tree")
       ])
    , (Mine,
       [ (1, "You know the drill")
@@ -297,6 +302,8 @@ buildingAchievements = Map.fromList
       , (250, "Tectonic ambassador")
       , (300, "Freak fracking")
       , (350, "Romancing the stone")
+      , (400, "Mine?")
+      , (450, "Cave story")
       ])
    , (Factory,
       [ (1, "Production chain")
@@ -307,6 +314,8 @@ buildingAchievements = Map.fromList
       , (250, "Rise of the machines")
       , (300, "Modern times")
       , (350, "Ex machina")
+      , (400, "In full gear")
+      , (450, "In-cog-neato")
       ])
    , (Bank,
       [ (1, "Pretty penny")
@@ -317,6 +326,8 @@ buildingAchievements = Map.fromList
       , (250, "Acquire currency")
       , (300, "The nerve of war")
       , (350, "And I need it now")
+      , (400, "Treacle tart economics")
+      , (450, "Save your breath because that's all you've got left")
       ])
    , (Temple,
       [ (1, "Your time to shrine")
@@ -327,6 +338,8 @@ buildingAchievements = Map.fromList
       , (250, "Zealotry")
       , (300, "Wololo")
       , (350, "Pray on the weak")
+      , (400, "Holy cookies, Grandma!")
+      , (450, "Vengeful and almighty")
       ])
    , (WizardTower,
       [ (1, "Bewitched")
@@ -337,6 +350,8 @@ buildingAchievements = Map.fromList
       , (250, "The wizarding world")
       , (300, "And now for my next trick, I'll need a volunteer from the audience")
       , (350, "It's a kind of magic")
+      , (400, "The Prestige")
+      , (450, "Spell it out for you")
       ])
    , (Shipment,
       [ (1, "Expedition")
@@ -347,6 +362,8 @@ buildingAchievements = Map.fromList
       , (250, "Parsec-masher")
       , (300, "It's not delivery")
       , (350, "Make it so")
+      , (400, "That's just peanuts to space")
+      , (450, "Space space space space space")
       ])
    , (AlchemyLab,
       [ (1, "Transmutation")
@@ -357,6 +374,8 @@ buildingAchievements = Map.fromList
       , (250, "The work of a lifetime")
       , (300, "Gold, Jerry! Gold!")
       , (350, "All that glitters is gold")
+      , (400, "Worth its weight in lead")
+      , (450, "Don't get used to yourself, you're gonna have to change")
       ])
    , (Portal,
       [ (1, "A whole new world")
@@ -367,6 +386,8 @@ buildingAchievements = Map.fromList
       , (250, "A place lost in time")
       , (300, "Forbidden zone")
       , (350, "H̸̷͓̳̳̯̟͕̟͍͍̣͡ḛ̢̦̰̺̮̝͖͖̘̪͉͘͡ ̠̦͕̤̪̝̥̰̠̫̖̣͙̬͘ͅC̨̦̺̩̲̥͉̭͚̜̻̝̣̼͙̮̯̪o̴̡͇̘͎̞̲͇̦̲͞͡m̸̩̺̝̣̹̱͚̬̥̫̳̼̞̘̯͘ͅẹ͇̺̜́̕͢s̶̙̟̱̥̮̯̰̦͓͇͖͖̝͘͘͞")
+      , (400, "What happens in the vortex stays in the vortex")
+      , (450, "Objects in the mirror dimension are closer than they appear")
       ])
    , (TimeMachine,
       [ (1, "Time warp")
@@ -377,6 +398,8 @@ buildingAchievements = Map.fromList
       , (250, "Heat death")
       , (300, "cookie clicker forever and forever a hundred years cookie clicker, all day long forever, forever a hundred times, over and over cookie clicker adventures dot com")
       , (350, "Way back then")
+      , (400, "Invited to yesterday's party")
+      , (450, "Groundhog day")
       ])
    , (Antimatter,
       [ (1, "Antibatter")
@@ -387,6 +410,8 @@ buildingAchievements = Map.fromList
       , (250, "Microcosm")
       , (300, "Scientists baffled everywhere")
       , (350, "Exotic matter")
+      , (400, "Downsizing")
+      , (450, "A matter of perspective")
       ])
    , (Prism,
       [ (1, "Lone photon")
@@ -397,6 +422,8 @@ buildingAchievements = Map.fromList
       , (250, "Bright future")
       , (300, "Harmony of the spheres")
       , (350, "At the end of the tunnel")
+      , (400, "My eyes")
+      , (450, "Optical illusion")
       ])
    , (Chancemaker,
       [ (1, "Lucked out")
@@ -407,6 +434,8 @@ buildingAchievements = Map.fromList
       , (250, "Ever in your favor")
       , (300, "Be a lady")
       , (350, "Dicey business")
+      , (400, "Maybe a chance in hell, actually")
+      , (450, "Jackpot")
       ])
    ]
 
