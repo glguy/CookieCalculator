@@ -337,6 +337,7 @@ data SuffixLength = LongSuffix | ShortSuffix
 prettyNumber :: SuffixLength -> Double -> String
 prettyNumber s n
   | isNaN n      = "NaN"
+  | n < 0        = '-':prettyNumber s (-n)
   | isInfinite n = "Infinity"
   | n < 1e6   = numberWithSeparators (trimZero (showFFloat (Just 1) n ""))
   | otherwise =
@@ -410,10 +411,11 @@ pantheonEffects =
             in cookieBonus (mult lvl)
 
   -- decadence
-  , \_ -> noEffect
-  -- if (godLvl==1) buildMult*=0.93;
-  -- else if (godLvl==2) buildMult*=0.95;
-  -- else if (godLvl==3) buildMult*=0.98;
+  , \lvl input ->
+            let buildingEffect 1 = 0.93
+                buildingEffect 2 = 0.95
+                buildingEffect 3 = 0.98
+            in buildingStats . mapped . bldgMult *~ buildingEffect lvl
 
   -- ruin
   , \_ -> noEffect -- Temporary click buff
@@ -424,7 +426,7 @@ pantheonEffects =
      -- else if (godLvl==2) mult*=1+0.15*Math.sin((Date.now()/1000/(60*60*12))*Math.PI*2);
      -- else if (godLvl==3) mult*=1+0.15*Math.sin((Date.now()/1000/(60*60*24))*Math.PI*2);
 
-  -- seasons
+  -- seasons (season switching more expensive)
   , \lvl _input ->
             let mult 1 = 1.3
                 mult 2 = 1.2
@@ -443,34 +445,37 @@ pantheonEffects =
              . prestigeBonus2 (heavenlyEffect lvl) input
 
   -- labor
-  , \_ -> noEffect
-  -- if (godLvl==1) buildMult*=0.97;
-  -- else if (godLvl==2) buildMult*=0.98;
-  -- else if (godLvl==3) buildMult*=0.99;
-  -- if (godLvl==1) mousemult*=1.15;
-  -- else if (godLvl==2) mousemult*=1.1;
-  -- else if (godLvl==3) mousemult*=1.05;
+  , \lvl input ->
+            let mouseEffect 1 = 1.15
+                mouseEffect 2 = 1.10
+                mouseEffect 3 = 1.05
+                buildingEffect 1 = 0.97
+                buildingEffect 2 = 0.98
+                buildingEffect 3 = 0.99
+            in (mouseMultiplier *~ mouseEffect lvl)
+             . (buildingStats . mapped . bldgMult *~ buildingEffect lvl)
 
-  -- industry
-  , \_ -> noEffect
-  -- if (godLvl==1) buildMult*=1.1;
-  -- else if (godLvl==2) buildMult*=1.05;
-  -- else if (godLvl==3) buildMult*=1.03;
+  -- industry (fewer cookies)
+  , \lvl input ->
+            let buildingEffect 1 = 1.10
+                buildingEffect 2 = 1.05
+                buildingEffect 3 = 1.03
+            in buildingStats . mapped . bldgMult *~ buildingEffect lvl
 
-  -- mother
+  -- mother (fewer gold cookies)
   , \lvl _ -> let mult 1 = 1.1
                   mult 2 = 1.06
                   mult 3 = 1.03
               in milkMultiplier *~ mult lvl
 
-  -- scorn
-  , \_ -> noEffect
-  -- if (godLvl==1) me.sucked*=1.15;
-  -- else if (godLvl==2) me.sucked*=1.1;
-  -- else if (godLvl==3) me.sucked*=1.05;
+  -- scorn (wrinklers appear faster)
+  , \lvl _ -> let mult 1 = 1.15
+                  mult 2 = 1.10
+                  mult 3 = 1.05
+              in wrinklerMultiplier *~ mult lvl
 
   -- order
-  , \_ -> noEffect
+  , \_ -> noEffect -- sugar lump rate
   ]
 
 upgradeEffects :: Map Text Effect
@@ -496,7 +501,7 @@ upgradeEffects = Map.fromList $
    , ("Septillion fingers"             , cursorAdd 5.0e+5)
    , ("Octillion fingers"              , cursorAdd 5.0e+6)
 
-   --    -- KITTENS
+   -- KITTENS
    , ("Kitten helpers"    , kittenBonus 10)
    , ("Kitten workers"    , kittenBonus 12.5)
    , ("Kitten engineers"  , kittenBonus 15)
@@ -506,7 +511,8 @@ upgradeEffects = Map.fromList $
    , ("Kitten specialists", kittenBonus 20)
    , ("Kitten experts"    , kittenBonus 20)
    , ("Kitten consultants", kittenBonus 20)
-   , ("Kitten assistants to the regional manager", kittenBonus 20)
+   , ("Kitten assistants to the regional manager", kittenBonus 17.5)
+   , ("Kitten marketeers" , kittenBonus 15)
    , ("Kitten angels"     , kittenBonus 10)
 
    , ("Bingo center/Research facility", \_ -> buildingMult Grandma *~ 4)

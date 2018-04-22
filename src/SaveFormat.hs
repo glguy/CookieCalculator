@@ -127,12 +127,7 @@ parseBldg str =
      return BuildingSave{..}
 
 unpackBits :: Text -> [Bool]
-unpackBits bs = Text.foldr (unpackOrd . ord) [] bs
-  where
-  unpackOrd n
-    | n < 1     = error "Bad bit packing"
-    | n == 1    = id
-    | otherwise = unpackOrd (n`quot`2) . (odd n:)
+unpackBits = map ('1'==) . Text.unpack
 
 toPairs :: [a] -> [(a,a)]
 toPairs (x:y:z) = (x,y) : toPairs z
@@ -144,13 +139,14 @@ integerToUTCTime ms = posixSecondsToUTCTime (realToFrac s)
   s = fromInteger ms / 1000 :: Rational
 
 parsePrefs :: Text -> SavePrefs
-parsePrefs x = SavePrefs{..}
-  where
-  [ savParticles, savNumbers, savAutosave, savAutoupdate
-    , savMilk, savFancy, savWarn, savCursors
-    , savFocus, savFormat, savNotifs, savWobbly
-    , savMonospace, savFilters, savCookieSound
-    , savCrates, savBackupWarning ] = unpackBits x
+parsePrefs x =
+  case unpackBits x of
+    [ savParticles, savNumbers, savAutosave, savAutoupdate
+      , savMilk, savFancy, savWarn, savCursors
+      , savFocus, savFormat, savNotifs, savWobbly
+      , savMonospace, savFilters, savCookieSound
+      , savCrates, savBackupWarning ] -> SavePrefs{..}
+    actual -> error ("parsePrefs: Unexpected bits list: " ++ show actual)
 
 parse :: Text -> Either String SaveFile
 parse str =
@@ -179,12 +175,12 @@ data PantheonSave = PantheonSave
 parsePantheon :: Text -> Either String PantheonSave
 parsePantheon str =
   case Text.splitOn " " str of
-    [slotStrs, _swaps, _time] ->
+    [slotStrs, _swaps, _time, _other] ->
       do slots <- traverse parser (Text.splitOn "/" slotStrs)
          case slots of
            [slot1, slot2, slot3] -> pure (PantheonSave slot1 slot2 slot3)
            _ -> Left "Wrong number of slots"
-    _ -> Left "Wrong number of entries"
+    actual -> Left ("Wrong number of entries in: " ++ show actual)
 
 
 

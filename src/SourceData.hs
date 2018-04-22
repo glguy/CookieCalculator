@@ -114,7 +114,8 @@ mouseUpgrades :: [Text]
 mouseUpgrades =
   ["Plastic mouse", "Iron mouse", "Titanium mouse", "Adamantium mouse",
    "Unobtainium mouse", "Eludium mouse", "Wishalloy mouse", "Fantasteel mouse",
-   "Nevercrack mouse", "Armythril mouse"]
+   "Nevercrack mouse", "Armythril mouse", "Technobsidian mouse",
+   "Plasmarble mouse"]
 
 
 heartCookieNames :: [Text]
