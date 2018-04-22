@@ -581,3 +581,29 @@ upgradeRequirements = Map.fromList
       , (300, "Bunnypedes")
       ])
    ]
+
+-- | Achievements and cookies you unlock by having a certain number of every
+-- building. List is (quantity, achievement, upgrade)
+everythingBiscuits :: [(Int, Text, Text)]
+everythingBiscuits =
+  [ (100, "Centennial"                 , "Milk chocolate butter biscuit")
+  , (150, "Centennial and a half"      , "Dark chocolate butter biscuit")
+  , (200, "Bicentennial"               , "White chocolate butter biscuit")
+  , (250, "Bicentennial and a half"    , "Ruby chocolate butter biscuit")
+  , (300, "Tricentennial"              , "Lavender chocolate butter biscuit")
+  , (350, "Tricentennial and a half"   , "Synthetic chocolate green honey butter biscuit")
+  , (400, "Quadricentennial"           , "Royal raspberry chocolate butter biscuit")
+  , (450, "Quadricentennial and a half", "Ultra-concentrated high-energy chocolate butter biscuit")
+  ]
+
+
+
+
+
+
+
+
+
+
+
+

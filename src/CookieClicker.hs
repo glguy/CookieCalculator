@@ -163,12 +163,43 @@ payoff inp st =
             <- buyBuilding ++ buyUpgrades
             ++ buyGrandmas ++ buyUpgradeRequirements
             ++ buyAchievements
+            ++ nextEverythingBiscuit
      , let i' = f inp
      , let delta = computeCps i' (computeGameState i') - cps
      , delta > 0
      ]
 
   where
+  nextEverythingBiscuit = take 1 possibilities
+    where
+      fewestBuildings = minimum (view buildingsOwned inp)
+      possibilities =
+        [ -- label -------
+          ( show qty <> " each + " <> Text.unpack upgradeName
+          -- cost --------
+          , computeBuildingGoalCost qty inp st
+          + view upgradeCost upgrade
+          -- effect ------
+          , (buildingsOwned . mapped %~ max qty         )
+          . (upgradesBought          %~ cons upgrade    )
+          . (achievementsEarned      %~ cons achievement)
+          -- icon --------
+          , view upgradeIcon upgrade)
+
+          | (qty, achievementName, upgradeName) <- everythingBiscuits
+          , qty > fewestBuildings
+          , let upgrade =
+                  Map.findWithDefault
+                    (error ("Unknown upgrade: " ++ Text.unpack upgradeName))
+                    upgradeName
+                    upgradeByName
+          , let achievement =
+                  Map.findWithDefault
+                    (error ("Unknown achievement: " ++ Text.unpack achievementName))
+                     achievementName
+                     achievementByName
+          ]
+
   buyBuilding =
     [( buildingName x
      , cost
@@ -263,6 +294,15 @@ buyMore :: Int -> Double -> Double
 buyMore count nextPrice
   | count < 0 = error "buyMore: negative count"
   | otherwise = ceil' (nextPrice * (1 - 1.15 ^ count) / (1 - 1.15))
+
+-- | Compute the cost of buying buildings such that you have at least
+-- the given number of each building.
+computeBuildingGoalCost :: Int -> GameInput -> GameState -> Double
+computeBuildingGoalCost n inp st =
+    sum (Map.intersectionWith (\qty -> buyMore (max 0 (n - qty)))
+                              (view buildingsOwned inp)
+                              (buildingCosts inp st))
+
 
 computeGoldenSwitchMultiplier :: GameState -> Double
 computeGoldenSwitchMultiplier st
