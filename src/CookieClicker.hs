@@ -175,7 +175,7 @@ payoff inp st =
       fewestBuildings = minimum (view buildingsOwned inp)
       possibilities =
         [ -- label -------
-          ( show qty <> " each + " <> Text.unpack upgradeName
+          ( show qty <> " each + " <> Text.unpack uName
           -- cost --------
           , computeBuildingGoalCost qty inp st
           + view upgradeCost upgrade
@@ -186,12 +186,13 @@ payoff inp st =
           -- icon --------
           , view upgradeIcon upgrade)
 
-          | (qty, achievementName, upgradeName) <- everythingBiscuits
+          | (qty, achievementName, uName) <- everythingBiscuits
           , qty > fewestBuildings
+          , not (any (\u -> uName == view upgradeName u) (view upgradesBought inp))
           , let upgrade =
                   Map.findWithDefault
-                    (error ("Unknown upgrade: " ++ Text.unpack upgradeName))
-                    upgradeName
+                    (error ("Unknown upgrade: " ++ Text.unpack uName))
+                    uName
                     upgradeByName
           , let achievement =
                   Map.findWithDefault
