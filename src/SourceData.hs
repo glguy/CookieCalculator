@@ -137,71 +137,95 @@ regularEasterEggs =
 buildingTieredUpgrades :: Building -> [Text]
 buildingTieredUpgrades b =
   case b of
-    Cursor -> []
+    Cursor ->
+      []
 
-    Grandma -> [ "Forwards from grandma", "Steel-plated rolling pins",
-                 "Lubricated dentures", "Prune juice", "Double-thick glasses",
-                 "Aging agents", "Xtreme walkers", "The Unbridling",
-                 "Reverse dementia"]
+    Grandma -> [
+      "Forwards from grandma", "Steel-plated rolling pins",
+      "Lubricated dentures", "Prune juice", "Double-thick glasses",
+      "Aging agents", "Xtreme walkers", "The Unbridling",
+      "Reverse dementia", "Timeproof hair dyes", "Good manners" ]
 
-    Farm -> [ "Cheap hoes", "Fertilizer", "Cookie trees",
-              "Genetically-modified cookies", "Gingerbread scarecrows",
-              "Pulsar sprinklers", "Fudge fungus", "Wheat triffids",
-              "Humane pesticides"]
+    Farm -> [
+      "Cheap hoes", "Fertilizer", "Cookie trees",
+      "Genetically-modified cookies", "Gingerbread scarecrows",
+      "Pulsar sprinklers", "Fudge fungus", "Wheat triffids",
+      "Humane pesticides", "Barnstars", "Lindworms"]
 
-    Mine -> [ "Sugar gas", "Megadrill", "Ultradrill", "Ultimadrill",
-              "H-bomb mining", "Coreforge", "Planetsplitters",
-              "Canola oil wells", "Mole people"]
+    Mine -> [
+      "Sugar gas", "Megadrill", "Ultradrill", "Ultimadrill",
+      "H-bomb mining", "Coreforge", "Planetsplitters",
+      "Canola oil wells", "Mole people", "Mine canaries",
+      "Bore again" ]
 
-    Factory -> [ "Sturdier conveyor belts", "Child labor", "Sweatshop",
-                 "Radium reactors", "Recombobulators", "Deep-bake process",
-                 "Cyborg workforce", "78-hour days", "Machine learning" ]
+    Factory -> [
+      "Sturdier conveyor belts", "Child labor", "Sweatshop",
+      "Radium reactors", "Recombobulators", "Deep-bake process",
+      "Cyborg workforce", "78-hour days", "Machine learning",
+      "Brownie point system", "\"Volunteer\" interns" ]
 
-    Bank -> [ "Taller tellers", "Scissor-resistant credit cards",
-              "Acid-proof vaults", "Chocolate coins",
-              "Exponential interest rates", "Financial zen",
-              "Way of the wallet", "The stuff rationale", "Edible money" ]
+    Bank -> [
+      "Taller tellers", "Scissor-resistant credit cards",
+      "Acid-proof vaults", "Chocolate coins",
+      "Exponential interest rates", "Financial zen",
+      "Way of the wallet", "The stuff rationale", "Edible money",
+      "Grand supercycles", "Rules of acquisition" ]
 
-    Temple -> [ "Golden idols", "Sacrifices", "Delicious blessing",
-                "Sun festival", "Enlarged pantheon", "Great Baker in the sky",
-                "Creation myth", "Theocracy", "Sick rap prayers" ]
+    Temple -> [
+      "Golden idols", "Sacrifices", "Delicious blessing",
+      "Sun festival", "Enlarged pantheon", "Great Baker in the sky",
+      "Creation myth", "Theocracy", "Sick rap prayers", "Psalm-reading",
+      "War of the gods" ]
 
-    WizardTower -> [ "Pointier hats", "Beardlier beards", "Ancient grimoires",
-                     "Kitchen curses", "School of sorcery", "Dark formulas",
-                     "Cookiemancy", "Rabbit trick", "Deluxe tailored wands" ]
+    WizardTower -> [
+      "Pointier hats", "Beardlier beards", "Ancient grimoires",
+      "Kitchen curses", "School of sorcery", "Dark formulas",
+      "Cookiemancy", "Rabbit trick", "Deluxe tailored wands",
+      "Immobile spellcasting", "Electricity" ]
 
-    Shipment -> [ "Vanilla nebulae", "Wormholes", "Frequent flyer",
-                  "Warp drive", "Chocolate monoliths", "Generation ship",
-                  "Dyson sphere", "The final frontier", "Autopilot" ]
+    Shipment -> [
+      "Vanilla nebulae", "Wormholes", "Frequent flyer",
+      "Warp drive", "Chocolate monoliths", "Generation ship",
+      "Dyson sphere", "The final frontier", "Autopilot",
+      "Restaurants at the end of the universe", "Universal alphabet" ]
 
-    AlchemyLab -> [ "Antimony", "Essence of dough", "True chocolate",
-                    "Ambrosia", "Aqua crustulae", "Origin crucible",
-                    "Theory of atomic fluidity", "Beige goo", "The advent of chemistry" ]
+    AlchemyLab -> [
+      "Antimony", "Essence of dough", "True chocolate",
+      "Ambrosia", "Aqua crustulae", "Origin crucible",
+      "Theory of atomic fluidity", "Beige goo", "The advent of chemistry",
+      "On second thought", "Public betterment" ]
 
-    Portal -> [ "Ancient tablet", "Insane oatling workers", "Soul bond",
-                "Sanity dance", "Brane transplant", "Deity-sized portals",
-                "End of times back-up plan", "Maddening chants", "The real world" ]
+    Portal -> [
+      "Ancient tablet", "Insane oatling workers", "Soul bond",
+      "Sanity dance", "Brane transplant", "Deity-sized portals",
+      "End of times back-up plan", "Maddening chants", "The real world",
+      "Dimensional garbage gulper", "Embedded microportals" ]
 
-    TimeMachine -> [ "Flux capacitors", "Time paradox resolver",
-                     "Quantum conundrum", "Causality enforcer",
-                     "Yestermorrow comparators", "Far future enactment",
-                     "Great loop hypothesis", "Cookietopian moments of maybe",
-                     "Second seconds" ]
+    TimeMachine -> [
+      "Flux capacitors", "Time paradox resolver",
+      "Quantum conundrum", "Causality enforcer",
+      "Yestermorrow comparators", "Far future enactment",
+      "Great loop hypothesis", "Cookietopian moments of maybe",
+      "Second seconds", "Additional clock hands", "Nostalgia" ]
 
-    Antimatter -> [ "Sugar bosons", "String theory", "Large macaron collider",
-                    "Big bang bake", "Reverse cyclotrons", "Nanocosmics",
-                    "The Pulse",
-                    "Some other super-tiny fundamental particle? Probably?",
-                    "Quantum comb" ]
+    Antimatter -> [
+      "Sugar bosons", "String theory", "Large macaron collider",
+      "Big bang bake", "Reverse cyclotrons", "Nanocosmics",
+      "The Pulse", "Some other super-tiny fundamental particle? Probably?",
+      "Quantum comb", "Baking Nobel prize", "The definite molecule" ]
 
-    Prism -> [ "Gem polish", "9th color", "Chocolate light", "Grainbow",
-               "Pure cosmic light", "Glow-in-the-dark", "Lux sanctorum" ,
-               "Reverse shadows", "Crystal mirrors" ]
+    Prism -> [
+      "Gem polish", "9th color", "Chocolate light", "Grainbow",
+      "Pure cosmic light", "Glow-in-the-dark", "Lux sanctorum" ,
+      "Reverse shadows", "Crystal mirrors", "Reverse theory of light",
+      "Light capture measures" ]
 
-    Chancemaker -> [ "Your lucky cookie", "\"All Bets Are Off\" magic coin",
-                     "Winning lottery ticket", "Four-leaf clover field",
-                     "A recipe book about books", "Leprechaun village",
-                     "Improbability drive", "Antisuperstistronics", "Bunnypedes"]
+    Chancemaker -> [
+      "Your lucky cookie", "\"All Bets Are Off\" magic coin",
+      "Winning lottery ticket", "Four-leaf clover field",
+      "A recipe book about books", "Leprechaun village",
+      "Improbability drive", "Antisuperstistronics", "Bunnypedes",
+      "Revised probabilistics", "0-sided dice" ]
 
 
 
@@ -280,6 +304,7 @@ buildingAchievements = Map.fromList
       , (400, "Aged well")
       , (450, "101st birthday")
       , (500, "Defense of the ancients")
+      , (550, "But wait 'til you get older")
       ])
    , (Farm,
       [ (1, "My first farm")
@@ -292,6 +317,7 @@ buildingAchievements = Map.fromList
       , (350, "You and the beanstalk")
       , (400, "Harvest moon")
       , (450, "Make like a tree")
+      , (500, "Sharpest tool in the shed")
       ])
    , (Mine,
       [ (1, "You know the drill")
@@ -304,6 +330,7 @@ buildingAchievements = Map.fromList
       , (350, "Romancing the stone")
       , (400, "Mine?")
       , (450, "Cave story")
+      , (500, "Hey now, you're a rock")
       ])
    , (Factory,
       [ (1, "Production chain")
@@ -316,6 +343,7 @@ buildingAchievements = Map.fromList
       , (350, "Ex machina")
       , (400, "In full gear")
       , (450, "In-cog-neato")
+      , (500, "Break the mold")
       ])
    , (Bank,
       [ (1, "Pretty penny")
@@ -328,6 +356,7 @@ buildingAchievements = Map.fromList
       , (350, "And I need it now")
       , (400, "Treacle tart economics")
       , (450, "Save your breath because that's all you've got left")
+      , (500, "Get the show on, get paid")
       ])
    , (Temple,
       [ (1, "Your time to shrine")
@@ -338,8 +367,9 @@ buildingAchievements = Map.fromList
       , (250, "Zealotry")
       , (300, "Wololo")
       , (350, "Pray on the weak")
-      , (400, "Holy cookies, Grandma!")
+      , (400, "Holy cookies, grandma!")
       , (450, "Vengeful and almighty")
+      , (500, "My world's on fire, how about yours")
       ])
    , (WizardTower,
       [ (1, "Bewitched")
@@ -352,6 +382,7 @@ buildingAchievements = Map.fromList
       , (350, "It's a kind of magic")
       , (400, "The Prestige")
       , (450, "Spell it out for you")
+      , (500, "The meteor men beg to differ")
       ])
    , (Shipment,
       [ (1, "Expedition")
@@ -364,6 +395,7 @@ buildingAchievements = Map.fromList
       , (350, "Make it so")
       , (400, "That's just peanuts to space")
       , (450, "Space space space space space")
+      , (500, "Only shooting stars")
       ])
    , (AlchemyLab,
       [ (1, "Transmutation")
@@ -376,6 +408,7 @@ buildingAchievements = Map.fromList
       , (350, "All that glitters is gold")
       , (400, "Worth its weight in lead")
       , (450, "Don't get used to yourself, you're gonna have to change")
+      , (500, "We could all use a little change")
       ])
    , (Portal,
       [ (1, "A whole new world")
@@ -388,6 +421,7 @@ buildingAchievements = Map.fromList
       , (350, "H̸̷͓̳̳̯̟͕̟͍͍̣͡ḛ̢̦̰̺̮̝͖͖̘̪͉͘͡ ̠̦͕̤̪̝̥̰̠̫̖̣͙̬͘ͅC̨̦̺̩̲̥͉̭͚̜̻̝̣̼͙̮̯̪o̴̡͇̘͎̞̲͇̦̲͞͡m̸̩̺̝̣̹̱͚̬̥̫̳̼̞̘̯͘ͅẹ͇̺̜́̕͢s̶̙̟̱̥̮̯̰̦͓͇͖͖̝͘͘͞")
       , (400, "What happens in the vortex stays in the vortex")
       , (450, "Objects in the mirror dimension are closer than they appear")
+      , (500, "Your brain gets smart but your head gets dumb")
       ])
    , (TimeMachine,
       [ (1, "Time warp")
@@ -400,6 +434,7 @@ buildingAchievements = Map.fromList
       , (350, "Way back then")
       , (400, "Invited to yesterday's party")
       , (450, "Groundhog day")
+      , (500, "The years start coming")
       ])
    , (Antimatter,
       [ (1, "Antibatter")
@@ -412,6 +447,7 @@ buildingAchievements = Map.fromList
       , (350, "Exotic matter")
       , (400, "Downsizing")
       , (450, "A matter of perspective")
+      , (500, "What a concept")
       ])
    , (Prism,
       [ (1, "Lone photon")
@@ -424,6 +460,7 @@ buildingAchievements = Map.fromList
       , (350, "At the end of the tunnel")
       , (400, "My eyes")
       , (450, "Optical illusion")
+      , (500, "You'll never shine if you don't glow")
       ])
    , (Chancemaker,
       [ (1, "Lucked out")
@@ -436,6 +473,7 @@ buildingAchievements = Map.fromList
       , (350, "Dicey business")
       , (400, "Maybe a chance in hell, actually")
       , (450, "Jackpot")
+      , (500, "You'll never know if you don't go")
       ])
    ]
 
@@ -465,6 +503,8 @@ upgradeRequirements = Map.fromList
       , (200, "Xtreme walkers")
       , (250, "The Unbridling")
       , (300, "Reverse dementia")
+      , (350, "Timeproof hair dyes")
+      , (400, "Good manners")
       ])
    , (Farm,
       [ (1, "Cheap hoes")
@@ -476,6 +516,8 @@ upgradeRequirements = Map.fromList
       , (200, "Fudge fungus")
       , (250, "Wheat triffids")
       , (300, "Humane pesticides")
+      , (350, "Barnstars")
+      , (400, "Lindworms")
       ])
    , (Mine,
       [ (1, "Sugar gas")
@@ -487,6 +529,8 @@ upgradeRequirements = Map.fromList
       , (200, "Planetsplitters")
       , (250, "Canola oil wells")
       , (300, "Mole people")
+      , (350, "Mine canaries")
+      , (400, "Bore again")
       ])
    , (Factory,
       [ (1, "Sturdier conveyor belts")
@@ -498,6 +542,8 @@ upgradeRequirements = Map.fromList
       , (200, "Cyborg workforce")
       , (250, "78-hour days")
       , (300, "Machine learning")
+      , (350, "Brownie point system")
+      , (400, "\"Volunteer\" interns")
       ])
    , (Bank,
       [ (1, "Taller tellers")
@@ -509,6 +555,8 @@ upgradeRequirements = Map.fromList
       , (200, "Way of the wallet")
       , (250, "The stuff rationale")
       , (300, "Edible money")
+      , (350, "Grand supercycles")
+      , (400, "Rules of acquisition")
       ])
    , (Temple,
       [ (1, "Golden idols")
@@ -520,6 +568,8 @@ upgradeRequirements = Map.fromList
       , (200, "Creation myth")
       , (250, "Theocracy")
       , (300, "Sick rap prayers")
+      , (350, "Psalm-reading")
+      , (400, "War of the gods")
       ])
    , (WizardTower,
       [ (1, "Pointier hats")
@@ -531,6 +581,8 @@ upgradeRequirements = Map.fromList
       , (200, "Cookiemancy")
       , (250, "Rabbit trick")
       , (300, "Deluxe tailored wands")
+      , (350, "Immobile spellcasting")
+      , (400, "Electricity")
       ])
    , (Shipment,
       [ (1, "Vanilla nebulae")
@@ -542,6 +594,8 @@ upgradeRequirements = Map.fromList
       , (200, "Dyson sphere")
       , (250, "The final frontier")
       , (300, "Autopilot")
+      , (350, "Restaurants at the end of the universe")
+      , (400, "Universal alphabet")
       ])
    , (AlchemyLab,
       [ (1, "Antimony")
@@ -553,6 +607,8 @@ upgradeRequirements = Map.fromList
       , (200, "Theory of atomic fluidity")
       , (250, "Beige goo")
       , (300, "The advent of chemistry")
+      , (350, "On second thought")
+      , (400, "Public betterment")
       ])
    , (Portal,
       [ (1, "Ancient tablet")
@@ -564,6 +620,8 @@ upgradeRequirements = Map.fromList
       , (200, "End of times back-up plan")
       , (250, "Maddening chants")
       , (300, "The real world")
+      , (350, "Dimensional garbage gulper")
+      , (400, "Embedded microportals")
       ])
    , (TimeMachine,
       [ (1, "Flux capacitors")
@@ -575,6 +633,8 @@ upgradeRequirements = Map.fromList
       , (200, "Great loop hypothesis")
       , (250, "Cookietopian moments of maybe")
       , (300, "Second seconds")
+      , (350, "Additional clock hands")
+      , (400, "Nostalgia")
       ])
    , (Antimatter,
       [ (1, "Sugar bosons")
@@ -586,6 +646,8 @@ upgradeRequirements = Map.fromList
       , (200, "The Pulse")
       , (250, "Some other super-tiny fundamental particle? Probably?")
       , (300, "Quantum comb")
+      , (350, "Baking Nobel prize")
+      , (400, "The definite molecule")
       ])
    , (Prism,
       [ (1, "Gem polish")
@@ -597,6 +659,8 @@ upgradeRequirements = Map.fromList
       , (200, "Lux sanctorum")
       , (250, "Reverse shadows")
       , (300, "Crystal mirrors")
+      , (350, "Reverse theory of light")
+      , (400, "Light capture measures")
       ])
    , (Chancemaker,
       [ (1, "Your lucky cookie")
@@ -608,6 +672,8 @@ upgradeRequirements = Map.fromList
       , (200, "Improbability drive")
       , (250, "Antisuperstistronics")
       , (300, "Bunnypedes")
+      , (350, "Revised probabilistics")
+      , (400, "0-sided dice")
       ])
    ]
 
@@ -623,6 +689,7 @@ everythingBiscuits =
   , (350, "Tricentennial and a half"   , "Synthetic chocolate green honey butter biscuit")
   , (400, "Quadricentennial"           , "Royal raspberry chocolate butter biscuit")
   , (450, "Quadricentennial and a half", "Ultra-concentrated high-energy chocolate butter biscuit")
+  , (500, "Quincentennial"             , "Pure pitch-black chocolate butter biscuit")
   ]
 
 

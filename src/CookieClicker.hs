@@ -554,6 +554,7 @@ upgradeEffects = Map.fromList $
    , ("Kitten consultants", kittenBonus 20)
    , ("Kitten assistants to the regional manager", kittenBonus 17.5)
    , ("Kitten marketeers" , kittenBonus 15)
+   , ("Kitten analysts"   , kittenBonus 12.5)
    , ("Kitten angels"     , kittenBonus 10)
 
    , ("Bingo center/Research facility", \_ -> buildingMult Grandma *~ 4)
@@ -711,6 +712,7 @@ upgradeEffects = Map.fromList $
    , ("Heavenly cookies", cookieBonus 10)
 
    , ("Sugar baking", \inp -> cookieBonus (inp ^. sugarLumps) inp)
+   , ("Sugar frenzy", noEffect)
    ]
 
 elderBatallion :: Effect
@@ -832,7 +834,7 @@ saveFileToGameInput now sav = GameInput
 
   pantheonValue =
     case Map.lookup Temple (savBuildings sav) of
-      Just BuildingSave { bldgMinigame = Just str } ->
+      Just BuildingSave { bldgMinigame = str:_ } ->
         case parsePantheon str of
           Right x -> x
           Left e -> error e

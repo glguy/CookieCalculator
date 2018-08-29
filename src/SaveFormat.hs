@@ -25,7 +25,7 @@ import qualified Data.Text as Text
 data BuildingSave = BuildingSave
   { bldgCurrent, bldgTotal, bldgSpecial :: Int
   , bldgBaked :: Double
-  , bldgMinigame :: Maybe Text }
+  , bldgMinigame :: [Text] }
   deriving (Show)
 
 -- NOTE: The order of the fields in SaveStats, SavePrefs, and SaveMain
@@ -109,21 +109,22 @@ decodeSaveString raw =
          txt = decodeUtf8 (B8.pack (Text.unpack (decodeUtf8 utf8utf8))) -- sorry, not my format
      return txt
 
+-- encodeSaveString :: Text -> String
+encodeSaveString str = B8.unpack (utf8Bytes <> "%21END%21\n")
+  where
+    utf8Bytes = Data.ByteString.Base64.encode (encodeUtf8 (Text.pack (B8.unpack (encodeUtf8 str))))
+
 loadSave :: String -> Either String SaveFile
 loadSave raw = parse =<< decodeSaveString raw
 
 parseBldg :: Text -> Either String BuildingSave
 parseBldg str =
-  do let bldgCurrentStr : bldgTotalStr : bldgBakedStr : bldgSpecialStr : bldgMinigameStrs
+  do let bldgCurrentStr : bldgTotalStr : bldgBakedStr : bldgSpecialStr : bldgMinigame
             = Text.splitOn "," str
      bldgCurrent <- fst <$> decimal bldgCurrentStr
      bldgTotal   <- fst <$> decimal bldgTotalStr
      bldgBaked   <- fst <$> rational bldgBakedStr
      bldgSpecial <- fst <$> decimal bldgSpecialStr
-     bldgMinigame <- case bldgMinigameStrs of
-                       []  -> pure Nothing
-                       [x] -> pure (Just x)
-                       _   -> Left "too many minigame strings"
      return BuildingSave{..}
 
 unpackBits :: Text -> [Bool]
@@ -145,7 +146,7 @@ parsePrefs x =
       , savMilk, savFancy, savWarn, savCursors
       , savFocus, savFormat, savNotifs, savWobbly
       , savMonospace, savFilters, savCookieSound
-      , savCrates, savBackupWarning ] -> SavePrefs{..}
+      , savCrates, savBackupWarning, _, _ ] -> SavePrefs{..}
     actual -> error ("parsePrefs: Unexpected bits list: " ++ show actual)
 
 parse :: Text -> Either String SaveFile
@@ -177,9 +178,9 @@ parsePantheon str =
   case Text.splitOn " " str of
     [slotStrs, _swaps, _time, _other] ->
       do slots <- traverse parser (Text.splitOn "/" slotStrs)
-         case slots of
-           [slot1, slot2, slot3] -> pure (PantheonSave slot1 slot2 slot3)
-           _ -> Left "Wrong number of slots"
+         -- extra permissive to deal with incorrectly encoded slots after a change
+         case slots ++ repeat (-1) of
+           slot1 : slot2 : slot3 : _ -> pure (PantheonSave slot1 slot2 slot3)
     actual -> Left ("Wrong number of entries in: " ++ show actual)
 
 
