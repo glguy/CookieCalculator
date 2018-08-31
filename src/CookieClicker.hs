@@ -711,7 +711,7 @@ upgradeEffects = Map.fromList $
    , ("Golden cookie sound selector", noEffect)
    , ("Heavenly cookies", cookieBonus 10)
 
-   , ("Sugar baking", \inp -> cookieBonus (inp ^. sugarLumps) inp)
+   , ("Sugar baking", \inp -> cookieBonus (min 100 (inp ^. sugarLumps)) inp)
    , ("Sugar frenzy", noEffect)
    ]
 
