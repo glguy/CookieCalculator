@@ -834,6 +834,8 @@ saveFileToGameInput now sav = GameInput
 
   pantheonValue =
     case Map.lookup Temple (savBuildings sav) of
+      Just BuildingSave { bldgMinigame = "":_ } ->
+        PantheonSave (-1) (-1) (-1)
       Just BuildingSave { bldgMinigame = str:_ } ->
         case parsePantheon str of
           Right x -> x

@@ -22,14 +22,14 @@ library
   exposed-modules:     CookieClicker, SaveFormat, Building, GameInput, SourceData, AesonTH, Math
   other-modules:       CApi
   build-depends:       base              >=4.8 && <4.12,
-                       aeson             >=0.9  && <1.3,
+                       aeson             >=0.9  && <1.5,
                        base64-bytestring >=1.0  && <1.1,
                        bytestring        >=0.10 && <0.11,
                        containers        >=0.5  && <0.6,
                        lens              >=4.13 && <4.18,
                        template-haskell  >=2.10 && <2.14,
                        text              >=1.2  && <1.3,
-                       time              >=1.5  && <1.7
+                       time              >=1.5  && <1.10
 
   default-language:    Haskell2010
 
@@ -39,8 +39,8 @@ executable CookieClickerGtk
   other-modules:       AutoBuilder
 
   build-depends:       base              >=4.8  && <4.12,
-                       lens              >=4.13 && <4.17,
-                       time              >=1.5  && <1.7,
+                       lens              >=4.13 && <4.18,
+                       time              >=1.5  && <1.10,
                        containers        >=0.5  && <0.6,
                        text              >=1.2  && <1.3,
                        haskell-gi-base, gi-gdk, gi-gtk >= 3.0.11 && <3.1, gi-gdkpixbuf >= 2.0.15 && < 2.1,
