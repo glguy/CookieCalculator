@@ -189,7 +189,9 @@ class    HasParser a       where parser :: Text -> Either String a
 instance HasParser Double  where parser x = fst <$> signed rational x
 instance HasParser Int     where parser x = fst <$> signed decimal x
 instance HasParser Text    where parser = Right
-instance HasParser UTCTime where parser x = integerToUTCTime . fst <$> decimal x
+instance HasParser UTCTime where
+  parser "NaN" = Right (posixSecondsToUTCTime 0)
+  parser x = integerToUTCTime . fst <$> decimal x
 
 class Populate a r where
   populate :: [Text] -> a -> Either String r

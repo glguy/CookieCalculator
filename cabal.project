@@ -1,0 +1,5 @@
+packages:
+  ./CookieCalculator.cabal
+
+package haskell-gi-overloading
+  documentation: False
