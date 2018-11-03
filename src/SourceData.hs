@@ -7,6 +7,7 @@ import           AesonTH
 import           GameInput
 import           Building
 import           Math
+import           Plant
 
 import           Control.Lens hiding (Prism)
 import           Language.Haskell.TH.Syntax
@@ -14,6 +15,10 @@ import           Data.Map (Map)
 import           Data.Text (Text)
 import qualified Data.Map as Map
 
+plantById :: [Plant]
+plantById =
+  $(do xs <- loadAeson "plants.json"
+       lift (xs :: [Plant]))
 
 upgradeById :: [Upgrade]
 upgradeById =
@@ -58,6 +63,7 @@ baseCps = Map.fromList
   , (Antimatter,        430.0e6)
   , (Prism,              2.90e9)
   , (Chancemaker,        21.0e9)
+  , (FractalEngine,     150.0e9)
   ]
 
 initialCosts :: Map Building Double
@@ -77,6 +83,7 @@ initialCosts = Map.fromList
   , (Antimatter,       170.0e12)
   , (Prism,              2.1e15)
   , (Chancemaker,       26.0e15)
+  , (FractalEngine,   310.0e15)
   ]
 
 baseCpsForTier :: Int -> Double
@@ -100,6 +107,7 @@ synergyGrandmas =
   , (Antimatter , "Antigrandmas")
   , (Prism      , "Rainbow grandmas")
   , (Chancemaker, "Lucky grandmas")
+  , (FractalEngine, "Metagrandmas")
   ]
 
 santaUpgrades :: [Text]
@@ -227,6 +235,13 @@ buildingTieredUpgrades b =
       "Improbability drive", "Antisuperstistronics", "Bunnypedes",
       "Revised probabilistics", "0-sided dice" ]
 
+    FractalEngine -> [
+      "Metabakeries", "Mandelbrown sugar", "Fractoids",
+      "Nested universe theory", "Menger sponge cake",
+      "One particularly good-humored cow", "Chocolate ouroboros",
+      "Nested", "Space-filling fibers", "Endless book of prose",
+      "The set of all sets" ]
+
 
 
 synergies :: [(Text, Building, Building)]
@@ -244,6 +259,7 @@ synergies =
    , ("Relativistic parsec-skipping", Shipment   , TimeMachine)
    , ("Light magic"                 , WizardTower, Prism      )
    , ("Charm quarks"                , Antimatter , Chancemaker)
+   , ("Recursive Mirrors"           , Prism      , FractalEngine)
 
    , ("Rain prayer"                 , Farm       , Temple     )
    , ("Asteroid mining"             , Mine       , Shipment   )
@@ -258,6 +274,7 @@ synergies =
    , ("Chemical proficiency"        , AlchemyLab , Antimatter )
    , ("Mystical energies"           , Temple     , Prism      )
    , ("Gemmed talismans"            , Mine       , Chancemaker)
+   , ("Mice clicking mice"          , Cursor     , FractalEngine)
    ]
 
 buildingIcons :: Building -> (Int,Int)
@@ -276,6 +293,7 @@ buildingIcons Bank = (15,0)
 buildingIcons Temple = (16,0)
 buildingIcons WizardTower = (17,0)
 buildingIcons Chancemaker = (19,0)
+buildingIcons FractalEngine = (20,0)
 
 
 
@@ -475,6 +493,19 @@ buildingAchievements = Map.fromList
       , (450, "Jackpot")
       , (500, "You'll never know if you don't go")
       ])
+   , (FractalEngine,
+      [ (1, "Self-contained")
+      , (50, "Threw you for a loop")
+      , (100, "The sum of its parts")
+      , (150, "Bears repeating")
+      , (200, "More of the same")
+      , (250, "Last recurse")
+      , (300, "Out of one, many")
+      , (350, "An example of recursion")
+      , (400, "For more information on this achievement, please refer to its title")
+      , (450, "I\'m so meta, even this achievement")
+      , (500, "Never get bored")
+      ])
    ]
 
 upgradeRequirements :: Map.Map Building [(Int, Text)]
@@ -483,15 +514,15 @@ upgradeRequirements = Map.fromList
       [ (1, "Reinforced index finger")
       , (1, "Carpal tunnel prevention cream")
       , (10, "Ambidextrous")
-      , (20, "Thousand fingers")
-      , (40, "Million fingers")
-      , (80, "Billion fingers")
-      , (120, "Trillion fingers")
-      , (160, "Quadrillion fingers")
-      , (200, "Quintillion fingers")
-      , (240, "Sextillion fingers")
-      , (280, "Septillion fingers")
-      , (320, "Octillion fingers")
+      , (25, "Thousand fingers")
+      , (50, "Million fingers")
+      , (100, "Billion fingers")
+      , (150, "Trillion fingers")
+      , (200, "Quadrillion fingers")
+      , (250, "Quintillion fingers")
+      , (300, "Sextillion fingers")
+      , (350, "Septillion fingers")
+      , (400, "Octillion fingers")
       ])
    , (Grandma,
       [ (1, "Forwards from grandma")
@@ -675,6 +706,19 @@ upgradeRequirements = Map.fromList
       , (350, "Revised probabilistics")
       , (400, "0-sided dice")
       ])
+   , (FractalEngine,
+      [ (1, "Metabakeries")
+      , (5, "Mandelbrown sugar")
+      , (25, "Fractoids")
+      , (50, "Nested universe theory")
+      , (100, "Menger sponge cake")
+      , (150, "One particularly good-humored cow")
+      , (200, "Chocolate ouroboros")
+      , (250, "Nested")
+      , (300, "Space-filling fibers")
+      , (350, "Endless book of prose")
+      , (400, "The set of all sets")
+      ])
    ]
 
 -- | Achievements and cookies you unlock by having a certain number of every
@@ -691,15 +735,3 @@ everythingBiscuits =
   , (450, "Quadricentennial and a half", "Ultra-concentrated high-energy chocolate butter biscuit")
   , (500, "Quincentennial"             , "Pure pitch-black chocolate butter biscuit")
   ]
-
-
-
-
-
-
-
-
-
-
-
-

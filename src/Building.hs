@@ -16,6 +16,7 @@ data Building
   | Antimatter
   | Prism
   | Chancemaker
+  | FractalEngine
   deriving (Read, Show, Eq, Ord, Enum)
 
 buildingName :: Building -> String
@@ -36,3 +37,4 @@ buildingName b =
     Antimatter -> "Antimatter condenser"
     Prism -> "Prism"
     Chancemaker -> "Chancemaker"
+    FractalEngine -> "Fractal engine"
