@@ -15,7 +15,7 @@ loadAeson path =
        Right v -> return v
        Left  e -> fail e
 
-liftResult :: Monad m => Result a -> m a
+liftResult :: MonadFail m => Result a -> m a
 liftResult (Error   e) = fail e
 liftResult (Success x) = return x
 

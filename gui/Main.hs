@@ -1,4 +1,5 @@
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DeriveGeneric #-}
@@ -286,6 +287,6 @@ loadIcons =
 gobjectToGValue ::
   forall o. (Gdk.ManagedPtrNewtype o, Gdk.GObject o) => o -> IO Gdk.GValue
 gobjectToGValue o =
-  do ty <- Gdk.gobjectType o
+  do ty <- Gdk.gobjectType @o
      withForeignPtr (Gdk.managedForeignPtr (coerce o :: Gdk.ManagedPtr o))
        (GValue.buildGValue ty GValue.set_object)

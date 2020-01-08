@@ -7,18 +7,12 @@ import           AesonTH
 import           GameInput
 import           Building
 import           Math
-import           Plant
 
 import           Control.Lens hiding (Prism)
 import           Language.Haskell.TH.Syntax
 import           Data.Map (Map)
 import           Data.Text (Text)
 import qualified Data.Map as Map
-
-plantById :: [Plant]
-plantById =
-  $(do xs <- loadAeson "plants.json"
-       lift (xs :: [Plant]))
 
 upgradeById :: [Upgrade]
 upgradeById =

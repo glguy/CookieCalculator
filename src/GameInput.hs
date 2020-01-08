@@ -126,11 +126,6 @@ myDeriveJSON ''Achievement
   , ("_achievementPool", "pool")
   ]
 
-instance Lift Text where
-  lift txt = [| Text.pack str |]
-    where
-    str = Text.unpack txt
-
 instance Lift Upgrade where
   lift (Upgrade v w x y z) = [| Upgrade v w x y z |]
 
