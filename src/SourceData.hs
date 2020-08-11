@@ -58,6 +58,7 @@ baseCps = Map.fromList
   , (Prism,              2.90e9)
   , (Chancemaker,        21.0e9)
   , (FractalEngine,     150.0e9)
+  , (JavascriptConsole,   1.1e12)
   ]
 
 initialCosts :: Map Building Double
@@ -77,7 +78,8 @@ initialCosts = Map.fromList
   , (Antimatter,       170.0e12)
   , (Prism,              2.1e15)
   , (Chancemaker,       26.0e15)
-  , (FractalEngine,   310.0e15)
+  , (FractalEngine,    310.0e15)
+  , (JavascriptConsole,71.0e18)
   ]
 
 baseCpsForTier :: Int -> Double
@@ -102,6 +104,7 @@ synergyGrandmas =
   , (Prism      , "Rainbow grandmas")
   , (Chancemaker, "Lucky grandmas")
   , (FractalEngine, "Metagrandmas")
+  , (JavascriptConsole, "Binary grandmas")
   ]
 
 santaUpgrades :: [Text]
@@ -236,6 +239,11 @@ buildingTieredUpgrades b =
       "Nested", "Space-filling fibers", "Endless book of prose",
       "The set of all sets" ]
 
+    JavascriptConsole -> [
+      "The JavaScript console for dummies", "64bit arrays",
+      "Stack overflow", "Enterprise compiler", "Syntactic sugar",
+      "A nice cup of coffee", "Just-in-time baking", "cookies++",
+      "Software updates", "Game.Loop", "eval()" ]
 
 
 synergies :: [(Text, Building, Building)]
@@ -253,7 +261,7 @@ synergies =
    , ("Relativistic parsec-skipping", Shipment   , TimeMachine)
    , ("Light magic"                 , WizardTower, Prism      )
    , ("Charm quarks"                , Antimatter , Chancemaker)
-   , ("Recursive Mirrors"           , Prism      , FractalEngine)
+   , ("Recursive mirrors"           , Prism      , FractalEngine)
 
    , ("Rain prayer"                 , Farm       , Temple     )
    , ("Asteroid mining"             , Mine       , Shipment   )
@@ -269,6 +277,9 @@ synergies =
    , ("Mystical energies"           , Temple     , Prism      )
    , ("Gemmed talismans"            , Mine       , Chancemaker)
    , ("Mice clicking mice"          , Cursor     , FractalEngine)
+
+   , ("Script grannies", JavascriptConsole, Grandma)
+   , ("Tombola computing", JavascriptConsole, Chancemaker)
    ]
 
 buildingIcons :: Building -> (Int,Int)
@@ -288,6 +299,7 @@ buildingIcons Temple = (16,0)
 buildingIcons WizardTower = (17,0)
 buildingIcons Chancemaker = (19,0)
 buildingIcons FractalEngine = (20,0)
+buildingIcons JavascriptConsole = (32,0)
 
 
 
@@ -499,6 +511,19 @@ buildingAchievements = Map.fromList
       , (400, "For more information on this achievement, please refer to its title")
       , (450, "I\'m so meta, even this achievement")
       , (500, "Never get bored")
+      ])
+   , (JavascriptConsole,
+      [ (1, "F12")
+      , (50, "Variable success")
+      , (100, "No comments")
+      , (150, "Up to code")
+      , (200, "Works on my machine")
+      , (250, "Technical debt")
+      , (300, "Mind your language")
+      , (350, "Inconsolable")
+      , (400, "Closure")
+      , (450, "Dude what if we're all living in a simulation like what if we're all just code on a computer somewhere")
+      , (500, "Taking the back streets")
       ])
    ]
 
@@ -712,6 +737,19 @@ upgradeRequirements = Map.fromList
       , (300, "Space-filling fibers")
       , (350, "Endless book of prose")
       , (400, "The set of all sets")
+      ])
+   , (JavascriptConsole,
+      [ (1, "The JavaScript console for dummies")
+      , (5, "64bit arrays")
+      , (25, "Stack overflow")
+      , (50, "Enterprise compiler")
+      , (100, "Syntactic sugar")
+      , (150, "A nice cup of coffee")
+      , (200, "Just-in-time baking")
+      , (250, "cookies++")
+      , (300, "Software updates")
+      , (350, "Game.Loop")
+      , (400, "eval()")
       ])
    ]
 

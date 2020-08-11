@@ -35,6 +35,7 @@ import           GHC.Generics
 import           Numeric (showFFloat)
 
 import qualified Data.GI.Base.GValue as GValue
+import qualified Data.GI.Base as Base
 import           GI.Gtk (new, get, set, AttrOp(..))
 import qualified GI.Gtk as Gtk
 import qualified GI.GdkPixbuf as Gdk
@@ -287,6 +288,6 @@ loadIcons =
 gobjectToGValue ::
   forall o. (Gdk.ManagedPtrNewtype o, Gdk.GObject o) => o -> IO Gdk.GValue
 gobjectToGValue o =
-  do ty <- Gdk.gobjectType @o
+  do ty <- Base.glibType @o
      withForeignPtr (Gdk.managedForeignPtr (coerce o :: Gdk.ManagedPtr o))
        (GValue.buildGValue ty GValue.set_object)

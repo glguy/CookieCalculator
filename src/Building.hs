@@ -17,6 +17,7 @@ data Building
   | Prism
   | Chancemaker
   | FractalEngine
+  | JavascriptConsole
   deriving (Read, Show, Eq, Ord, Enum)
 
 buildingName :: Building -> String
@@ -38,3 +39,4 @@ buildingName b =
     Prism -> "Prism"
     Chancemaker -> "Chancemaker"
     FractalEngine -> "Fractal engine"
+    JavascriptConsole -> "Javascript console"

@@ -555,6 +555,7 @@ upgradeEffects = Map.fromList $
    , ("Kitten assistants to the regional manager", kittenBonus 17.5)
    , ("Kitten marketeers" , kittenBonus 15)
    , ("Kitten analysts"   , kittenBonus 12.5)
+   , ("Kitten executives" , kittenBonus 11.5)
    , ("Kitten angels"     , kittenBonus 10)
 
    , ("Bingo center/Research facility", \_ -> buildingMult Grandma *~ 4)
