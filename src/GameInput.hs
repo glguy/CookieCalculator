@@ -8,6 +8,7 @@ import AesonTH
 import SaveFormat (PantheonSave(..))
 
 import Data.Text (Text)
+import Instances.TH.Lift()
 import qualified Data.Text as Text
 import Data.Map (Map)
 import Control.Lens
