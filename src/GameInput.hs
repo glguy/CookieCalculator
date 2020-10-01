@@ -128,7 +128,7 @@ myDeriveJSON ''Achievement
   ]
 
 instance Lift Upgrade where
-  lift (Upgrade v w x y z) = [| Upgrade v w x y z |]
+  liftTyped (Upgrade v w x y z) = [|| Upgrade v w x y z ||]
 
 instance Lift Achievement where
-  lift (Achievement x y) = [| Achievement x y |]
+  liftTyped (Achievement x y) = [|| Achievement x y ||]

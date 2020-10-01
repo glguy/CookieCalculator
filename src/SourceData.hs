@@ -278,8 +278,8 @@ synergies =
    , ("Gemmed talismans"            , Mine       , Chancemaker)
    , ("Mice clicking mice"          , Cursor     , FractalEngine)
 
-   , ("Script grannies", JavascriptConsole, Grandma)
-   , ("Tombola computing", JavascriptConsole, Chancemaker)
+   , ("Script grannies", Grandma, JavascriptConsole)
+   , ("Tombola computing", Chancemaker, JavascriptConsole)
    ]
 
 buildingIcons :: Building -> (Int,Int)

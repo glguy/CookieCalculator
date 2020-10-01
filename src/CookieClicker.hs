@@ -714,6 +714,7 @@ upgradeEffects = Map.fromList $
 
    , ("Sugar baking", \inp -> cookieBonus (max 0 (min 100 (inp ^. sugarLumps))) inp)
    , ("Sugar frenzy", noEffect)
+   , ("Sugar crystal cookies", \inp -> cookieBonus (5 + length (Map.filter (>=10) (view buildingLevels inp))) inp)
    ]
 
 elderBatallion :: Effect
